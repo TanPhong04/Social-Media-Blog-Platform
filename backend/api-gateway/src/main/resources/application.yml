@@ -1,0 +1,41 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/users/**
+        - id: article-service
+          uri: ${ARTICLE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/articles/**
+        - id: comment-service
+          uri: ${COMMENT_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/comments/**
+        - id: interaction-service
+          uri: ${INTERACTION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/interactions/**
+        - id: follower-service
+          uri: ${FOLLOWER_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/v1/follows/**
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/v1/notifications/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: "*"
+            exposedHeaders: [X-Correlation-ID]
+management:
+  endpoints.web.exposure.include: health,info,prometheus

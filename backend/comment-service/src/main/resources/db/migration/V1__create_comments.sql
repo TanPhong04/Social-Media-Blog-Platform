@@ -1,0 +1,2 @@
+CREATE TABLE comments(id UUID PRIMARY KEY,article_id UUID NOT NULL,author_id UUID NOT NULL,parent_id UUID REFERENCES comments(id),content VARCHAR(2000) NOT NULL,status VARCHAR(20) NOT NULL,created_at TIMESTAMP WITH TIME ZONE NOT NULL,updated_at TIMESTAMP WITH TIME ZONE NOT NULL);
+CREATE INDEX idx_comments_article_created ON comments(article_id,created_at);CREATE INDEX idx_comments_parent ON comments(parent_id);

@@ -1,0 +1,19 @@
+server.port: 8086
+spring:
+  application.name: notification-service
+  datasource:
+    url: ${NOTIFICATION_DB_URL:jdbc:postgresql://localhost:5432/notification_db}
+    username: ${POSTGRES_USER:blog}
+    password: ${POSTGRES_PASSWORD:blog}
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+  flyway.enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+app:
+  kafka.consumer-enabled: ${KAFKA_CONSUMER_ENABLED:true}
+  security.jwt-secret: ${JWT_SECRET:change-this-development-secret-to-at-least-32-bytes}

@@ -1,0 +1,2 @@
+package com.socialblog.comment.api;import jakarta.validation.constraints.*;import java.time.Instant;import java.util.UUID;
+public final class CommentDtos{private CommentDtos(){}public record CreateRequest(@NotNull UUID articleId,UUID parentId,@NotBlank @Size(max=2000)String content){}public record UpdateRequest(@NotBlank @Size(max=2000)String content){}public record Response(UUID id,UUID articleId,UUID authorId,UUID parentId,String content,String status,Instant createdAt,Instant updatedAt){}}

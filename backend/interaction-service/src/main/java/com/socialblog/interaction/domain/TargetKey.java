@@ -1,0 +1,1 @@
+package com.socialblog.interaction.domain;import jakarta.persistence.*;import java.io.Serializable;import java.util.UUID;@Embeddable public record TargetKey(@Enumerated(EnumType.STRING)@Column(name="target_type")TargetType type,@Column(name="target_id")UUID id)implements Serializable{}

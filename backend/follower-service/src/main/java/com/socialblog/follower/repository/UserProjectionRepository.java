@@ -1,0 +1,1 @@
+package com.socialblog.follower.repository;import com.socialblog.follower.domain.UserProjection;import org.springframework.data.jpa.repository.JpaRepository;import java.util.UUID;public interface UserProjectionRepository extends JpaRepository<UserProjection,UUID>{boolean existsByIdAndActiveTrue(UUID id);}

@@ -1,0 +1,6 @@
+package com.socialblog.article.repository;
+import com.socialblog.article.domain.OutboxEvent;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;import java.util.*;
+public interface OutboxEventRepository extends JpaRepository<OutboxEvent,UUID>{
+ @Query(value="SELECT * FROM outbox_events WHERE status='PENDING' ORDER BY occurred_at FOR UPDATE SKIP LOCKED LIMIT :limit",nativeQuery=true)List<OutboxEvent>lockPendingBatch(@Param("limit")int limit);
+ long countByStatus(OutboxEvent.Status status);
+}

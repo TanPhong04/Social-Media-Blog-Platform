@@ -1,0 +1,33 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: ${USER_DB_URL:jdbc:postgresql://localhost:5432/user_db}
+    username: ${POSTGRES_USER:blog}
+    password: ${POSTGRES_PASSWORD:blog}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+management:
+  endpoints.web.exposure.include: health,info,prometheus
+app:
+  outbox:
+    publisher-enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
+    fixed-delay-ms: 1000
+    batch-size: 50
+    max-attempts: 10
+    topic: users.events
+  security:
+    jwt-secret: ${JWT_SECRET:change-this-development-secret-to-at-least-32-bytes}
+    access-token-minutes: 15
+    refresh-token-days: 30

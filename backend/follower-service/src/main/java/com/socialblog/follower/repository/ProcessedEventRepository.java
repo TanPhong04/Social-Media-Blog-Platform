@@ -1,0 +1,1 @@
+package com.socialblog.follower.repository;import com.socialblog.follower.domain.ProcessedEvent;import org.springframework.data.jpa.repository.JpaRepository;import java.util.UUID;public interface ProcessedEventRepository extends JpaRepository<ProcessedEvent,UUID>{}

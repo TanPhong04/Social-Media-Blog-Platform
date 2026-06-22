@@ -1,0 +1,1 @@
+package com.socialblog.interaction.repository;import com.socialblog.interaction.domain.ProcessedEvent;import org.springframework.data.jpa.repository.JpaRepository;import java.util.UUID;public interface ProcessedEventRepository extends JpaRepository<ProcessedEvent,UUID>{}

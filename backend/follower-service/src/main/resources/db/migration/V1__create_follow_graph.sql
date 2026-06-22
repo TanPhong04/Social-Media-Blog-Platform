@@ -1,0 +1,5 @@
+CREATE TABLE user_projection(user_id UUID PRIMARY KEY,active BOOLEAN NOT NULL,display_name VARCHAR(80),updated_at TIMESTAMP WITH TIME ZONE NOT NULL);
+CREATE TABLE follows(id UUID PRIMARY KEY,follower_id UUID NOT NULL,followed_id UUID NOT NULL,created_at TIMESTAMP WITH TIME ZONE NOT NULL,CONSTRAINT uk_follow_pair UNIQUE(follower_id,followed_id),CONSTRAINT ck_no_self_follow CHECK(follower_id<>followed_id));
+CREATE INDEX idx_follows_follower ON follows(follower_id,created_at DESC);CREATE INDEX idx_follows_followed ON follows(followed_id,created_at DESC);
+CREATE TABLE outbox_events(id UUID PRIMARY KEY,aggregate_type VARCHAR(80) NOT NULL,aggregate_id UUID NOT NULL,event_type VARCHAR(120) NOT NULL,event_version INTEGER NOT NULL,payload TEXT NOT NULL,occurred_at TIMESTAMP WITH TIME ZONE NOT NULL,published_at TIMESTAMP WITH TIME ZONE,attempts INTEGER NOT NULL DEFAULT 0,status VARCHAR(20) NOT NULL);CREATE INDEX idx_follower_outbox_pending ON outbox_events(status,occurred_at);
+CREATE TABLE processed_events(event_id UUID PRIMARY KEY,event_type VARCHAR(120) NOT NULL,processed_at TIMESTAMP WITH TIME ZONE NOT NULL);

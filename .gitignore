@@ -1,0 +1,12 @@
+.idea/
+.vscode/
+**/target/
+**/.classpath
+**/.project
+**/.settings/
+*.iml
+.env
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins*
+

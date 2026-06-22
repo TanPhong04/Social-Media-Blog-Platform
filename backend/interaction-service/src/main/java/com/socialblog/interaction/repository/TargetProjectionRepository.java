@@ -1,0 +1,1 @@
+package com.socialblog.interaction.repository;import com.socialblog.interaction.domain.*;import org.springframework.data.jpa.repository.JpaRepository;public interface TargetProjectionRepository extends JpaRepository<TargetProjection,TargetKey>{boolean existsByIdAndActiveTrue(TargetKey id);}

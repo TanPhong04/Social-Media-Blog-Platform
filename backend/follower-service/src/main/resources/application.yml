@@ -1,0 +1,28 @@
+server.port: 8085
+spring:
+  application.name: follower-service
+  datasource:
+    url: ${FOLLOWER_DB_URL:jdbc:postgresql://localhost:5432/follower_db}
+    username: ${POSTGRES_USER:blog}
+    password: ${POSTGRES_PASSWORD:blog}
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+  flyway.enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: follower-service
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+app:
+  security.jwt-secret: ${JWT_SECRET:change-this-development-secret-to-at-least-32-bytes}
+  kafka.consumer-enabled: ${KAFKA_CONSUMER_ENABLED:true}
+  outbox:
+    publisher-enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
+    fixed-delay-ms: 1000
+    batch-size: 50
+    max-attempts: 10
+    topic: followers.events

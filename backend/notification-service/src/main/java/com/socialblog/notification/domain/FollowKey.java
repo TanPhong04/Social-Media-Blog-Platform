@@ -1,0 +1,1 @@
+package com.socialblog.notification.domain;import jakarta.persistence.*;import java.io.Serializable;import java.util.UUID;@Embeddable public record FollowKey(@Column(name="follower_id")UUID followerId,@Column(name="followed_id")UUID followedId)implements Serializable{}

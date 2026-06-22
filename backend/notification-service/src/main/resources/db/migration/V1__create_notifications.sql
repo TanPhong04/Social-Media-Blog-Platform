@@ -1,0 +1,4 @@
+CREATE TABLE notifications(id UUID PRIMARY KEY,source_event_id UUID NOT NULL,recipient_id UUID NOT NULL,actor_id UUID NOT NULL,type VARCHAR(40) NOT NULL,entity_type VARCHAR(40),entity_id UUID,metadata TEXT NOT NULL,created_at TIMESTAMP WITH TIME ZONE NOT NULL,read_at TIMESTAMP WITH TIME ZONE,CONSTRAINT uk_notification_event_recipient UNIQUE(source_event_id,recipient_id));
+CREATE INDEX idx_notifications_recipient_created ON notifications(recipient_id,created_at DESC);CREATE INDEX idx_notifications_unread ON notifications(recipient_id,read_at);
+CREATE TABLE follow_projection(follower_id UUID NOT NULL,followed_id UUID NOT NULL,created_at TIMESTAMP WITH TIME ZONE NOT NULL,PRIMARY KEY(follower_id,followed_id));CREATE INDEX idx_notification_followed ON follow_projection(followed_id);
+CREATE TABLE processed_events(event_id UUID PRIMARY KEY,event_type VARCHAR(120) NOT NULL,processed_at TIMESTAMP WITH TIME ZONE NOT NULL);
