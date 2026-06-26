@@ -39,3 +39,4 @@ spring:
             exposedHeaders: [X-Correlation-ID]
 management:
   endpoints.web.exposure.include: health,info,prometheus
+  endpoint.health.probes.enabled: true

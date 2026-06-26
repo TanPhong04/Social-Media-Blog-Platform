@@ -22,8 +22,7 @@ public class SecurityConfig {
     @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
     @Bean SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf->csrf.disable()).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(a->a.requestMatchers("/api/v1/auth/**","/actuator/health").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(a->a.requestMatchers("/api/v1/auth/**","/actuator/health/**").permitAll().anyRequest().authenticated())
                 .oauth2ResourceServer(o->o.jwt(j->{})).build();
     }
 }
-
