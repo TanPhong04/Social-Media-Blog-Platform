@@ -11,11 +11,15 @@ spring:
   flyway.enabled: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: article-service
+      auto-offset-reset: earliest
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 app:
   security.jwt-secret: ${JWT_SECRET:change-this-development-secret-to-at-least-32-bytes}
+  kafka.consumer-enabled: ${KAFKA_CONSUMER_ENABLED:true}
   outbox:
     publisher-enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
     fixed-delay-ms: 1000
