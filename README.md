@@ -27,4 +27,6 @@ mvn -pl backend/api-gateway spring-boot:run
 
 Gateway listens on `8080`; backend services currently use ports `8081` through `8086`.
 
+JWT defaults are development-only. User Service signs access tokens with RS256 and exposes `/.well-known/jwks.json`; production deployments should set `JWT_ISSUER`, `JWT_KEY_ID`, `JWT_PRIVATE_KEY`, and `JWT_PUBLIC_KEY`, or configure resource services with `JWT_JWK_SET_URI`.
+
 See `CONTINUE.md` for the exact implementation status and next task.

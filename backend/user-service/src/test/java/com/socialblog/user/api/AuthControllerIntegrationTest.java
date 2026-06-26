@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 import com.socialblog.user.domain.OutboxEvent;
 import com.socialblog.user.repository.OutboxEventRepository;
@@ -15,13 +17,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest @AutoConfigureMockMvc
 class AuthControllerIntegrationTest {
-    @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired OutboxEventRepository outbox;
+    @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired OutboxEventRepository outbox; @Autowired JwtDecoder jwtDecoder;
     @Test void registerLoginRefreshAndReadProfile() throws Exception {
         String register="{\"email\":\"Alice@Example.com\",\"password\":\"password123\",\"displayName\":\"Alice\"}";
         String body=mvc.perform(post("/api/v1/auth/register").header("X-Correlation-ID","test-correlation-123").contentType(MediaType.APPLICATION_JSON).content(register))
                 .andExpect(status().isCreated()).andExpect(header().string("X-Correlation-ID","test-correlation-123"))
                 .andExpect(jsonPath("$.accessToken").isString()).andReturn().getResponse().getContentAsString();
         JsonNode tokens=json.readTree(body); String access=tokens.get("accessToken").asText(); String refresh=tokens.get("refreshToken").asText();
+        Jwt jwt=jwtDecoder.decode(access);
+        assertThat(jwt.getHeaders().get("alg").toString()).isEqualTo("RS256");
+        assertThat(jwt.getHeaders().get("kid").toString()).isEqualTo("local-test-rsa");
+        assertThat(jwt.getIssuer().toString()).isEqualTo("https://social-blog-platform.test");
+        mvc.perform(get("/.well-known/jwks.json")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.keys[0].kty").value("RSA"))
+                .andExpect(jsonPath("$.keys[0].kid").value("local-test-rsa"))
+                .andExpect(jsonPath("$.keys[0].d").doesNotExist());
         assertThat(outbox.countByStatus(OutboxEvent.Status.PENDING)).isPositive();
         assertThat(outbox.findAll()).anySatisfy(event->assertThat(event.getPayload()).contains("\"correlationId\":\"test-correlation-123\""));
         mvc.perform(get("/api/v1/users/me").header("Authorization","Bearer "+access)).andExpect(status().isOk())

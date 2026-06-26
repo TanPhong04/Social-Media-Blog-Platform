@@ -7,21 +7,26 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.util.StringUtils;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
+import java.security.interfaces.RSAPublicKey;
 
 @Configuration
 public class SecurityConfig {
     @Bean
-    SecretKey key(@Value("${app.security.jwt-secret}") String value) {
-        return new SecretKeySpec(value.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    RSAPublicKey jwtPublicKey(@Value("${app.security.jwt.public-key:}") String value) {
+        return RsaPublicKeySupport.publicKey(value);
     }
 
     @Bean
-    JwtDecoder decoder(SecretKey key) {
-        return NimbusJwtDecoder.withSecretKey(key).build();
+    JwtDecoder decoder(RSAPublicKey publicKey,
+                       @Value("${app.security.jwt.jwk-set-uri:}") String jwkSetUri,
+                       @Value("${app.security.jwt.issuer}") String issuer) {
+        NimbusJwtDecoder decoder = StringUtils.hasText(jwkSetUri)
+                ? NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build()
+                : NimbusJwtDecoder.withPublicKey(publicKey).build();
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuer));
+        return decoder;
     }
 
     @Bean

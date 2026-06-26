@@ -20,8 +20,14 @@ spring:
 management:
   endpoints.web.exposure.include: health,info,prometheus
   endpoint.health.probes.enabled: true
+logging:
+  structured.format.console: ecs
 app:
-  security.jwt-secret: ${JWT_SECRET:change-this-development-secret-to-at-least-32-bytes}
+  security:
+    jwt:
+      issuer: ${JWT_ISSUER:https://social-blog-platform.local}
+      public-key: ${JWT_PUBLIC_KEY:}
+      jwk-set-uri: ${JWT_JWK_SET_URI:}
   kafka:
     consumer-enabled: ${KAFKA_CONSUMER_ENABLED:true}
     retry:
