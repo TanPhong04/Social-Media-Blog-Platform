@@ -1,6 +1,7 @@
 package com.socialblog.article.application;
 
 import com.fasterxml.jackson.databind.*;
+import io.micrometer.core.instrument.Metrics;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.*;
@@ -20,6 +21,7 @@ final class KafkaEventLog {
         if (deliveryAttempt != null) fields.put("deliveryAttempt", deliveryAttempt);
         addEventFields(json, record.value(), fields);
         addExceptionFields(exception, fields);
+        Metrics.counter("socialblog.kafka.consumer.events", "topic", record.topic(), "eventType", String.valueOf(fields.getOrDefault("eventType", "unknown")), "outcome", action).increment();
         return write(json, fields);
     }
 

@@ -3,6 +3,7 @@ package com.socialblog.article.application;
 import com.fasterxml.jackson.databind.*;
 import com.socialblog.article.domain.*;
 import com.socialblog.article.repository.*;
+import io.micrometer.core.instrument.Metrics;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -40,6 +41,7 @@ public class FollowEventConsumer {
             return;
         }
         processed.save(new ProcessedEvent(eventId, type));
+        Metrics.counter("socialblog.kafka.consumer.events", "topic", "followers.events", "eventType", type, "outcome", "processed").increment();
     }
 
     private FollowKey key(JsonNode payload) {
