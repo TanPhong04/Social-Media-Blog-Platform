@@ -1,0 +1,40 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  test-package-and-image-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Test and package
+        run: mvn package
+
+      - name: Build service images
+        shell: bash
+        run: |
+          docker build -t socialblog/user-service:ci backend/user-service
+          docker build -t socialblog/article-service:ci backend/article-service
+          docker build -t socialblog/comment-service:ci backend/comment-service
+          docker build -t socialblog/interaction-service:ci backend/interaction-service
+          docker build -t socialblog/follower-service:ci backend/follower-service
+          docker build -t socialblog/notification-service:ci backend/notification-service
+          docker build -t socialblog/api-gateway:ci backend/api-gateway

@@ -34,5 +34,13 @@
 ## M4 - Notifications and production readiness
 
 - [x] Notification service and unread state
-- Observability, rate limits, Testcontainers, contract and end-to-end tests
-- Container images and CI pipeline
+- [ ] PostgreSQL Testcontainers for every service
+- [ ] Kafka Testcontainers for outbox publishers and consumers
+- [x] Consumer retry/backoff and dead-letter topics
+- [ ] Observability: structured logs, metrics, health/readiness, runbooks
+- [ ] Security hardening: JWKS, rate limits, environment-specific CORS/config
+- [ ] API contracts and gateway route tests
+- [ ] Flutter client for all completed backend flows
+- [x] Backend service Dockerfiles
+- [x] CI pipeline for Maven package and Docker image build
+- [ ] Image publishing, staging deployment, and smoke tests
