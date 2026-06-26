@@ -54,10 +54,12 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Documents eventual consistency and keeps database ownership boundaries intact.
 - Backend reliability and operability:
   - Kafka consumers in article, comment, interaction, follower, and notification services use Spring Kafka retry/backoff with dead-letter publishing to `<source-topic>.DLT`.
+  - Kafka retry and dead-letter paths log structured failure context including topic, partition, offset, event ID, event type, correlation ID, delivery attempt, and root cause.
   - Article, comment, interaction, follower, notification, user, and gateway modules expose actuator health/info/prometheus with health probes enabled.
   - Service health endpoints are public at `/actuator/health/**`; authenticated API routes remain protected.
   - All backend services and the API Gateway have Java 21 runtime Dockerfiles.
   - GitHub Actions backend CI runs `mvn package` and builds all backend Docker images.
+  - Backend services and the API Gateway enable Spring Boot ECS structured console logs.
 - Backend security hardening:
   - User Service signs access tokens with RSA/RS256, validates issuer, and exposes a public JWKS endpoint at `/.well-known/jwks.json`.
   - Article, comment, interaction, follower, notification, and user resource-server paths verify JWTs with RSA public keys and issuer validation.
@@ -80,6 +82,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn package`: BUILD SUCCESS; 33 tests passed and backend service jars were repackaged for Docker images.
 - `mvn -pl backend/user-service test`: BUILD SUCCESS; 5 tests passed after replacing HS256 with RS256/JWKS.
 - `mvn test`: BUILD SUCCESS; 33 tests passed after RS256/JWKS issuer and resource-server verification changes.
+- `mvn -pl backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 29 tests passed after structured Kafka failure logging changes.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -158,7 +161,7 @@ Backend-first continuation rule:
 
 - [x] Add consumer retry/backoff configuration per service.
 - [x] Add dead-letter topics for failed consumer records.
-- [ ] Add structured logs for event ID, event type, correlation ID, and consumer failure reason.
+- [x] Add structured logs for event ID, event type, correlation ID, and consumer failure reason.
 - [ ] Add metrics for outbox pending/failed counts, publish latency, consumer success/failure counts, and notification fan-out size.
 - [ ] Document topic names, event ownership, retention assumptions, and replay behavior.
 
@@ -173,7 +176,7 @@ Backend-first continuation rule:
 
 ### P4 - Observability and supportability
 
-- [ ] Add common structured JSON logging across services.
+- [x] Add common structured JSON logging across services.
 - [ ] Propagate correlation ID through REST and Kafka consistently.
 - [x] Expose production health/readiness/liveness endpoints.
 - [x] Add Prometheus metrics endpoint exposure.
@@ -222,11 +225,12 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Add structured JSON logs and explicit Kafka consumer failure logging context.
-4. Add rate limits and environment-specific CORS/config profiles.
-5. Add API contracts/OpenAPI docs and gateway route contract tests.
-6. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, and smoke tests.
-7. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter.
+3. Add metrics for outbox pending/failed counts, publish latency, consumer success/failure counts, and notification fan-out size.
+4. Document topic names, event ownership, retention assumptions, and replay behavior.
+5. Add rate limits and environment-specific CORS/config profiles.
+6. Add API contracts/OpenAPI docs and gateway route contract tests.
+7. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, and smoke tests.
+8. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter.
 
 ## Prompt for the next Codex session
 
@@ -242,9 +246,10 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Add structured JSON logging and explicit Kafka consumer failure context.
-4. Add rate limits, environment-specific CORS/config profiles, API contracts/OpenAPI docs, and gateway route contract tests.
-5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness to the user.
+3. Add backend metrics for outbox pending/failed counts, publish latency, consumer success/failure counts, and notification fan-out size.
+4. Document Kafka topic names, event ownership, retention assumptions, and replay behavior.
+5. Add rate limits, environment-specific CORS/config profiles, API contracts/OpenAPI docs, and gateway route contract tests.
+6. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness to the user.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.
