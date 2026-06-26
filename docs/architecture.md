@@ -15,3 +15,5 @@ User Service is the JWT issuer. It signs access tokens with RSA/RS256, includes 
 Backend services use Spring Boot ECS structured console logging. Kafka consumer retry and dead-letter paths log structured failure context with topic, partition, offset, event ID, event type, correlation ID, delivery attempt, and root-cause fields without logging the full event payload.
 
 Prometheus metrics include `socialblog.outbox.events` gauges tagged by status, `socialblog.outbox.publish.total` counters tagged by topic/result, `socialblog.outbox.publish.latency` timers tagged by topic, `socialblog.kafka.consumer.events` counters tagged by topic/event type/outcome, and `socialblog.notifications.fanout.size` summaries for article notification fan-out.
+
+Kafka topic ownership, event types, DLT behavior, retention assumptions, and replay procedure are documented in `docs/kafka-topics.md`.

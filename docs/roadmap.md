@@ -37,7 +37,7 @@
 - [ ] PostgreSQL Testcontainers for every service
 - [ ] Kafka Testcontainers for outbox publishers and consumers
 - [x] Consumer retry/backoff and dead-letter topics
-- [ ] Observability: structured logs, metrics, and health/readiness complete; runbooks still pending
+- [ ] Observability: structured logs, metrics, Kafka topic docs, and health/readiness complete; runbooks still pending
 - [ ] Security hardening: JWKS complete; rate limits and environment-specific CORS/config still pending
 - [ ] API contracts and gateway route tests
 - [ ] Flutter client for all completed backend flows
