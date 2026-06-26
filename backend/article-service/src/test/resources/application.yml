@@ -7,4 +7,5 @@ spring:
   flyway.enabled: false
 app:
   security.jwt-secret: test-secret-that-is-definitely-at-least-thirty-two-bytes
+  kafka.consumer-enabled: false
   outbox.publisher-enabled: false

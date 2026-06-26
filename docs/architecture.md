@@ -6,3 +6,4 @@ Planned services: user, article, comment, interaction, follower, notification, a
 
 Event envelope fields: `eventId`, `eventType`, `eventVersion`, `occurredAt`, `correlationId`, `actorId`, and `payload`.
 
+Personalized article feed is fan-out-on-read. Article Service consumes `UserFollowed` and `UserUnfollowed` from `followers.events` into its own `follow_projection` table, deduplicates with `processed_events`, and serves `/api/v1/articles/following` from local article data plus that projection. This keeps service databases isolated; feed consistency is eventual and follows Kafka delivery latency.

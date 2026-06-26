@@ -27,11 +27,12 @@
 - [x] Idempotent article-event projection in Comment Service
 - [x] Interaction service for article/comment likes, counts, target projection, and outbox
 - [x] Follower service, user projection, relationship events, and pagination
-- [ ] Fan-out-on-read personalized feed
-- Idempotent Kafka consumers and dead-letter topics
+- [x] Fan-out-on-read personalized feed using Article Service follow projection
+- [x] Idempotent Kafka consumers
+- [ ] Dead-letter topics
 
 ## M4 - Notifications and production readiness
 
-- Notification service and unread state
+- [x] Notification service and unread state
 - Observability, rate limits, Testcontainers, contract and end-to-end tests
 - Container images and CI pipeline

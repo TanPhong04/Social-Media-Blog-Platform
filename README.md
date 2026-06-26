@@ -9,6 +9,7 @@ Medium-like platform implemented as Java microservices and a Flutter client.
 - `backend/comment-service`: article comments, replies, ownership, and soft deletion
 - `backend/interaction-service`: idempotent likes for articles/comments and aggregate counts
 - `backend/follower-service`: idempotent follow graph, pagination, and relationship events
+- `backend/notification-service`: notification inbox, unread state, and event-driven notifications
 - `backend/api-gateway`: public API entry point
 - `frontend`: Flutter client (next milestone)
 
@@ -24,6 +25,6 @@ mvn -pl backend/user-service spring-boot:run
 mvn -pl backend/api-gateway spring-boot:run
 ```
 
-Gateway listens on `8080`; backend services currently use ports `8081` through `8085`.
+Gateway listens on `8080`; backend services currently use ports `8081` through `8086`.
 
 See `CONTINUE.md` for the exact implementation status and next task.
