@@ -2,6 +2,7 @@ package com.socialblog.user.application;
 
 import com.socialblog.user.domain.OutboxEvent;
 import com.socialblog.user.repository.OutboxEventRepository;
+import io.micrometer.core.instrument.Metrics;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -32,15 +33,21 @@ public class OutboxPublisher {
     @Transactional
     public void publish() {
         for (OutboxEvent event : events.lockPendingBatch(batchSize)) {
+            long started = System.nanoTime();
             try {
                 kafka.send(topic, event.getAggregateId().toString(), event.getPayload()).get(5, TimeUnit.SECONDS);
+                Metrics.counter("socialblog.outbox.publish.total", "topic", topic, "result", "success").increment();
                 event.published();
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
+                Metrics.counter("socialblog.outbox.publish.total", "topic", topic, "result", "failure").increment();
                 event.failedAttempt(maxAttempts);
                 return;
             } catch (Exception ex) {
+                Metrics.counter("socialblog.outbox.publish.total", "topic", topic, "result", "failure").increment();
                 event.failedAttempt(maxAttempts);
+            } finally {
+                Metrics.timer("socialblog.outbox.publish.latency", "topic", topic).record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
             }
         }
     }
