@@ -29,7 +29,7 @@
 - [x] Follower service, user projection, relationship events, and pagination
 - [x] Fan-out-on-read personalized feed using Article Service follow projection
 - [x] Idempotent Kafka consumers
-- [ ] Dead-letter topics
+- [x] Dead-letter topics
 
 ## M4 - Notifications and production readiness
 
@@ -38,7 +38,7 @@
 - [ ] Kafka Testcontainers for outbox publishers and consumers
 - [x] Consumer retry/backoff and dead-letter topics
 - [ ] Observability: structured logs, metrics, health/readiness, runbooks
-- [ ] Security hardening: JWKS, rate limits, environment-specific CORS/config
+- [ ] Security hardening: JWKS complete; rate limits and environment-specific CORS/config still pending
 - [ ] API contracts and gateway route tests
 - [ ] Flutter client for all completed backend flows
 - [x] Backend service Dockerfiles

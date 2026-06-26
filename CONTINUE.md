@@ -8,7 +8,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `backend/user-service`:
   - PostgreSQL Flyway schema for users and hashed refresh tokens.
   - Register/login with BCrypt and normalized email.
-  - HS256 access JWT and one-time rotating refresh tokens.
+  - RS256 access JWT, public `/.well-known/jwks.json`, and one-time rotating refresh tokens.
   - Authenticated read/update current profile.
   - Structured validation and domain errors.
   - Transactional `outbox_events` table and `UserRegistered` event created in the registration transaction.
@@ -58,6 +58,11 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Service health endpoints are public at `/actuator/health/**`; authenticated API routes remain protected.
   - All backend services and the API Gateway have Java 21 runtime Dockerfiles.
   - GitHub Actions backend CI runs `mvn package` and builds all backend Docker images.
+- Backend security hardening:
+  - User Service signs access tokens with RSA/RS256, validates issuer, and exposes a public JWKS endpoint at `/.well-known/jwks.json`.
+  - Article, comment, interaction, follower, notification, and user resource-server paths verify JWTs with RSA public keys and issuer validation.
+  - Resource services can use `JWT_PUBLIC_KEY` for static public-key verification or `JWT_JWK_SET_URI` for JWKS-based verification.
+  - Local development defaults generate the same deterministic RSA key pair across services; production must override with real managed keys.
 - `backend/api-gateway`:
   - Routes auth/user endpoints to port 8081.
   - Routes article, comment, interaction, follower, and notification endpoints.
@@ -73,6 +78,8 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn test`: BUILD SUCCESS; 33 tests passed after personalized feed work.
 - `mvn test`: BUILD SUCCESS; 33 tests passed after Kafka DLT/retry and actuator/prometheus changes.
 - `mvn package`: BUILD SUCCESS; 33 tests passed and backend service jars were repackaged for Docker images.
+- `mvn -pl backend/user-service test`: BUILD SUCCESS; 5 tests passed after replacing HS256 with RS256/JWKS.
+- `mvn test`: BUILD SUCCESS; 33 tests passed after RS256/JWKS issuer and resource-server verification changes.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -83,8 +90,8 @@ Updated: 2026-06-27 (Asia/Saigon)
 ## Known limitations / immediate work
 
 1. Flutter scaffold is not present. `flutter create`, `flutter create --no-pub`, and `flutter doctor -v` all hung without output and were terminated.
-2. JWT uses one shared HMAC secret. This is acceptable for local M1; asymmetric signing/JWKS is preferred before production.
-3. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker_engine` and `dockerDesktopLinuxEngine` named pipes missing), so Testcontainers cannot start.
+2. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker info --format "{{.ServerVersion}}"` failed with missing `dockerDesktopLinuxEngine` pipe), so Testcontainers cannot start.
+3. JWT key rotation is not fully implemented. RS256/JWKS and `kid` exist, but there is no overlapping-key rotation workflow yet.
 4. Flutter client is not implemented yet.
 5. Tests use H2. Add PostgreSQL/Kafka Testcontainers after Docker Desktop is available.
 6. Kafka DLT behavior is configured but not verified against a real broker because Docker/Testcontainers is unavailable.
@@ -157,7 +164,7 @@ Backend-first continuation rule:
 
 ### P3 - Security hardening
 
-- [ ] Replace shared HS256 JWT secret with asymmetric signing and JWKS.
+- [x] Replace shared HS256 JWT secret with asymmetric signing and JWKS.
 - [ ] Add key rotation plan and config.
 - [ ] Add gateway/service authentication boundary documentation.
 - [ ] Add rate limits for auth, write operations, comments, follows, likes, and notification endpoints.
@@ -215,12 +222,11 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Replace shared HMAC JWT with asymmetric signing/JWKS.
-4. Add structured JSON logs and explicit Kafka consumer failure logging context.
-5. Add rate limits and environment-specific CORS/config profiles.
-6. Add API contracts/OpenAPI docs and gateway route contract tests.
-7. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, and smoke tests.
-8. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter.
+3. Add structured JSON logs and explicit Kafka consumer failure logging context.
+4. Add rate limits and environment-specific CORS/config profiles.
+5. Add API contracts/OpenAPI docs and gateway route contract tests.
+6. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, and smoke tests.
+7. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter.
 
 ## Prompt for the next Codex session
 
@@ -236,10 +242,9 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Replace shared HMAC JWT with asymmetric signing/JWKS across user-service issuer and resource-server services.
-4. Add structured JSON logging and explicit Kafka consumer failure context.
-5. Add rate limits, environment-specific CORS/config profiles, API contracts/OpenAPI docs, and gateway route contract tests.
-6. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness to the user.
+3. Add structured JSON logging and explicit Kafka consumer failure context.
+4. Add rate limits, environment-specific CORS/config profiles, API contracts/OpenAPI docs, and gateway route contract tests.
+5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness to the user.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.
