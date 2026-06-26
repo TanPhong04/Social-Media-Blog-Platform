@@ -12,6 +12,8 @@ app:
   outbox:
     publisher-enabled: false
   security:
-    jwt-secret: test-secret-that-is-definitely-at-least-thirty-two-bytes
+    jwt:
+      issuer: https://social-blog-platform.test
+      key-id: local-test-rsa
     access-token-minutes: 15
     refresh-token-days: 30

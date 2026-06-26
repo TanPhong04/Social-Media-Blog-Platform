@@ -7,4 +7,6 @@ spring:
   flyway.enabled: false
 app:
   kafka.consumer-enabled: false
-  security.jwt-secret: test-secret-that-is-definitely-at-least-thirty-two-bytes
+  security:
+    jwt:
+      issuer: https://social-blog-platform.test
