@@ -65,6 +65,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Backend services and the API Gateway enable Spring Boot ECS structured console logs.
   - Prometheus dashboard notes, first alert suggestions, and runbooks for failed outbox rows, stuck consumers, migration failures, Kafka replay, and DLT recovery are documented in `docs/operations.md`.
   - Production-oriented backend Compose, migration/rollback guidance, secret/config guidance, image publishing notes, and Gateway smoke tests are documented in `docs/deployment.md`.
+  - Maven Surefire is configured to load Byte Buddy as a test JVM agent, avoiding Mockito dynamic self-attach warnings on newer JDKs.
 - Backend security hardening:
   - User Service signs access tokens with RSA/RS256, validates issuer, and exposes a public JWKS endpoint at `/.well-known/jwks.json`.
   - User Service supports overlapping JWT key rotation by publishing configured previous public keys in JWKS and validating against the active plus previous keys during the rotation window.
@@ -127,6 +128,8 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after backend security review checklist work; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
 - PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed after backend security review checklist work.
 - `mvn test`: BUILD SUCCESS; 48 tests passed after backend security review checklist work.
+- `mvn -pl backend/user-service test`: BUILD SUCCESS; 7 tests passed after configuring the Surefire Byte Buddy Java agent for Mockito tests.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after configuring the Surefire Byte Buddy Java agent for Mockito tests. Mockito dynamic self-attach warnings no longer appeared; JVM class-sharing warnings remain.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
