@@ -72,7 +72,8 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Routes auth/user endpoints to port 8081.
   - Routes article, comment, interaction, follower, and notification endpoints.
   - Adds/propagates `X-Correlation-ID`.
-  - CORS configuration.
+  - Redis-backed rate limits for auth, article writes, comments, likes, follows, and notification write endpoints.
+  - Profile-specific CORS configuration for local, staging, and production.
 - Local Docker Compose for PostgreSQL, Kafka (KRaft), Redis, and MinIO.
 - Architecture and phased roadmap documentation.
 
@@ -88,6 +89,10 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn -pl backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 29 tests passed after structured Kafka failure logging changes.
 - `mvn -pl backend/user-service,backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 34 tests passed after backend metrics changes.
 - `mvn test`: BUILD SUCCESS after backend metrics merge to `dev`.
+- `mvn test`: BUILD SUCCESS; 39 tests passed after adding API Gateway Redis-backed rate limits and profile-specific CORS configuration.
+- `mvn -pl backend/api-gateway test`: BUILD SUCCESS; 5 tests passed after adding gateway rate-limit route assertions and client-key resolver tests.
+- `mvn -pl backend/api-gateway test "-Dspring.profiles.active=prod" "-DCORS_ALLOWED_ORIGINS=https://app.example.com"`: BUILD SUCCESS; 5 tests passed and production CORS placeholders resolved.
+- `docker-compose config --quiet`: exit code 0 after gateway rate-limit/CORS work; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -98,7 +103,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 ## Known limitations / immediate work
 
 1. Flutter scaffold is not present. `flutter create`, `flutter create --no-pub`, and `flutter doctor -v` all hung without output and were terminated.
-2. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker info --format "{{.ServerVersion}}"` failed with missing `dockerDesktopLinuxEngine` pipe), so Testcontainers cannot start.
+2. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker info --format "{{.ServerVersion}}"` failed with `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; ... The system cannot find the file specified.`), so Testcontainers cannot start.
 3. JWT key rotation is not fully implemented. RS256/JWKS and `kid` exist, but there is no overlapping-key rotation workflow yet.
 4. Flutter client is not implemented yet.
 5. Tests use H2. Add PostgreSQL/Kafka Testcontainers after Docker Desktop is available.
@@ -175,8 +180,8 @@ Backend-first continuation rule:
 - [x] Replace shared HS256 JWT secret with asymmetric signing and JWKS.
 - [ ] Add key rotation plan and config.
 - [ ] Add gateway/service authentication boundary documentation.
-- [ ] Add rate limits for auth, write operations, comments, follows, likes, and notification endpoints.
-- [ ] Add CORS profile separation for local/staging/production.
+- [x] Add rate limits for auth, write operations, comments, follows, likes, and notification endpoints.
+- [x] Add CORS profile separation for local/staging/production.
 - [ ] Review validation limits for title, content, comment body, tags, profile fields, pagination, and IDs.
 
 ### P4 - Observability and supportability
@@ -230,7 +235,7 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Add rate limits and environment-specific CORS/config profiles.
+3. Add gateway/service authentication boundary documentation, key rotation plan/config, and validation limit review.
 4. Add API contracts/OpenAPI docs and gateway route contract tests.
 5. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, and smoke tests.
 6. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter.
@@ -249,7 +254,7 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Add rate limits and environment-specific CORS/config profiles.
+3. Add gateway/service authentication boundary documentation, key rotation plan/config, and validation limit review.
 4. Add API contracts/OpenAPI docs and gateway route contract tests.
 5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness to the user.
 
