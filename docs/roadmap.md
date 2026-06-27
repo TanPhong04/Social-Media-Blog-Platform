@@ -37,10 +37,10 @@
 - [ ] PostgreSQL Testcontainers for every service
 - [ ] Kafka Testcontainers for outbox publishers and consumers
 - [x] Consumer retry/backoff and dead-letter topics
-- [ ] Observability: structured logs, metrics, Kafka topic docs, and health/readiness complete; runbooks still pending
+- [x] Observability: structured logs, metrics, Kafka topic docs, health/readiness, dashboard notes, and runbooks complete
 - [x] Security hardening: JWKS, gateway rate limits, environment-specific CORS/config, key rotation config/docs, gateway/service boundary docs, and validation review complete
-- [ ] API contracts and gateway route tests
+- [x] API contracts and gateway route tests
 - [ ] Flutter client for all completed backend flows
 - [x] Backend service Dockerfiles
-- [x] CI pipeline for Maven package and Docker image build
-- [ ] Image publishing, staging deployment, and smoke tests
+- [x] CI pipeline for Maven package, Docker image build, and GHCR image publishing
+- [x] Image publishing, backend deployment guidance, and smoke tests
