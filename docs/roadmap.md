@@ -38,7 +38,7 @@
 - [ ] Kafka Testcontainers for outbox publishers and consumers
 - [x] Consumer retry/backoff and dead-letter topics
 - [ ] Observability: structured logs, metrics, Kafka topic docs, and health/readiness complete; runbooks still pending
-- [ ] Security hardening: JWKS, gateway rate limits, and environment-specific CORS/config complete; key rotation and validation review still pending
+- [x] Security hardening: JWKS, gateway rate limits, environment-specific CORS/config, key rotation config/docs, gateway/service boundary docs, and validation review complete
 - [ ] API contracts and gateway route tests
 - [ ] Flutter client for all completed backend flows
 - [x] Backend service Dockerfiles
