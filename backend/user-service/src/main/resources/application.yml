@@ -36,5 +36,6 @@ app:
       key-id: ${JWT_KEY_ID:local-dev-rsa}
       private-key: ${JWT_PRIVATE_KEY:}
       public-key: ${JWT_PUBLIC_KEY:}
+      verification-keys: ${JWT_VERIFICATION_KEYS:}
     access-token-minutes: 15
     refresh-token-days: 30

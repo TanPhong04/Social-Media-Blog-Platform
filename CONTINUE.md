@@ -61,18 +61,31 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Article, comment, interaction, follower, notification, user, and gateway modules expose actuator health/info/prometheus with health probes enabled.
   - Service health endpoints are public at `/actuator/health/**`; authenticated API routes remain protected.
   - All backend services and the API Gateway have Java 21 runtime Dockerfiles.
-  - GitHub Actions backend CI runs `mvn package` and builds all backend Docker images.
+  - GitHub Actions backend CI runs `mvn package`, builds all backend Docker images, and publishes GHCR images on `dev`/`main` pushes.
   - Backend services and the API Gateway enable Spring Boot ECS structured console logs.
+  - Prometheus dashboard notes, first alert suggestions, and runbooks for failed outbox rows, stuck consumers, migration failures, Kafka replay, and DLT recovery are documented in `docs/operations.md`.
+  - Production-oriented backend Compose, migration/rollback guidance, secret/config guidance, image publishing notes, and Gateway smoke tests are documented in `docs/deployment.md`.
 - Backend security hardening:
   - User Service signs access tokens with RSA/RS256, validates issuer, and exposes a public JWKS endpoint at `/.well-known/jwks.json`.
+  - User Service supports overlapping JWT key rotation by publishing configured previous public keys in JWKS and validating against the active plus previous keys during the rotation window.
   - Article, comment, interaction, follower, notification, and user resource-server paths verify JWTs with RSA public keys and issuer validation.
   - Resource services can use `JWT_PUBLIC_KEY` for static public-key verification or `JWT_JWK_SET_URI` for JWKS-based verification.
   - Local development defaults generate the same deterministic RSA key pair across services; production must override with real managed keys.
+  - Gateway/service authentication boundaries, key rotation workflow, and validation limits are documented in `docs/security.md`.
+  - Pagination parameters are guarded across article, comment, follower, and notification list APIs.
+- Backend API quality:
+  - Public REST contract is documented in `docs/openapi/social-blog-api.yaml`.
+  - API error envelopes are normalized across user, article, comment, interaction, follower, and notification services.
+  - Invalid request-body validation, malformed JSON, invalid path/query parameter types, pagination errors, and service domain errors return the standard `timestamp/status/code/message/path/fields` shape where applicable.
+  - Pagination, fixed sorting behavior, REST compatibility, and Kafka event-version compatibility rules are documented in `docs/api-conventions.md`.
 - `backend/api-gateway`:
   - Routes auth/user endpoints to port 8081.
   - Routes article, comment, interaction, follower, and notification endpoints.
   - Adds/propagates `X-Correlation-ID`.
-  - CORS configuration.
+  - Redis-backed rate limits for auth, article writes, comments, likes, follows, and notification write endpoints.
+  - Profile-specific CORS configuration for local, staging, and production.
+  - Public REST contract is documented in `docs/openapi/social-blog-api.yaml`.
+  - Gateway route contract tests verify documented service prefixes and representative OpenAPI JSON response schemas.
 - Local Docker Compose for PostgreSQL, Kafka (KRaft), Redis, and MinIO.
 - Architecture and phased roadmap documentation.
 
@@ -88,6 +101,24 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn -pl backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 29 tests passed after structured Kafka failure logging changes.
 - `mvn -pl backend/user-service,backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 34 tests passed after backend metrics changes.
 - `mvn test`: BUILD SUCCESS after backend metrics merge to `dev`.
+- `mvn test`: BUILD SUCCESS; 39 tests passed after adding API Gateway Redis-backed rate limits and profile-specific CORS configuration.
+- `mvn -pl backend/api-gateway test`: BUILD SUCCESS; 5 tests passed after adding gateway rate-limit route assertions and client-key resolver tests.
+- `mvn -pl backend/api-gateway test "-Dspring.profiles.active=prod" "-DCORS_ALLOWED_ORIGINS=https://app.example.com"`: BUILD SUCCESS; 5 tests passed and production CORS placeholders resolved.
+- `docker-compose config --quiet`: exit code 0 after gateway rate-limit/CORS work; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- `mvn -pl backend/user-service test`: BUILD SUCCESS; 7 tests passed after JWT overlap verification-key support.
+- `mvn -pl backend/user-service,backend/article-service,backend/comment-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 30 tests passed after key rotation and validation changes. First sandboxed run failed because Maven needed network access for a missing parent POM; rerun with approved Maven network access passed.
+- `mvn -pl backend/article-service test`: BUILD SUCCESS; 6 tests passed after article pagination/content validation coverage.
+- `mvn test`: BUILD SUCCESS; 42 tests passed after security boundary, key rotation, and validation review work.
+- `docker-compose config --quiet`: exit code 0 after security docs/env changes; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- `mvn -pl backend/api-gateway test`: BUILD SUCCESS; 7 tests passed after adding OpenAPI contract coverage and gateway route prefix contract tests.
+- `mvn test`: BUILD SUCCESS; 44 tests passed after API contract and gateway route contract work.
+- `docker info --format "{{.ServerVersion}}"`: failed before Testcontainers work with `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; ... The system cannot find the file specified.`
+- `mvn -pl backend/user-service,backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 48 tests passed after standardizing API error envelopes and adding API convention docs.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after API error envelope and convention work.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after adding backend operations runbooks and dashboard notes.
+- `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after adding production-oriented backend Compose; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after backend deployment readiness work.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -98,12 +129,12 @@ Updated: 2026-06-27 (Asia/Saigon)
 ## Known limitations / immediate work
 
 1. Flutter scaffold is not present. `flutter create`, `flutter create --no-pub`, and `flutter doctor -v` all hung without output and were terminated.
-2. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker info --format "{{.ServerVersion}}"` failed with missing `dockerDesktopLinuxEngine` pipe), so Testcontainers cannot start.
-3. JWT key rotation is not fully implemented. RS256/JWKS and `kid` exist, but there is no overlapping-key rotation workflow yet.
+2. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker info --format "{{.ServerVersion}}"` failed with `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; ... The system cannot find the file specified.`), so Testcontainers cannot start.
+3. JWT key rotation supports active plus previous public keys and has a documented workflow; automated multi-key end-to-end verification through all resource services still needs real deployment or contract coverage.
 4. Flutter client is not implemented yet.
 5. Tests use H2. Add PostgreSQL/Kafka Testcontainers after Docker Desktop is available.
 6. Kafka DLT behavior is configured but not verified against a real broker because Docker/Testcontainers is unavailable.
-7. Dockerfiles and CI image build steps exist, but local `docker build` was not run because Docker engine is unavailable.
+7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution were not run because Docker engine is unavailable and no staging target is configured in this workspace.
 
 ## Continue-work protocol
 
@@ -173,28 +204,28 @@ Backend-first continuation rule:
 ### P3 - Security hardening
 
 - [x] Replace shared HS256 JWT secret with asymmetric signing and JWKS.
-- [ ] Add key rotation plan and config.
-- [ ] Add gateway/service authentication boundary documentation.
-- [ ] Add rate limits for auth, write operations, comments, follows, likes, and notification endpoints.
-- [ ] Add CORS profile separation for local/staging/production.
-- [ ] Review validation limits for title, content, comment body, tags, profile fields, pagination, and IDs.
+- [x] Add key rotation plan and config.
+- [x] Add gateway/service authentication boundary documentation.
+- [x] Add rate limits for auth, write operations, comments, follows, likes, and notification endpoints.
+- [x] Add CORS profile separation for local/staging/production.
+- [x] Review validation limits for title, content, comment body, tags, profile fields, pagination, and IDs.
 
 ### P4 - Observability and supportability
 
 - [x] Add common structured JSON logging across services.
-- [ ] Propagate correlation ID through REST and Kafka consistently.
+- [x] Propagate correlation ID through REST and Kafka consistently.
 - [x] Expose production health/readiness/liveness endpoints.
 - [x] Add Prometheus metrics endpoint exposure.
-- [ ] Add Prometheus dashboard notes.
-- [ ] Add runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
+- [x] Add Prometheus dashboard notes.
+- [x] Add runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
 
 ### P5 - API quality and contracts
 
-- [ ] Add OpenAPI specs or generated API docs for every service/gateway route.
-- [ ] Add contract tests for gateway routes and public API response shapes.
-- [ ] Normalize error response schema across services.
-- [ ] Add pagination/sorting conventions to API docs.
-- [ ] Add compatibility rules for event versions and REST response evolution.
+- [x] Add OpenAPI specs or generated API docs for every service/gateway route.
+- [x] Add contract tests for gateway routes and public API response shapes.
+- [x] Normalize error response schema across services.
+- [x] Add pagination/sorting conventions to API docs.
+- [x] Add compatibility rules for event versions and REST response evolution.
 
 ### P6 - Frontend client
 
@@ -209,18 +240,18 @@ Backend-first continuation rule:
 ### P7 - Packaging, deployment, and CI/CD
 
 - [x] Add Dockerfiles for every backend service.
-- [ ] Add production-oriented Compose or Kubernetes manifests.
+- [x] Add production-oriented Compose or Kubernetes manifests.
 - [x] Add CI pipeline for compile, tests, and docker build.
-- [ ] Add image publishing to CI.
-- [ ] Add migration deployment strategy and rollback notes.
-- [ ] Add secret/config management guidance.
-- [ ] Add staging smoke tests through the API Gateway.
+- [x] Add image publishing to CI.
+- [x] Add migration deployment strategy and rollback notes.
+- [x] Add secret/config management guidance.
+- [x] Add staging smoke tests through the API Gateway.
 
 ### P8 - Production acceptance
 
-- [ ] Full `mvn test` green.
+- [x] Full `mvn test` green.
 - [ ] PostgreSQL/Kafka Testcontainers green.
-- [ ] API contract tests green.
+- [x] API contract tests green.
 - [ ] Frontend critical flow tests green.
 - [ ] Staging deployment smoke test green.
 - [ ] Security review checklist complete.
@@ -230,10 +261,8 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Add rate limits and environment-specific CORS/config profiles.
-4. Add API contracts/OpenAPI docs and gateway route contract tests.
-5. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, and smoke tests.
-6. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter.
+3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
+4. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
 
@@ -249,9 +278,8 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Add rate limits and environment-specific CORS/config profiles.
-4. Add API contracts/OpenAPI docs and gateway route contract tests.
-5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness to the user.
+3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
+4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.

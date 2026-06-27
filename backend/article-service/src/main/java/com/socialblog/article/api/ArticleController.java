@@ -22,12 +22,12 @@ public class ArticleController {
 
     @GetMapping
     ResponseEntity<Page<Response>> feed(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(service.feed(PageRequest.of(page, Math.min(size, 50))));
+        return ResponseEntity.ok(service.feed(PageRequests.of(page, size, 50)));
     }
 
     @GetMapping("/following")
     Page<Response> following(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return service.followingFeed(user(jwt), PageRequest.of(page, Math.min(size, 50)));
+        return service.followingFeed(user(jwt), PageRequests.of(page, size, 50));
     }
 
     @GetMapping("/by-slug/{slug}")
@@ -37,7 +37,7 @@ public class ArticleController {
 
     @GetMapping("/mine")
     Page<Response> mine(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return service.mine(user(jwt), PageRequest.of(page, Math.min(size, 50)));
+        return service.mine(user(jwt), PageRequests.of(page, size, 50));
     }
 
     @PostMapping

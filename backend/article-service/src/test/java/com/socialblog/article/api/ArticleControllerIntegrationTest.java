@@ -20,4 +20,13 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
   mvc.perform(get("/api/v1/articles/by-slug/"+slug)).andExpect(status().isNotFound());
  }
  @Test void mutationsRequireAuthentication()throws Exception{mvc.perform(post("/api/v1/articles").contentType(MediaType.APPLICATION_JSON).content("{}" )).andExpect(status().isUnauthorized());}
+ @Test void validatesPaginationAndContentLimit()throws Exception{
+  mvc.perform(get("/api/v1/articles?page=-1")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_PAGE"));
+  String oversized="x".repeat(50001);
+  String request=json.writeValueAsString(java.util.Map.of("title","Too Long","content",oversized));
+  mvc.perform(post("/api/v1/articles").with(jwt().jwt(j->j.subject(author.toString()))).contentType(MediaType.APPLICATION_JSON).content(request))
+          .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED")).andExpect(jsonPath("$.fields.content").isNotEmpty());
+  mvc.perform(post("/api/v1/articles/not-a-uuid/publish").with(jwt().jwt(j->j.subject(author.toString()))))
+          .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST_PARAMETER")).andExpect(jsonPath("$.fields.id").isNotEmpty());
+ }
 }

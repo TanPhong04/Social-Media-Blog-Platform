@@ -11,9 +11,15 @@ on:
       - main
       - dev
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   test-package-and-image-build:
     runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,3 +44,24 @@ jobs:
           docker build -t socialblog/follower-service:ci backend/follower-service
           docker build -t socialblog/notification-service:ci backend/notification-service
           docker build -t socialblog/api-gateway:ci backend/api-gateway
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+        shell: bash
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+
+      - name: Publish service images
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+        shell: bash
+        run: |
+          image_namespace="$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          image_tag="${GITHUB_SHA::12}"
+          branch_tag="${GITHUB_REF_NAME//\//-}"
+          services=(user-service article-service comment-service interaction-service follower-service notification-service api-gateway)
+
+          for service in "${services[@]}"; do
+            docker tag "socialblog/${service}:ci" "${REGISTRY}/${image_namespace}/${service}:${image_tag}"
+            docker tag "socialblog/${service}:ci" "${REGISTRY}/${image_namespace}/${service}:${branch_tag}"
+            docker push "${REGISTRY}/${image_namespace}/${service}:${image_tag}"
+            docker push "${REGISTRY}/${image_namespace}/${service}:${branch_tag}"
+          done

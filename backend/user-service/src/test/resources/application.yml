@@ -15,5 +15,6 @@ app:
     jwt:
       issuer: https://social-blog-platform.test
       key-id: local-test-rsa
+      verification-keys:
     access-token-minutes: 15
     refresh-token-days: 30

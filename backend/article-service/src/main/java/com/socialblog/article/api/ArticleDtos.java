@@ -10,7 +10,8 @@ public final class ArticleDtos {
     }
 
     public record WriteRequest(@NotBlank @Size(max = 200) String title, @Size(max = 500) String summary,
-                               @NotBlank String content, @Size(max = 10) Set<@NotBlank @Size(max = 50) String> tags) {
+                               @NotBlank @Size(max = 50000) String content,
+                               @Size(max = 10) Set<@NotBlank @Size(max = 50) String> tags) {
     }
 
     public record Response(UUID id, UUID authorId, String title, String slug, String summary, String content,

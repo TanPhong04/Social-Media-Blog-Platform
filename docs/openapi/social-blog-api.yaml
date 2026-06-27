@@ -1,0 +1,877 @@
+openapi: 3.0.3
+info:
+  title: Social Blog Platform API
+  version: 0.1.0
+  description: Public REST contract served through the API Gateway.
+servers:
+  - url: http://localhost:8080
+    description: Local API Gateway
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Users
+  - name: Articles
+  - name: Comments
+  - name: Interactions
+  - name: Follows
+  - name: Notifications
+paths:
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Register a user and issue tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Created token pair.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login and issue tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Token pair.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Rotate a refresh token and issue a new access token.
+      requestBody:
+        $ref: '#/components/requestBodies/RefreshToken'
+      responses:
+        '200':
+          description: Rotated token pair.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Revoke a refresh token.
+      requestBody:
+        $ref: '#/components/requestBodies/RefreshToken'
+      responses:
+        '204':
+          description: Refresh token revoked.
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      summary: Read the authenticated profile.
+      responses:
+        '200':
+          description: Current profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Error'
+    put:
+      tags: [Users]
+      summary: Update the authenticated profile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /api/v1/articles:
+    get:
+      tags: [Articles]
+      security: []
+      summary: List published articles.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Published article page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlePage'
+    post:
+      tags: [Articles]
+      summary: Create a draft article.
+      requestBody:
+        $ref: '#/components/requestBodies/ArticleWrite'
+      responses:
+        '201':
+          description: Draft article.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+  /api/v1/articles/following:
+    get:
+      tags: [Articles]
+      summary: List published articles from followed authors.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Following feed page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlePage'
+  /api/v1/articles/by-slug/{slug}:
+    get:
+      tags: [Articles]
+      security: []
+      summary: Read a published article by slug.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Published article.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          $ref: '#/components/responses/Error'
+  /api/v1/articles/mine:
+    get:
+      tags: [Articles]
+      summary: List the authenticated author's articles.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Author article page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlePage'
+  /api/v1/articles/{id}:
+    put:
+      tags: [Articles]
+      summary: Update an owned article.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        $ref: '#/components/requestBodies/ArticleWrite'
+      responses:
+        '200':
+          description: Updated article.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+    delete:
+      tags: [Articles]
+      summary: Soft-delete an owned article.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Deleted.
+  /api/v1/articles/{id}/publish:
+    post:
+      tags: [Articles]
+      summary: Publish an owned draft.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Published article.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+  /api/v1/articles/{id}/unpublish:
+    post:
+      tags: [Articles]
+      summary: Unpublish an owned article.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Unpublished article.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+  /api/v1/comments/articles/{articleId}:
+    get:
+      tags: [Comments]
+      security: []
+      summary: List comments for an article.
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Comment page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPage'
+  /api/v1/comments:
+    post:
+      tags: [Comments]
+      summary: Create a comment or reply.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Created comment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+  /api/v1/comments/{id}:
+    put:
+      tags: [Comments]
+      summary: Update an owned comment.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+      responses:
+        '200':
+          description: Updated comment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+    delete:
+      tags: [Comments]
+      summary: Soft-delete an owned comment.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Deleted.
+  /api/v1/interactions/{type}/{target}:
+    get:
+      tags: [Interactions]
+      security: []
+      summary: Read aggregate like state for an article or comment.
+      parameters:
+        - $ref: '#/components/parameters/TargetType'
+        - $ref: '#/components/parameters/TargetId'
+      responses:
+        '200':
+          description: Interaction state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionState'
+  /api/v1/interactions/{type}/{target}/like:
+    put:
+      tags: [Interactions]
+      summary: Like an article or comment.
+      parameters:
+        - $ref: '#/components/parameters/TargetType'
+        - $ref: '#/components/parameters/TargetId'
+      responses:
+        '200':
+          description: Updated interaction state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionState'
+    delete:
+      tags: [Interactions]
+      summary: Unlike an article or comment.
+      parameters:
+        - $ref: '#/components/parameters/TargetType'
+        - $ref: '#/components/parameters/TargetId'
+      responses:
+        '200':
+          description: Updated interaction state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionState'
+  /api/v1/follows/{target}:
+    put:
+      tags: [Follows]
+      summary: Follow a user.
+      parameters:
+        - name: target
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Relationship state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relationship'
+    delete:
+      tags: [Follows]
+      summary: Unfollow a user.
+      parameters:
+        - name: target
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Relationship state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relationship'
+  /api/v1/follows/status/{target}:
+    get:
+      tags: [Follows]
+      summary: Read relationship status to a target user.
+      parameters:
+        - name: target
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Relationship state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relationship'
+  /api/v1/follows/users/{id}/followers:
+    get:
+      tags: [Follows]
+      security: []
+      summary: List followers for a user.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: User link page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLinkPage'
+  /api/v1/follows/users/{id}/following:
+    get:
+      tags: [Follows]
+      security: []
+      summary: List users followed by a user.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: User link page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLinkPage'
+  /api/v1/notifications:
+    get:
+      tags: [Notifications]
+      summary: List authenticated user's notifications.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Notification page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPage'
+  /api/v1/notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Read unread notification count.
+      responses:
+        '200':
+          description: Unread count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+  /api/v1/notifications/{id}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark one notification as read.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Updated notification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+  /api/v1/notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Mark all notifications as read.
+      responses:
+        '200':
+          description: Updated unread count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TargetId:
+      name: target
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TargetType:
+      name: type
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [ARTICLE, COMMENT]
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      description: Page size. Services cap oversized values server-side; see docs/api-conventions.md for endpoint caps.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+  requestBodies:
+    RefreshToken:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RefreshRequest'
+    ArticleWrite:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArticleWriteRequest'
+  responses:
+    Error:
+      description: Error response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validation error response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+        displayName:
+          type: string
+          maxLength: 80
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          maxLength: 72
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          maxLength: 512
+    TokenResponse:
+      type: object
+      required: [accessToken, refreshToken, tokenType, expiresIn]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          format: int64
+    UpdateProfileRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+          maxLength: 80
+        bio:
+          type: string
+          maxLength: 500
+        avatarUrl:
+          type: string
+          maxLength: 500
+    ProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+        role:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ArticleWriteRequest:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 500
+        content:
+          type: string
+          maxLength: 50000
+        tags:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 50
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        slug:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, DELETED]
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+    CreateCommentRequest:
+      type: object
+      required: [articleId, content]
+      properties:
+        articleId:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+        content:
+          type: string
+          maxLength: 2000
+    UpdateCommentRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          maxLength: 2000
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        articleId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, DELETED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    InteractionState:
+      type: object
+      properties:
+        targetType:
+          type: string
+        targetId:
+          type: string
+          format: uuid
+        liked:
+          type: boolean
+        count:
+          type: integer
+          format: int64
+    Relationship:
+      type: object
+      properties:
+        targetId:
+          type: string
+          format: uuid
+        following:
+          type: boolean
+        followerCount:
+          type: integer
+          format: int64
+        followingCount:
+          type: integer
+          format: int64
+    UserLink:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        actorId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        metadata:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        readAt:
+          type: string
+          format: date-time
+    UnreadCount:
+      type: object
+      properties:
+        count:
+          type: integer
+          format: int64
+    ErrorResponse:
+      type: object
+      description: Standard backend error envelope. `fields` is present for every error and is empty when no field-level detail exists.
+      required: [timestamp, status, code, message, path, fields]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        code:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+    ArticlePage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Article'
+    CommentPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Comment'
+    UserLinkPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserLink'
+    NotificationPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Notification'
+    Page:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        number:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean

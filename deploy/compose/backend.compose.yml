@@ -1,0 +1,149 @@
+services:
+  user-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-tanphong04/social-media-blog-platform}/user-service:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      USER_DB_URL: ${USER_DB_URL:-jdbc:postgresql://postgres:5432/user_db}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-true}
+      JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
+      JWT_KEY_ID: ${JWT_KEY_ID:-managed-rsa}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_VERIFICATION_KEYS: ${JWT_VERIFICATION_KEYS:-}
+    expose:
+      - "8081"
+    networks: [backend]
+
+  article-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-tanphong04/social-media-blog-platform}/article-service:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      ARTICLE_DB_URL: ${ARTICLE_DB_URL:-jdbc:postgresql://postgres:5432/article_db}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_CONSUMER_ENABLED: ${KAFKA_CONSUMER_ENABLED:-true}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-true}
+      JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
+    depends_on:
+      - user-service
+    expose:
+      - "8082"
+    networks: [backend]
+
+  comment-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-tanphong04/social-media-blog-platform}/comment-service:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      COMMENT_DB_URL: ${COMMENT_DB_URL:-jdbc:postgresql://postgres:5432/comment_db}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_CONSUMER_ENABLED: ${KAFKA_CONSUMER_ENABLED:-true}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-true}
+      JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
+    depends_on:
+      - user-service
+    expose:
+      - "8083"
+    networks: [backend]
+
+  interaction-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-tanphong04/social-media-blog-platform}/interaction-service:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      INTERACTION_DB_URL: ${INTERACTION_DB_URL:-jdbc:postgresql://postgres:5432/interaction_db}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_CONSUMER_ENABLED: ${KAFKA_CONSUMER_ENABLED:-true}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-true}
+      JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
+    depends_on:
+      - user-service
+    expose:
+      - "8084"
+    networks: [backend]
+
+  follower-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-tanphong04/social-media-blog-platform}/follower-service:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      FOLLOWER_DB_URL: ${FOLLOWER_DB_URL:-jdbc:postgresql://postgres:5432/follower_db}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_CONSUMER_ENABLED: ${KAFKA_CONSUMER_ENABLED:-true}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-true}
+      JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
+    depends_on:
+      - user-service
+    expose:
+      - "8085"
+    networks: [backend]
+
+  notification-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-tanphong04/social-media-blog-platform}/notification-service:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      NOTIFICATION_DB_URL: ${NOTIFICATION_DB_URL:-jdbc:postgresql://postgres:5432/notification_db}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_CONSUMER_ENABLED: ${KAFKA_CONSUMER_ENABLED:-true}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-true}
+      JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
+    depends_on:
+      - user-service
+    expose:
+      - "8086"
+    networks: [backend]
+
+  api-gateway:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-tanphong04/social-media-blog-platform}/api-gateway:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8081}
+      ARTICLE_SERVICE_URL: ${ARTICLE_SERVICE_URL:-http://article-service:8082}
+      COMMENT_SERVICE_URL: ${COMMENT_SERVICE_URL:-http://comment-service:8083}
+      INTERACTION_SERVICE_URL: ${INTERACTION_SERVICE_URL:-http://interaction-service:8084}
+      FOLLOWER_SERVICE_URL: ${FOLLOWER_SERVICE_URL:-http://follower-service:8085}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8086}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://app.example.com}
+      TRUST_FORWARDED_FOR: ${TRUST_FORWARDED_FOR:-true}
+    depends_on:
+      - user-service
+      - article-service
+      - comment-service
+      - interaction-service
+      - follower-service
+      - notification-service
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    networks: [backend]
+
+networks:
+  backend:
+    name: ${BACKEND_NETWORK:-social-blog-backend}

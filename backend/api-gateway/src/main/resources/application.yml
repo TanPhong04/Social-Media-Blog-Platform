@@ -3,40 +3,123 @@ server:
 spring:
   application:
     name: api-gateway
+  profiles:
+    default: local
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       routes:
+        - id: auth-write-rate-limited
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          order: 0
+          predicates:
+            - Path=/api/v1/auth/register,/api/v1/auth/login,/api/v1/auth/refresh,/api/v1/auth/logout
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientIpKeyResolver}"
+                redis-rate-limiter.replenishRate: ${RATE_LIMIT_AUTH_REPLENISH_RATE:1}
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_AUTH_BURST_CAPACITY:10}
+                redis-rate-limiter.requestedTokens: 1
+        - id: article-write-rate-limited
+          uri: ${ARTICLE_SERVICE_URL:http://localhost:8082}
+          order: 0
+          predicates:
+            - Path=/api/v1/articles,/api/v1/articles/**
+            - Method=POST,PUT,DELETE
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientIpKeyResolver}"
+                redis-rate-limiter.replenishRate: ${RATE_LIMIT_ARTICLE_WRITE_REPLENISH_RATE:5}
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_ARTICLE_WRITE_BURST_CAPACITY:20}
+                redis-rate-limiter.requestedTokens: 1
+        - id: comment-write-rate-limited
+          uri: ${COMMENT_SERVICE_URL:http://localhost:8083}
+          order: 0
+          predicates:
+            - Path=/api/v1/comments,/api/v1/comments/**
+            - Method=POST,PUT,DELETE
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientIpKeyResolver}"
+                redis-rate-limiter.replenishRate: ${RATE_LIMIT_COMMENT_WRITE_REPLENISH_RATE:3}
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_COMMENT_WRITE_BURST_CAPACITY:15}
+                redis-rate-limiter.requestedTokens: 1
+        - id: interaction-write-rate-limited
+          uri: ${INTERACTION_SERVICE_URL:http://localhost:8084}
+          order: 0
+          predicates:
+            - Path=/api/v1/interactions/**
+            - Method=PUT,DELETE
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientIpKeyResolver}"
+                redis-rate-limiter.replenishRate: ${RATE_LIMIT_INTERACTION_WRITE_REPLENISH_RATE:10}
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_INTERACTION_WRITE_BURST_CAPACITY:30}
+                redis-rate-limiter.requestedTokens: 1
+        - id: follower-write-rate-limited
+          uri: ${FOLLOWER_SERVICE_URL:http://localhost:8085}
+          order: 0
+          predicates:
+            - Path=/api/v1/follows/{target}
+            - Method=PUT,DELETE
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientIpKeyResolver}"
+                redis-rate-limiter.replenishRate: ${RATE_LIMIT_FOLLOW_WRITE_REPLENISH_RATE:5}
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_FOLLOW_WRITE_BURST_CAPACITY:20}
+                redis-rate-limiter.requestedTokens: 1
+        - id: notification-write-rate-limited
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
+          order: 0
+          predicates:
+            - Path=/api/v1/notifications/**
+            - Method=PATCH
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientIpKeyResolver}"
+                redis-rate-limiter.replenishRate: ${RATE_LIMIT_NOTIFICATION_WRITE_REPLENISH_RATE:10}
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_NOTIFICATION_WRITE_BURST_CAPACITY:30}
+                redis-rate-limiter.requestedTokens: 1
         - id: user-service
           uri: ${USER_SERVICE_URL:http://localhost:8081}
+          order: 100
           predicates:
             - Path=/api/v1/auth/**,/api/v1/users/**
         - id: article-service
           uri: ${ARTICLE_SERVICE_URL:http://localhost:8082}
+          order: 100
           predicates:
             - Path=/api/v1/articles/**
         - id: comment-service
           uri: ${COMMENT_SERVICE_URL:http://localhost:8083}
+          order: 100
           predicates:
             - Path=/api/v1/comments/**
         - id: interaction-service
           uri: ${INTERACTION_SERVICE_URL:http://localhost:8084}
+          order: 100
           predicates:
             - Path=/api/v1/interactions/**
         - id: follower-service
           uri: ${FOLLOWER_SERVICE_URL:http://localhost:8085}
+          order: 100
           predicates:
             - Path=/api/v1/follows/**
         - id: notification-service
           uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
+          order: 100
           predicates:
             - Path=/api/v1/notifications/**
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
-            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
-            allowedHeaders: "*"
-            exposedHeaders: [X-Correlation-ID]
 management:
   endpoints.web.exposure.include: health,info,prometheus
   endpoint.health.probes.enabled: true
