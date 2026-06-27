@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 
 @Configuration
 public class SecurityConfig {
@@ -40,8 +41,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    JWKSet publicJwkSet(RSAKey jwtJwk) {
-        return new JWKSet(jwtJwk.toPublicJWK());
+    JwtKeyRotationSupport.VerificationKeys jwtVerificationKeys(
+            @Value("${app.security.jwt.verification-keys:}") String configuredKeys) {
+        return JwtKeyRotationSupport.verificationKeys(configuredKeys);
+    }
+
+    @Bean
+    JWKSet publicJwkSet(RSAKey jwtJwk, JwtKeyRotationSupport.VerificationKeys verificationKeys) {
+        var keys = new ArrayList<com.nimbusds.jose.jwk.JWK>();
+        keys.add(jwtJwk.toPublicJWK());
+        verificationKeys.keys().stream()
+                .filter(key -> !jwtJwk.getKeyID().equals(key.getKeyID()))
+                .map(RSAKey::toPublicJWK)
+                .forEach(keys::add);
+        return new JWKSet(keys);
     }
 
     @Bean
@@ -50,10 +63,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(RSAKey jwtJwk, @Value("${app.security.jwt.issuer}") String issuer) throws Exception {
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(jwtJwk.toRSAPublicKey()).build();
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuer));
-        return decoder;
+    JwtDecoder jwtDecoder(JWKSet publicJwkSet, @Value("${app.security.jwt.issuer}") String issuer) {
+        return JwtKeyRotationSupport.decoder(publicJwkSet, issuer);
     }
 
     @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
