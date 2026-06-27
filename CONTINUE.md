@@ -61,9 +61,10 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Article, comment, interaction, follower, notification, user, and gateway modules expose actuator health/info/prometheus with health probes enabled.
   - Service health endpoints are public at `/actuator/health/**`; authenticated API routes remain protected.
   - All backend services and the API Gateway have Java 21 runtime Dockerfiles.
-  - GitHub Actions backend CI runs `mvn package` and builds all backend Docker images.
+  - GitHub Actions backend CI runs `mvn package`, builds all backend Docker images, and publishes GHCR images on `dev`/`main` pushes.
   - Backend services and the API Gateway enable Spring Boot ECS structured console logs.
   - Prometheus dashboard notes, first alert suggestions, and runbooks for failed outbox rows, stuck consumers, migration failures, Kafka replay, and DLT recovery are documented in `docs/operations.md`.
+  - Production-oriented backend Compose, migration/rollback guidance, secret/config guidance, image publishing notes, and Gateway smoke tests are documented in `docs/deployment.md`.
 - Backend security hardening:
   - User Service signs access tokens with RSA/RS256, validates issuer, and exposes a public JWKS endpoint at `/.well-known/jwks.json`.
   - User Service supports overlapping JWT key rotation by publishing configured previous public keys in JWKS and validating against the active plus previous keys during the rotation window.
@@ -115,6 +116,9 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn -pl backend/user-service,backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 48 tests passed after standardizing API error envelopes and adding API convention docs.
 - `mvn test`: BUILD SUCCESS; 48 tests passed after API error envelope and convention work.
 - `mvn test`: BUILD SUCCESS; 48 tests passed after adding backend operations runbooks and dashboard notes.
+- `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after adding production-oriented backend Compose; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after backend deployment readiness work.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -130,7 +134,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 4. Flutter client is not implemented yet.
 5. Tests use H2. Add PostgreSQL/Kafka Testcontainers after Docker Desktop is available.
 6. Kafka DLT behavior is configured but not verified against a real broker because Docker/Testcontainers is unavailable.
-7. Dockerfiles and CI image build steps exist, but local `docker build` was not run because Docker engine is unavailable.
+7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution were not run because Docker engine is unavailable and no staging target is configured in this workspace.
 
 ## Continue-work protocol
 
@@ -236,18 +240,18 @@ Backend-first continuation rule:
 ### P7 - Packaging, deployment, and CI/CD
 
 - [x] Add Dockerfiles for every backend service.
-- [ ] Add production-oriented Compose or Kubernetes manifests.
+- [x] Add production-oriented Compose or Kubernetes manifests.
 - [x] Add CI pipeline for compile, tests, and docker build.
-- [ ] Add image publishing to CI.
-- [ ] Add migration deployment strategy and rollback notes.
-- [ ] Add secret/config management guidance.
-- [ ] Add staging smoke tests through the API Gateway.
+- [x] Add image publishing to CI.
+- [x] Add migration deployment strategy and rollback notes.
+- [x] Add secret/config management guidance.
+- [x] Add staging smoke tests through the API Gateway.
 
 ### P8 - Production acceptance
 
-- [ ] Full `mvn test` green.
+- [x] Full `mvn test` green.
 - [ ] PostgreSQL/Kafka Testcontainers green.
-- [ ] API contract tests green.
+- [x] API contract tests green.
 - [ ] Frontend critical flow tests green.
 - [ ] Staging deployment smoke test green.
 - [ ] Security review checklist complete.
@@ -257,8 +261,8 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-4. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter and ask whether to start frontend work.
+3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
+4. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
 
@@ -274,8 +278,8 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness and ask the user whether to start frontend work.
+3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
+4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.
