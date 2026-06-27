@@ -32,6 +32,6 @@ JWT defaults are development-only. User Service signs access tokens with RS256 a
 API Gateway applies Redis-backed rate limits to auth, article writes, comments, likes, follows, and notification write endpoints. CORS is profile-specific: local defaults allow `localhost` development origins, while `staging` and `prod` require `CORS_ALLOWED_ORIGINS`.
 
 Security boundary, JWT key rotation, and request validation limits are documented in `docs/security.md`.
-The public REST contract is documented in `docs/openapi/social-blog-api.yaml`.
+The public REST contract is documented in `docs/openapi/social-blog-api.yaml`, with error, pagination, and compatibility conventions in `docs/api-conventions.md`.
 
 See `CONTINUE.md` for the exact implementation status and next task.

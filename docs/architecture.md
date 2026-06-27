@@ -14,7 +14,7 @@ User Service is the JWT issuer. It signs access tokens with RSA/RS256, includes 
 
 API Gateway is the edge for cross-service HTTP concerns. It propagates `X-Correlation-ID`, applies Redis-backed request rate limits to auth and write-heavy routes, and owns CORS. The `local` profile allows local development origins by default; `staging` and `prod` require explicit `CORS_ALLOWED_ORIGINS`. `TRUST_FORWARDED_FOR` is disabled by default locally and enabled by default for staging/prod deployments behind a trusted proxy.
 
-Gateway/service authentication boundaries, JWT rotation workflow, and validation limits are documented in `docs/security.md`.
+Gateway/service authentication boundaries, JWT rotation workflow, and validation limits are documented in `docs/security.md`. Public REST error envelopes, pagination, sorting, and compatibility rules are documented in `docs/api-conventions.md`.
 
 Backend services use Spring Boot ECS structured console logging. Kafka consumer retry and dead-letter paths log structured failure context with topic, partition, offset, event ID, event type, correlation ID, delivery attempt, and root-cause fields without logging the full event payload.
 

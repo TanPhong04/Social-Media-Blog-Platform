@@ -524,6 +524,7 @@ components:
     Size:
       name: size
       in: query
+      description: Page size. Services cap oversized values server-side; see docs/api-conventions.md for endpoint caps.
       required: false
       schema:
         type: integer
@@ -800,6 +801,7 @@ components:
           format: int64
     ErrorResponse:
       type: object
+      description: Standard backend error envelope. `fields` is present for every error and is empty when no field-level detail exists.
       required: [timestamp, status, code, message, path, fields]
       properties:
         timestamp:
