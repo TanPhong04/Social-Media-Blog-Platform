@@ -1,13 +1,14 @@
-package com.socialblog.user.repository;
+package com.socialblog.follower.repository;
 
-import com.socialblog.user.domain.OutboxEvent;
-import com.socialblog.user.domain.RefreshToken;
-import com.socialblog.user.domain.UserAccount;
+import com.socialblog.follower.domain.Follow;
+import com.socialblog.follower.domain.OutboxEvent;
+import com.socialblog.follower.domain.UserProjection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 @EnabledIf(value = "postgresTestcontainersEnabled", disabledReason = "PostgreSQL Testcontainers tests are opt-in and require a valid Docker engine")
@@ -29,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.flyway.enabled=true"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class UserServicePostgresIntegrationTest {
+class FollowerServicePostgresIntegrationTest {
     @Container
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
@@ -45,44 +47,54 @@ class UserServicePostgresIntegrationTest {
     }
 
     @Autowired JdbcTemplate jdbc;
-    @Autowired UserRepository users;
-    @Autowired RefreshTokenRepository refreshTokens;
+    @Autowired FollowRepository follows;
+    @Autowired UserProjectionRepository users;
     @Autowired OutboxEventRepository outboxEvents;
 
     @Test
-    void flywayMigrationsCreateExpectedTablesAndIndexes() {
-        assertThat(tableExists("users")).isTrue();
-        assertThat(tableExists("refresh_tokens")).isTrue();
+    void flywayMigrationCreatesExpectedTablesIndexesAndConstraints() {
+        assertThat(tableExists("user_projection")).isTrue();
+        assertThat(tableExists("follows")).isTrue();
         assertThat(tableExists("outbox_events")).isTrue();
-        assertThat(indexExists("idx_refresh_tokens_user_id")).isTrue();
-        assertThat(indexExists("idx_outbox_events_pending")).isTrue();
-        assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history", Integer.class)).isEqualTo(2);
+        assertThat(tableExists("processed_events")).isTrue();
+        assertThat(indexExists("idx_follows_follower")).isTrue();
+        assertThat(indexExists("idx_follows_followed")).isTrue();
+        assertThat(indexExists("idx_follower_outbox_pending")).isTrue();
+        assertThat(constraintExists("uk_follow_pair")).isTrue();
+        assertThat(constraintExists("ck_no_self_follow")).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history", Integer.class)).isEqualTo(1);
     }
 
     @Test
-    void repositoriesUsePostgresConstraintsAndNativeOutboxClaiming() {
-        UserAccount user = users.saveAndFlush(new UserAccount("Alice@Example.com", "hash", "Alice"));
+    void repositoriesUsePostgresConstraintsProjectionAndNativeOutboxClaiming() {
+        UUID followerId = UUID.randomUUID();
+        UUID followedId = UUID.randomUUID();
+        users.saveAndFlush(new UserProjection(followerId, true, "Follower"));
+        users.saveAndFlush(new UserProjection(followedId, true, "Followed"));
 
-        assertThat(users.existsByEmailIgnoreCase("alice@example.com")).isTrue();
-        assertThat(users.findByEmailIgnoreCase("ALICE@example.com")).contains(user);
+        assertThat(users.existsByIdAndActiveTrue(followedId)).isTrue();
 
-        RefreshToken refreshToken = refreshTokens.saveAndFlush(
-                new RefreshToken(user.getId(), "token-hash", Instant.now().plusSeconds(3600))
-        );
-        assertThat(refreshTokens.findByTokenHash("token-hash")).contains(refreshToken);
+        follows.saveAndFlush(new Follow(followerId, followedId));
 
-        UUID aggregateId = user.getId();
-        OutboxEvent older = outboxEvents.saveAndFlush(event(aggregateId, Instant.now().minusSeconds(10)));
-        OutboxEvent newer = outboxEvents.saveAndFlush(event(aggregateId, Instant.now()));
+        assertThat(follows.existsByFollowerIdAndFollowedId(followerId, followedId)).isTrue();
+        assertThat(follows.findByFollowerIdOrderByCreatedAtDesc(followerId, PageRequest.of(0, 10)))
+                .extracting(Follow::getFollowedId)
+                .containsExactly(followedId);
+        assertThat(follows.countByFollowerId(followerId)).isEqualTo(1);
+        assertThat(follows.countByFollowedId(followedId)).isEqualTo(1);
+
+        UUID olderAggregateId = UUID.randomUUID();
+        UUID newerAggregateId = UUID.randomUUID();
+        outboxEvents.saveAndFlush(event(olderAggregateId, Instant.now().minusSeconds(10)));
+        outboxEvents.saveAndFlush(event(newerAggregateId, Instant.now()));
 
         List<OutboxEvent> claimed = outboxEvents.lockPendingBatch(10);
 
-        assertThat(claimed).extracting(OutboxEvent::getId).containsExactly(older.getId(), newer.getId());
+        assertThat(claimed).extracting(OutboxEvent::getAggregateId).containsSequence(olderAggregateId, newerAggregateId);
         assertThat(outboxEvents.countByStatus(OutboxEvent.Status.PENDING)).isEqualTo(2);
 
-        users.delete(user);
-        users.flush();
-        assertThat(refreshTokens.findByTokenHash("token-hash")).isEmpty();
+        assertThatThrownBy(() -> follows.saveAndFlush(new Follow(followerId, followedId)))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 
     private boolean tableExists(String tableName) {
@@ -103,13 +115,20 @@ class UserServicePostgresIntegrationTest {
         return count != null && count == 1;
     }
 
+    private boolean constraintExists(String constraintName) {
+        Integer count = jdbc.queryForObject("""
+                select count(*)
+                from information_schema.table_constraints
+                where table_schema = 'public' and constraint_name = ?
+                """, Integer.class, constraintName);
+        return count != null && count == 1;
+    }
+
     private OutboxEvent event(UUID aggregateId, Instant occurredAt) {
         return new OutboxEvent(
                 UUID.randomUUID(),
-                "User",
                 aggregateId,
-                "UserRegistered",
-                1,
+                "UserFollowed",
                 "{}",
                 occurredAt
         );
