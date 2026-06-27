@@ -16,6 +16,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Correlation ID from the HTTP request is preserved in the event envelope.
   - Logout endpoint, refresh-token revocation, and scheduled expired/revoked token cleanup.
   - PostgreSQL `FOR UPDATE SKIP LOCKED` row claiming prevents concurrent outbox publishers from selecting the same batch.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, JPA repositories, FK cascade, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/article-service`:
   - Independent `article_db` Flyway schema for articles and tags.
   - Authenticated create/edit/publish/unpublish/soft-delete operations with ownership checks.
@@ -130,6 +131,9 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn test`: BUILD SUCCESS; 48 tests passed after backend security review checklist work.
 - `mvn -pl backend/user-service test`: BUILD SUCCESS; 7 tests passed after configuring the Surefire Byte Buddy Java agent for Mockito tests.
 - `mvn test`: BUILD SUCCESS; 48 tests passed after configuring the Surefire Byte Buddy Java agent for Mockito tests. Mockito dynamic self-attach warnings no longer appeared; JVM class-sharing warnings remain.
+- `mvn -pl backend/user-service test`: BUILD SUCCESS; 7 tests passed and 2 opt-in PostgreSQL Testcontainers tests skipped after adding user-service PostgreSQL Testcontainers coverage.
+- `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"`: BUILD FAILURE; 7 H2/unit tests passed, then `UserServicePostgresIntegrationTest` failed before executing because Testcontainers could not find a valid Docker environment. Testcontainers repeatedly received HTTP 400 with empty Docker info from `npipe://\\.\pipe\docker_cli`, while `docker -H npipe:////./pipe/dockerDesktopLinuxEngine info` succeeds. TCP Docker endpoints `localhost:2375` and `localhost:2376` are closed.
+- `mvn test`: BUILD SUCCESS; 48 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped after adding user-service PostgreSQL Testcontainers coverage.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -140,12 +144,12 @@ Updated: 2026-06-27 (Asia/Saigon)
 ## Known limitations / immediate work
 
 1. Flutter scaffold is not present. `flutter create`, `flutter create --no-pub`, and `flutter doctor -v` all hung without output and were terminated.
-2. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker info --format "{{.ServerVersion}}"` failed with `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; ... The system cannot find the file specified.`), so Testcontainers cannot start.
+2. Outbox publisher has unit coverage but no real Kafka integration test. PostgreSQL Testcontainers coverage has been added for `user-service`, but opt-in execution is blocked by local Docker Desktop/Testcontainers pipe configuration: Testcontainers is redirected to `npipe://\\.\pipe\docker_cli` and receives HTTP 400 empty Docker info even though `docker -H npipe:////./pipe/dockerDesktopLinuxEngine info` works.
 3. JWT key rotation supports active plus previous public keys and has a documented workflow; automated multi-key end-to-end verification through all resource services still needs real deployment or contract coverage.
 4. Flutter client is not implemented yet.
-5. Tests use H2. Add PostgreSQL/Kafka Testcontainers after Docker Desktop is available.
-6. Kafka DLT behavior is configured but not verified against a real broker because Docker/Testcontainers is unavailable.
-7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution were not run because Docker engine is unavailable and no staging target is configured in this workspace.
+5. Most service tests still use H2. User Service now has opt-in PostgreSQL Testcontainers coverage, but it is not green locally until Testcontainers can use the Docker Desktop Linux engine pipe.
+6. Kafka DLT behavior is configured but not verified against a real broker because Kafka Testcontainers coverage has not been added yet.
+7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution have not been run in this workspace branch; no staging target is configured.
 8. Backend security review is complete at source/config level; pre-deploy verification in `docs/security-review.md` still requires real staging/production infrastructure.
 
 ## Continue-work protocol
@@ -272,8 +276,8 @@ Backend-first continuation rule:
 ## Exact next implementation order
 
 1. Run `mvn test` and preserve the green baseline.
-2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. If Docker Desktop is still unavailable, run only source/config checks, keep the blocker recorded, and wait for Docker or a staging Gateway URL before Testcontainers, image build, Compose `up`, or staging smoke execution.
+2. Fix the local Docker Desktop/Testcontainers host configuration so `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"` can connect to `npipe:////./pipe/dockerDesktopLinuxEngine` instead of the broken `docker_cli` pipe.
+3. After the user-service PostgreSQL Testcontainers test is green, add PostgreSQL Testcontainers coverage for article, comment, interaction, follower, and notification services.
 4. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
@@ -289,8 +293,8 @@ Backend-first instruction: keep working on backend production readiness until ba
 
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
-2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. If Docker Desktop is still unavailable, run only source/config checks, keep the blocker recorded, and wait for Docker or a staging Gateway URL before Testcontainers, image build, Compose `up`, or staging smoke execution.
+2. Fix the local Docker Desktop/Testcontainers host configuration so `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"` can connect to `npipe:////./pipe/dockerDesktopLinuxEngine` instead of the broken `docker_cli` pipe.
+3. After the user-service PostgreSQL Testcontainers test is green, add PostgreSQL Testcontainers coverage for article, comment, interaction, follower, and notification services.
 4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
