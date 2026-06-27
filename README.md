@@ -29,4 +29,6 @@ Gateway listens on `8080`; backend services currently use ports `8081` through `
 
 JWT defaults are development-only. User Service signs access tokens with RS256 and exposes `/.well-known/jwks.json`; production deployments should set `JWT_ISSUER`, `JWT_KEY_ID`, `JWT_PRIVATE_KEY`, and `JWT_PUBLIC_KEY`, or configure resource services with `JWT_JWK_SET_URI`.
 
+API Gateway applies Redis-backed rate limits to auth, article writes, comments, likes, follows, and notification write endpoints. CORS is profile-specific: local defaults allow `localhost` development origins, while `staging` and `prod` require `CORS_ALLOWED_ORIGINS`.
+
 See `CONTINUE.md` for the exact implementation status and next task.

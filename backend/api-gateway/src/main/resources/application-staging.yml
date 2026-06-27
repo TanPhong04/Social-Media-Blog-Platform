@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: staging
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: ${CORS_ALLOWED_ORIGINS}
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,X-Correlation-ID}
+            exposedHeaders: [X-Correlation-ID]
+            allowCredentials: true
+socialblog:
+  gateway:
+    rate-limit:
+      trust-forwarded-for: ${TRUST_FORWARDED_FOR:true}
