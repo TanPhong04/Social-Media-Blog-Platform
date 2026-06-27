@@ -49,3 +49,5 @@ Current request limits:
 | Pagination size | Must be greater than or equal to 1; service max is 50 for articles and 100 for comments, follows, and notifications |
 
 Invalid request bodies return `VALIDATION_FAILED`. Invalid pagination returns `INVALID_PAGE` or `INVALID_PAGE_SIZE`.
+
+The production acceptance security review checklist is maintained in `docs/security-review.md`.

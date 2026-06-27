@@ -39,6 +39,7 @@
 - [x] Consumer retry/backoff and dead-letter topics
 - [x] Observability: structured logs, metrics, Kafka topic docs, health/readiness, dashboard notes, and runbooks complete
 - [x] Security hardening: JWKS, gateway rate limits, environment-specific CORS/config, key rotation config/docs, gateway/service boundary docs, and validation review complete
+- [x] Backend security review checklist documented
 - [x] API contracts and gateway route tests
 - [ ] Flutter client for all completed backend flows
 - [x] Backend service Dockerfiles
