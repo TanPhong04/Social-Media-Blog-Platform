@@ -63,6 +63,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - All backend services and the API Gateway have Java 21 runtime Dockerfiles.
   - GitHub Actions backend CI runs `mvn package` and builds all backend Docker images.
   - Backend services and the API Gateway enable Spring Boot ECS structured console logs.
+  - Prometheus dashboard notes, first alert suggestions, and runbooks for failed outbox rows, stuck consumers, migration failures, Kafka replay, and DLT recovery are documented in `docs/operations.md`.
 - Backend security hardening:
   - User Service signs access tokens with RSA/RS256, validates issuer, and exposes a public JWKS endpoint at `/.well-known/jwks.json`.
   - User Service supports overlapping JWT key rotation by publishing configured previous public keys in JWKS and validating against the active plus previous keys during the rotation window.
@@ -113,6 +114,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `docker info --format "{{.ServerVersion}}"`: failed before Testcontainers work with `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; ... The system cannot find the file specified.`
 - `mvn -pl backend/user-service,backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 48 tests passed after standardizing API error envelopes and adding API convention docs.
 - `mvn test`: BUILD SUCCESS; 48 tests passed after API error envelope and convention work.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after adding backend operations runbooks and dashboard notes.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -207,11 +209,11 @@ Backend-first continuation rule:
 ### P4 - Observability and supportability
 
 - [x] Add common structured JSON logging across services.
-- [ ] Propagate correlation ID through REST and Kafka consistently.
+- [x] Propagate correlation ID through REST and Kafka consistently.
 - [x] Expose production health/readiness/liveness endpoints.
 - [x] Add Prometheus metrics endpoint exposure.
-- [ ] Add Prometheus dashboard notes.
-- [ ] Add runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
+- [x] Add Prometheus dashboard notes.
+- [x] Add runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
 
 ### P5 - API quality and contracts
 
@@ -255,9 +257,8 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
-4. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-5. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter and ask whether to start frontend work.
+3. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
+4. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
 
@@ -273,9 +274,8 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
-4. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness and ask the user whether to start frontend work.
+3. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
+4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.
