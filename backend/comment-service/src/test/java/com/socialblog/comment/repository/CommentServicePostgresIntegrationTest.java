@@ -1,13 +1,14 @@
-package com.socialblog.user.repository;
+package com.socialblog.comment.repository;
 
-import com.socialblog.user.domain.OutboxEvent;
-import com.socialblog.user.domain.RefreshToken;
-import com.socialblog.user.domain.UserAccount;
+import com.socialblog.comment.domain.ArticleProjection;
+import com.socialblog.comment.domain.Comment;
+import com.socialblog.comment.domain.OutboxEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -29,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.flyway.enabled=true"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class UserServicePostgresIntegrationTest {
+class CommentServicePostgresIntegrationTest {
     @Container
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
@@ -45,44 +46,48 @@ class UserServicePostgresIntegrationTest {
     }
 
     @Autowired JdbcTemplate jdbc;
-    @Autowired UserRepository users;
-    @Autowired RefreshTokenRepository refreshTokens;
+    @Autowired CommentRepository comments;
+    @Autowired ArticleProjectionRepository articles;
     @Autowired OutboxEventRepository outboxEvents;
 
     @Test
     void flywayMigrationsCreateExpectedTablesAndIndexes() {
-        assertThat(tableExists("users")).isTrue();
-        assertThat(tableExists("refresh_tokens")).isTrue();
+        assertThat(tableExists("comments")).isTrue();
         assertThat(tableExists("outbox_events")).isTrue();
-        assertThat(indexExists("idx_refresh_tokens_user_id")).isTrue();
-        assertThat(indexExists("idx_outbox_events_pending")).isTrue();
-        assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history", Integer.class)).isEqualTo(2);
+        assertThat(tableExists("article_projection")).isTrue();
+        assertThat(tableExists("processed_events")).isTrue();
+        assertThat(columnExists("article_projection", "author_id")).isTrue();
+        assertThat(indexExists("idx_comments_article_created")).isTrue();
+        assertThat(indexExists("idx_comments_parent")).isTrue();
+        assertThat(indexExists("idx_comment_outbox_pending")).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history", Integer.class)).isEqualTo(3);
     }
 
     @Test
-    void repositoriesUsePostgresConstraintsAndNativeOutboxClaiming() {
-        UserAccount user = users.saveAndFlush(new UserAccount("Alice@Example.com", "hash", "Alice"));
+    void repositoriesUsePostgresProjectionOrderingAndNativeOutboxClaiming() {
+        UUID articleId = UUID.randomUUID();
+        UUID authorId = UUID.randomUUID();
+        articles.saveAndFlush(new ArticleProjection(articleId, true, authorId));
 
-        assertThat(users.existsByEmailIgnoreCase("alice@example.com")).isTrue();
-        assertThat(users.findByEmailIgnoreCase("ALICE@example.com")).contains(user);
+        assertThat(articles.existsByArticleIdAndActiveTrue(articleId)).isTrue();
+        assertThat(articles.findById(articleId)).get().extracting(ArticleProjection::getAuthorId).isEqualTo(authorId);
 
-        RefreshToken refreshToken = refreshTokens.saveAndFlush(
-                new RefreshToken(user.getId(), "token-hash", Instant.now().plusSeconds(3600))
-        );
-        assertThat(refreshTokens.findByTokenHash("token-hash")).contains(refreshToken);
+        Comment root = comments.saveAndFlush(new Comment(articleId, authorId, null, "Root"));
+        Comment reply = comments.saveAndFlush(new Comment(articleId, UUID.randomUUID(), root.getId(), "Reply"));
 
-        UUID aggregateId = user.getId();
-        OutboxEvent older = outboxEvents.saveAndFlush(event(aggregateId, Instant.now().minusSeconds(10)));
-        OutboxEvent newer = outboxEvents.saveAndFlush(event(aggregateId, Instant.now()));
+        assertThat(comments.findByArticleIdOrderByCreatedAtAsc(articleId, PageRequest.of(0, 10)))
+                .extracting(Comment::getId)
+                .contains(root.getId(), reply.getId());
+
+        UUID olderAggregateId = UUID.randomUUID();
+        UUID newerAggregateId = UUID.randomUUID();
+        outboxEvents.saveAndFlush(event(olderAggregateId, Instant.now().minusSeconds(10)));
+        outboxEvents.saveAndFlush(event(newerAggregateId, Instant.now()));
 
         List<OutboxEvent> claimed = outboxEvents.lockPendingBatch(10);
 
-        assertThat(claimed).extracting(OutboxEvent::getId).containsExactly(older.getId(), newer.getId());
+        assertThat(claimed).extracting(OutboxEvent::getAggregateId).containsSequence(olderAggregateId, newerAggregateId);
         assertThat(outboxEvents.countByStatus(OutboxEvent.Status.PENDING)).isEqualTo(2);
-
-        users.delete(user);
-        users.flush();
-        assertThat(refreshTokens.findByTokenHash("token-hash")).isEmpty();
     }
 
     private boolean tableExists(String tableName) {
@@ -91,6 +96,15 @@ class UserServicePostgresIntegrationTest {
                 from information_schema.tables
                 where table_schema = 'public' and table_name = ?
                 """, Integer.class, tableName);
+        return count != null && count == 1;
+    }
+
+    private boolean columnExists(String tableName, String columnName) {
+        Integer count = jdbc.queryForObject("""
+                select count(*)
+                from information_schema.columns
+                where table_schema = 'public' and table_name = ? and column_name = ?
+                """, Integer.class, tableName, columnName);
         return count != null && count == 1;
     }
 
@@ -106,10 +120,8 @@ class UserServicePostgresIntegrationTest {
     private OutboxEvent event(UUID aggregateId, Instant occurredAt) {
         return new OutboxEvent(
                 UUID.randomUUID(),
-                "User",
                 aggregateId,
-                "UserRegistered",
-                1,
+                "CommentCreated",
                 "{}",
                 occurredAt
         );

@@ -1,8 +1,9 @@
-package com.socialblog.user.repository;
+package com.socialblog.article.repository;
 
-import com.socialblog.user.domain.OutboxEvent;
-import com.socialblog.user.domain.RefreshToken;
-import com.socialblog.user.domain.UserAccount;
+import com.socialblog.article.domain.Article;
+import com.socialblog.article.domain.FollowKey;
+import com.socialblog.article.domain.FollowProjection;
+import com.socialblog.article.domain.OutboxEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.flyway.enabled=true"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class UserServicePostgresIntegrationTest {
+class ArticleServicePostgresIntegrationTest {
     @Container
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
@@ -45,44 +47,57 @@ class UserServicePostgresIntegrationTest {
     }
 
     @Autowired JdbcTemplate jdbc;
-    @Autowired UserRepository users;
-    @Autowired RefreshTokenRepository refreshTokens;
+    @Autowired ArticleRepository articles;
+    @Autowired FollowProjectionRepository follows;
     @Autowired OutboxEventRepository outboxEvents;
 
     @Test
     void flywayMigrationsCreateExpectedTablesAndIndexes() {
-        assertThat(tableExists("users")).isTrue();
-        assertThat(tableExists("refresh_tokens")).isTrue();
+        assertThat(tableExists("articles")).isTrue();
+        assertThat(tableExists("article_tags")).isTrue();
         assertThat(tableExists("outbox_events")).isTrue();
-        assertThat(indexExists("idx_refresh_tokens_user_id")).isTrue();
-        assertThat(indexExists("idx_outbox_events_pending")).isTrue();
-        assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history", Integer.class)).isEqualTo(2);
+        assertThat(tableExists("follow_projection")).isTrue();
+        assertThat(tableExists("processed_events")).isTrue();
+        assertThat(indexExists("idx_articles_status_published")).isTrue();
+        assertThat(indexExists("idx_article_outbox_pending")).isTrue();
+        assertThat(indexExists("idx_article_follow_projection_follower")).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history", Integer.class)).isEqualTo(3);
     }
 
     @Test
-    void repositoriesUsePostgresConstraintsAndNativeOutboxClaiming() {
-        UserAccount user = users.saveAndFlush(new UserAccount("Alice@Example.com", "hash", "Alice"));
+    void repositoriesUsePostgresConstraintsTagsCascadeAndNativeOutboxClaiming() {
+        UUID authorId = UUID.randomUUID();
+        Article article = new Article(authorId, "Postgres Article", "Summary", "Content", Set.of("java", "postgres"));
+        article.publish();
+        articles.saveAndFlush(article);
 
-        assertThat(users.existsByEmailIgnoreCase("alice@example.com")).isTrue();
-        assertThat(users.findByEmailIgnoreCase("ALICE@example.com")).contains(user);
+        assertThat(articles.findBySlugAndStatus(article.getSlug(), Article.Status.PUBLISHED)).contains(article);
+        assertThat(articles.findByStatusOrderByPublishedAtDesc(Article.Status.PUBLISHED, org.springframework.data.domain.PageRequest.of(0, 10)))
+                .extracting(Article::getId)
+                .contains(article.getId());
+        assertThat(jdbc.queryForObject("select count(*) from article_tags where article_id = ?", Integer.class, article.getId()))
+                .isEqualTo(2);
 
-        RefreshToken refreshToken = refreshTokens.saveAndFlush(
-                new RefreshToken(user.getId(), "token-hash", Instant.now().plusSeconds(3600))
-        );
-        assertThat(refreshTokens.findByTokenHash("token-hash")).contains(refreshToken);
+        UUID followerId = UUID.randomUUID();
+        follows.saveAndFlush(new FollowProjection(new FollowKey(followerId, authorId)));
+        assertThat(follows.findByIdFollowerId(followerId))
+                .extracting(follow -> follow.getId().followedId())
+                .containsExactly(authorId);
 
-        UUID aggregateId = user.getId();
-        OutboxEvent older = outboxEvents.saveAndFlush(event(aggregateId, Instant.now().minusSeconds(10)));
-        OutboxEvent newer = outboxEvents.saveAndFlush(event(aggregateId, Instant.now()));
+        UUID olderAggregateId = UUID.randomUUID();
+        UUID newerAggregateId = UUID.randomUUID();
+        outboxEvents.saveAndFlush(event(olderAggregateId, Instant.now().minusSeconds(10)));
+        outboxEvents.saveAndFlush(event(newerAggregateId, Instant.now()));
 
         List<OutboxEvent> claimed = outboxEvents.lockPendingBatch(10);
 
-        assertThat(claimed).extracting(OutboxEvent::getId).containsExactly(older.getId(), newer.getId());
+        assertThat(claimed).extracting(OutboxEvent::getAggregateId).containsSequence(olderAggregateId, newerAggregateId);
         assertThat(outboxEvents.countByStatus(OutboxEvent.Status.PENDING)).isEqualTo(2);
 
-        users.delete(user);
-        users.flush();
-        assertThat(refreshTokens.findByTokenHash("token-hash")).isEmpty();
+        articles.delete(article);
+        articles.flush();
+        assertThat(jdbc.queryForObject("select count(*) from article_tags where article_id = ?", Integer.class, article.getId()))
+                .isZero();
     }
 
     private boolean tableExists(String tableName) {
@@ -106,10 +121,8 @@ class UserServicePostgresIntegrationTest {
     private OutboxEvent event(UUID aggregateId, Instant occurredAt) {
         return new OutboxEvent(
                 UUID.randomUUID(),
-                "User",
                 aggregateId,
-                "UserRegistered",
-                1,
+                "ArticlePublished",
                 "{}",
                 occurredAt
         );

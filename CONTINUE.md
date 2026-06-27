@@ -24,6 +24,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Stable paginated JSON representation.
   - Transactional ArticlePublished/ArticleDeleted outbox events with request correlation ID.
   - Kafka publisher with SKIP LOCKED claiming, retry/failed state, and tests.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, article tags, follow projection, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/comment-service`:
   - Independent `comment_db` Flyway schema.
   - Public paginated article comments, authenticated root comments/replies, ownership checks, editing, and soft deletion.
@@ -32,23 +33,27 @@ Updated: 2026-06-27 (Asia/Saigon)
   - SKIP LOCKED Kafka publisher with acknowledgement, retry, terminal failure, and tests.
   - Idempotent ArticlePublished/ArticleDeleted consumer with processed-event deduplication and local article projection.
   - Comment creation is rejected for unknown, unpublished, or deleted articles.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, article projection, comment ordering, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/interaction-service`:
   - Independent `interaction_db`, Gateway route, and JWT authorization.
   - Idempotent like/unlike for ARTICLE and COMMENT with a database uniqueness constraint.
   - Public aggregate count plus authenticated current-user state.
   - Idempotent article/comment event consumers with processed-event deduplication and target projection.
   - InteractionCreated/InteractionRemoved transactional outbox, correlation propagation, SKIP LOCKED publisher, retry/failure state, and tests.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, target projection, database uniqueness, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/follower-service`:
   - Independent `follower_db`, Gateway route, and JWT authorization.
   - Idempotent follow/unfollow with database uniqueness and self-follow prevention.
   - Public paginated followers/following lists and authenticated relationship status/counts.
   - Idempotent UserRegistered consumer with local user projection.
   - UserFollowed/UserUnfollowed transactional outbox, correlation propagation, SKIP LOCKED publisher, retry/failure state, and tests.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, user projection, follow graph constraints, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/notification-service`:
   - Independent `notification_db`, Gateway route, and JWT authorization.
   - Authenticated paginated notification inbox, unread count, mark-one-read, and mark-all-read APIs.
   - Idempotently consumes UserFollowed/UserUnfollowed, CommentCreated, InteractionCreated, and ArticlePublished events.
   - Stores recipient, actor, notification type, entity type/id, metadata, created/read timestamps, follow projection, and processed event IDs.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, inbox queries, unread updates, follow projection, processed events, and notification uniqueness.
 - `backend/article-service` personalized feed:
   - Idempotently consumes UserFollowed/UserUnfollowed events into a local follow projection.
   - Exposes authenticated `/api/v1/articles/following` fan-out-on-read feed for published articles by followed authors.
@@ -134,6 +139,13 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn -pl backend/user-service test`: BUILD SUCCESS; 7 tests passed and 2 opt-in PostgreSQL Testcontainers tests skipped after adding user-service PostgreSQL Testcontainers coverage.
 - `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"`: BUILD FAILURE; 7 H2/unit tests passed, then `UserServicePostgresIntegrationTest` failed before executing because Testcontainers could not find a valid Docker environment. Testcontainers repeatedly received HTTP 400 with empty Docker info from `npipe://\\.\pipe\docker_cli`, while `docker -H npipe:////./pipe/dockerDesktopLinuxEngine info` succeeds. TCP Docker endpoints `localhost:2375` and `localhost:2376` are closed.
 - `mvn test`: BUILD SUCCESS; 48 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped after adding user-service PostgreSQL Testcontainers coverage.
+- `mvn -pl backend/article-service test`: BUILD SUCCESS; 6 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/comment-service test`: BUILD SUCCESS; 8 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 8 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/follower-service test`: BUILD SUCCESS; 7 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/notification-service test`: BUILD SUCCESS; 5 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"`: BUILD SUCCESS; 7 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped after adding the opt-in `@EnabledIf` Docker availability guard.
+- `mvn test`: BUILD SUCCESS; 48 active tests passed and 12 opt-in PostgreSQL Testcontainers tests were skipped because local Testcontainers still resolves the Docker endpoint to the broken `npipe://\\.\pipe\docker_cli` path.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -144,10 +156,10 @@ Updated: 2026-06-27 (Asia/Saigon)
 ## Known limitations / immediate work
 
 1. Flutter scaffold is not present. `flutter create`, `flutter create --no-pub`, and `flutter doctor -v` all hung without output and were terminated.
-2. Outbox publisher has unit coverage but no real Kafka integration test. PostgreSQL Testcontainers coverage has been added for `user-service`, but opt-in execution is blocked by local Docker Desktop/Testcontainers pipe configuration: Testcontainers is redirected to `npipe://\\.\pipe\docker_cli` and receives HTTP 400 empty Docker info even though `docker -H npipe:////./pipe/dockerDesktopLinuxEngine info` works.
+2. Outbox publisher has unit coverage but no real Kafka integration test. PostgreSQL Testcontainers coverage has been added for user, article, comment, interaction, follower, and notification services, but opt-in execution is skipped by local Docker Desktop/Testcontainers pipe configuration: Testcontainers is redirected to `npipe://\\.\pipe\docker_cli` and receives HTTP 400 empty Docker info even though `docker -H npipe:////./pipe/dockerDesktopLinuxEngine info` works.
 3. JWT key rotation supports active plus previous public keys and has a documented workflow; automated multi-key end-to-end verification through all resource services still needs real deployment or contract coverage.
 4. Flutter client is not implemented yet.
-5. Most service tests still use H2. User Service now has opt-in PostgreSQL Testcontainers coverage, but it is not green locally until Testcontainers can use the Docker Desktop Linux engine pipe.
+5. Most active service tests still use H2. All backend services now have opt-in PostgreSQL Testcontainers coverage, but those tests do not execute locally until Testcontainers can use the Docker Desktop Linux engine pipe.
 6. Kafka DLT behavior is configured but not verified against a real broker because Kafka Testcontainers coverage has not been added yet.
 7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution have not been run in this workspace branch; no staging target is configured.
 8. Backend security review is complete at source/config level; pre-deploy verification in `docs/security-review.md` still requires real staging/production infrastructure.
@@ -204,7 +216,7 @@ Backend-first continuation rule:
 ### P1 - Real integration coverage
 
 - [ ] Start Docker Desktop or otherwise make a local Docker engine available.
-- [ ] Add Testcontainers PostgreSQL coverage for Flyway migrations and JPA repository behavior in user, article, comment, interaction, follower, and notification services.
+- [x] Add Testcontainers PostgreSQL coverage for Flyway migrations and JPA repository behavior in user, article, comment, interaction, follower, and notification services.
 - [ ] Add Testcontainers Kafka coverage for outbox publishers and event consumers.
 - [ ] Verify consumer idempotency with real Kafka records and committed offsets.
 - [ ] Keep H2 tests only for fast controller/service feedback; do not rely on H2 as the only database confidence layer.
@@ -276,9 +288,10 @@ Backend-first continuation rule:
 ## Exact next implementation order
 
 1. Run `mvn test` and preserve the green baseline.
-2. Fix the local Docker Desktop/Testcontainers host configuration so `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"` can connect to `npipe:////./pipe/dockerDesktopLinuxEngine` instead of the broken `docker_cli` pipe.
-3. After the user-service PostgreSQL Testcontainers test is green, add PostgreSQL Testcontainers coverage for article, comment, interaction, follower, and notification services.
-4. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
+2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
+3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes.
+4. Add Kafka Testcontainers coverage for outbox publishers and idempotent event consumers.
+5. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
 
@@ -293,9 +306,10 @@ Backend-first instruction: keep working on backend production readiness until ba
 
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
-2. Fix the local Docker Desktop/Testcontainers host configuration so `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"` can connect to `npipe:////./pipe/dockerDesktopLinuxEngine` instead of the broken `docker_cli` pipe.
-3. After the user-service PostgreSQL Testcontainers test is green, add PostgreSQL Testcontainers coverage for article, comment, interaction, follower, and notification services.
-4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
+2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
+3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes.
+4. Add Kafka Testcontainers coverage for outbox publishers and idempotent event consumers.
+5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.
