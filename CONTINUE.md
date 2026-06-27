@@ -72,6 +72,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Resource services can use `JWT_PUBLIC_KEY` for static public-key verification or `JWT_JWK_SET_URI` for JWKS-based verification.
   - Local development defaults generate the same deterministic RSA key pair across services; production must override with real managed keys.
   - Gateway/service authentication boundaries, key rotation workflow, and validation limits are documented in `docs/security.md`.
+  - Backend production acceptance security review checklist is documented in `docs/security-review.md`.
   - Pagination parameters are guarded across article, comment, follower, and notification list APIs.
 - Backend API quality:
   - Public REST contract is documented in `docs/openapi/social-blog-api.yaml`.
@@ -119,6 +120,13 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after adding production-oriented backend Compose; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
 - PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed.
 - `mvn test`: BUILD SUCCESS; 48 tests passed after backend deployment readiness work.
+- `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after merging backend deployment readiness to `dev`; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed after merging backend deployment readiness to `dev`.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after merging backend deployment readiness to `dev`.
+- `git diff --check`: exit code 0 after backend security review checklist work; PowerShell reported expected CRLF working-copy warnings for Markdown files.
+- `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after backend security review checklist work; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed after backend security review checklist work.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after backend security review checklist work.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -135,6 +143,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 5. Tests use H2. Add PostgreSQL/Kafka Testcontainers after Docker Desktop is available.
 6. Kafka DLT behavior is configured but not verified against a real broker because Docker/Testcontainers is unavailable.
 7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution were not run because Docker engine is unavailable and no staging target is configured in this workspace.
+8. Backend security review is complete at source/config level; pre-deploy verification in `docs/security-review.md` still requires real staging/production infrastructure.
 
 ## Continue-work protocol
 
@@ -254,14 +263,14 @@ Backend-first continuation rule:
 - [x] API contract tests green.
 - [ ] Frontend critical flow tests green.
 - [ ] Staging deployment smoke test green.
-- [ ] Security review checklist complete.
-- [ ] Runbook and continuation handoff complete.
+- [x] Security review checklist complete.
+- [x] Runbook and continuation handoff complete.
 
 ## Exact next implementation order
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
+3. If Docker Desktop is still unavailable, run only source/config checks, keep the blocker recorded, and wait for Docker or a staging Gateway URL before Testcontainers, image build, Compose `up`, or staging smoke execution.
 4. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
@@ -278,7 +287,7 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
+3. If Docker Desktop is still unavailable, run only source/config checks, keep the blocker recorded, and wait for Docker or a staging Gateway URL before Testcontainers, image build, Compose `up`, or staging smoke execution.
 4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
