@@ -71,6 +71,11 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Local development defaults generate the same deterministic RSA key pair across services; production must override with real managed keys.
   - Gateway/service authentication boundaries, key rotation workflow, and validation limits are documented in `docs/security.md`.
   - Pagination parameters are guarded across article, comment, follower, and notification list APIs.
+- Backend API quality:
+  - Public REST contract is documented in `docs/openapi/social-blog-api.yaml`.
+  - API error envelopes are normalized across user, article, comment, interaction, follower, and notification services.
+  - Invalid request-body validation, malformed JSON, invalid path/query parameter types, pagination errors, and service domain errors return the standard `timestamp/status/code/message/path/fields` shape where applicable.
+  - Pagination, fixed sorting behavior, REST compatibility, and Kafka event-version compatibility rules are documented in `docs/api-conventions.md`.
 - `backend/api-gateway`:
   - Routes auth/user endpoints to port 8081.
   - Routes article, comment, interaction, follower, and notification endpoints.
@@ -105,6 +110,9 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `docker-compose config --quiet`: exit code 0 after security docs/env changes; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
 - `mvn -pl backend/api-gateway test`: BUILD SUCCESS; 7 tests passed after adding OpenAPI contract coverage and gateway route prefix contract tests.
 - `mvn test`: BUILD SUCCESS; 44 tests passed after API contract and gateway route contract work.
+- `docker info --format "{{.ServerVersion}}"`: failed before Testcontainers work with `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; ... The system cannot find the file specified.`
+- `mvn -pl backend/user-service,backend/article-service,backend/comment-service,backend/interaction-service,backend/follower-service,backend/notification-service test`: BUILD SUCCESS; 48 tests passed after standardizing API error envelopes and adding API convention docs.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after API error envelope and convention work.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -209,9 +217,9 @@ Backend-first continuation rule:
 
 - [x] Add OpenAPI specs or generated API docs for every service/gateway route.
 - [x] Add contract tests for gateway routes and public API response shapes.
-- [ ] Normalize error response schema across services.
-- [ ] Add pagination/sorting conventions to API docs.
-- [ ] Add compatibility rules for event versions and REST response evolution.
+- [x] Normalize error response schema across services.
+- [x] Add pagination/sorting conventions to API docs.
+- [x] Add compatibility rules for event versions and REST response evolution.
 
 ### P6 - Frontend client
 
@@ -247,10 +255,9 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Normalize error response schema across services and document pagination/sorting and event/REST compatibility rules.
-4. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
-5. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-6. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter and ask whether to start frontend work.
+3. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
+4. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
+5. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
 
@@ -266,10 +273,9 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Normalize error response schema across services and document pagination/sorting and event/REST compatibility rules.
-4. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
-5. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-6. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness and ask the user whether to start frontend work.
+3. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
+4. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
+5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.

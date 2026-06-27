@@ -25,6 +25,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
   String oversized="x".repeat(50001);
   String request=json.writeValueAsString(java.util.Map.of("title","Too Long","content",oversized));
   mvc.perform(post("/api/v1/articles").with(jwt().jwt(j->j.subject(author.toString()))).contentType(MediaType.APPLICATION_JSON).content(request))
-          .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+          .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED")).andExpect(jsonPath("$.fields.content").isNotEmpty());
+  mvc.perform(post("/api/v1/articles/not-a-uuid/publish").with(jwt().jwt(j->j.subject(author.toString()))))
+          .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST_PARAMETER")).andExpect(jsonPath("$.fields.id").isNotEmpty());
  }
 }

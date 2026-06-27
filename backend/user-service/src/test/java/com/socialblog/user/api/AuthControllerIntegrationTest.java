@@ -55,6 +55,10 @@ class AuthControllerIntegrationTest {
     }
     @Test void validatesRegistration() throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"bad\",\"password\":\"short\",\"displayName\":\"\"}"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.path").value("/api/v1/auth/register"))
+                .andExpect(jsonPath("$.fields.email").isNotEmpty())
+                .andExpect(jsonPath("$.fields.password").isNotEmpty())
+                .andExpect(jsonPath("$.fields.displayName").isNotEmpty());
     }
 }
