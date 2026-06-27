@@ -77,6 +77,8 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Adds/propagates `X-Correlation-ID`.
   - Redis-backed rate limits for auth, article writes, comments, likes, follows, and notification write endpoints.
   - Profile-specific CORS configuration for local, staging, and production.
+  - Public REST contract is documented in `docs/openapi/social-blog-api.yaml`.
+  - Gateway route contract tests verify documented service prefixes and representative OpenAPI JSON response schemas.
 - Local Docker Compose for PostgreSQL, Kafka (KRaft), Redis, and MinIO.
 - Architecture and phased roadmap documentation.
 
@@ -101,6 +103,8 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `mvn -pl backend/article-service test`: BUILD SUCCESS; 6 tests passed after article pagination/content validation coverage.
 - `mvn test`: BUILD SUCCESS; 42 tests passed after security boundary, key rotation, and validation review work.
 - `docker-compose config --quiet`: exit code 0 after security docs/env changes; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- `mvn -pl backend/api-gateway test`: BUILD SUCCESS; 7 tests passed after adding OpenAPI contract coverage and gateway route prefix contract tests.
+- `mvn test`: BUILD SUCCESS; 44 tests passed after API contract and gateway route contract work.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -203,8 +207,8 @@ Backend-first continuation rule:
 
 ### P5 - API quality and contracts
 
-- [ ] Add OpenAPI specs or generated API docs for every service/gateway route.
-- [ ] Add contract tests for gateway routes and public API response shapes.
+- [x] Add OpenAPI specs or generated API docs for every service/gateway route.
+- [x] Add contract tests for gateway routes and public API response shapes.
 - [ ] Normalize error response schema across services.
 - [ ] Add pagination/sorting conventions to API docs.
 - [ ] Add compatibility rules for event versions and REST response evolution.
@@ -243,11 +247,10 @@ Backend-first continuation rule:
 
 1. Run `mvn test` and preserve the green baseline.
 2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Add API contracts/OpenAPI docs and gateway route contract tests.
-4. Normalize error response schema across services and document pagination/sorting and event/REST compatibility rules.
-5. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
-6. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-7. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter and ask whether to start frontend work.
+3. Normalize error response schema across services and document pagination/sorting and event/REST compatibility rules.
+4. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
+5. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
+6. Only after backend P1-P5 and backend deployment readiness are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
 
@@ -263,11 +266,10 @@ Backend-first instruction: keep working on backend production readiness until ba
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
 2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Add API contracts/OpenAPI docs and gateway route contract tests.
-4. Normalize error response schema across services and document pagination/sorting and event/REST compatibility rules.
-5. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
-6. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
-7. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness and ask the user whether to start frontend work.
+3. Normalize error response schema across services and document pagination/sorting and event/REST compatibility rules.
+4. Add Prometheus dashboard notes and runbook entries for failed outbox rows, stuck consumers, migration failures, and Kafka replay.
+5. Add production-oriented Compose or Kubernetes manifests, image publishing, migration deployment strategy, secret/config management guidance, and smoke tests.
+6. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5 and backend deployment readiness are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.
