@@ -1,6 +1,6 @@
 # Continuation handoff
 
-Updated: 2026-06-27 (Asia/Saigon)
+Updated: 2026-06-28 (Asia/Saigon)
 
 ## Completed
 
@@ -54,6 +54,11 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Idempotently consumes UserFollowed/UserUnfollowed, CommentCreated, InteractionCreated, and ArticlePublished events.
   - Stores recipient, actor, notification type, entity type/id, metadata, created/read timestamps, follow projection, and processed event IDs.
   - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, inbox queries, unread updates, follow projection, processed events, and notification uniqueness.
+- Kafka Testcontainers outbox publisher coverage:
+  - Opt-in `OutboxPublisherKafkaIntegrationTest` added to user, article, comment, interaction, and follower services.
+  - Each test spins up `apache/kafka-native:3.8.0` via Testcontainers, creates a unique topic, mocks `OutboxEventRepository.lockPendingBatch`, calls `OutboxPublisher.publish()`, and asserts the record key/value/status.
+  - `testcontainers-kafka` dependency added to all five service `pom.xml` files.
+  - Tests are opt-in (`@EnabledIf("kafkaTestcontainersEnabled")`) and skip cleanly when Docker is unavailable.
 - `backend/article-service` personalized feed:
   - Idempotently consumes UserFollowed/UserUnfollowed events into a local follow projection.
   - Exposes authenticated `/api/v1/articles/following` fan-out-on-read feed for published articles by followed authors.
@@ -99,6 +104,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 
 ## Verification evidence
 
+- `mvn test --batch-mode`: BUILD SUCCESS; 48 active tests passed and 17 opt-in Kafka/PostgreSQL Testcontainers tests skipped after adding Kafka Testcontainers outbox publisher coverage across user, article, comment, interaction, and follower services (2026-06-28). PowerShell exit code 1 from JVM stderr warning; Maven reports BUILD SUCCESS.
 - `mvn test`: BUILD SUCCESS; 32 tests passed before personalized feed work.
 - `mvn -pl backend/article-service test`: BUILD SUCCESS; 5 tests passed after adding follow projection and following feed.
 - `mvn test`: BUILD SUCCESS; 33 tests passed after personalized feed work.
@@ -217,7 +223,8 @@ Backend-first continuation rule:
 
 - [ ] Start Docker Desktop or otherwise make a local Docker engine available.
 - [x] Add Testcontainers PostgreSQL coverage for Flyway migrations and JPA repository behavior in user, article, comment, interaction, follower, and notification services.
-- [ ] Add Testcontainers Kafka coverage for outbox publishers and event consumers.
+- [x] Add Testcontainers Kafka coverage for outbox publishers across user, article, comment, interaction, and follower services.
+- [ ] Add Testcontainers Kafka coverage for idempotent event consumers (verify committed offsets, DLT routing, deduplication under real broker).
 - [ ] Verify consumer idempotency with real Kafka records and committed offsets.
 - [ ] Keep H2 tests only for fast controller/service feedback; do not rely on H2 as the only database confidence layer.
 
@@ -288,9 +295,9 @@ Backend-first continuation rule:
 ## Exact next implementation order
 
 1. Run `mvn test` and preserve the green baseline.
-2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
-3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes.
-4. Add Kafka Testcontainers coverage for outbox publishers and idempotent event consumers.
+2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL and Kafka tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
+3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes and any Kafka-specific failures in the five outbox publisher Kafka integration tests.
+4. Add Testcontainers Kafka consumer integration tests for idempotency, DLT routing, and committed-offset verification in article, comment, interaction, follower, and notification services.
 5. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
@@ -306,9 +313,9 @@ Backend-first instruction: keep working on backend production readiness until ba
 
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
-2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
-3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes.
-4. Add Kafka Testcontainers coverage for outbox publishers and idempotent event consumers.
+2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL and Kafka tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
+3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes and any Kafka-specific failures in the five outbox publisher Kafka integration tests.
+4. Add Testcontainers Kafka consumer integration tests for idempotency, DLT routing, and committed-offset verification across article, comment, interaction, follower, and notification services.
 5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
