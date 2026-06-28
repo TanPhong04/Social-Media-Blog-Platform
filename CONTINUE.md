@@ -268,7 +268,7 @@ Backend-first continuation rule:
 - [x] Repair/reinstall Flutter SDK; verify `flutter doctor -v` exits normally.
 - [x] Scaffold Flutter app.
 - [x] Implement auth/register/login/logout/refresh/profile.
-- [ ] Implement article feed, following feed, article detail, draft editor, publish/unpublish/delete.
+- [x] Implement article feed, following feed, article detail, draft editor, publish/unpublish/delete.
 - [ ] Implement comments/replies, likes, follows, notifications, unread state.
 - [ ] Add frontend tests for auth state, API client, and critical screens.
 - [ ] Add environment configuration for local/staging/prod API base URLs.
