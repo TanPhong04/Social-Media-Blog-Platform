@@ -274,10 +274,10 @@ Backend-first continuation rule:
 - [x] Add environment configuration for local/staging/prod API base URLs.
 
 ### P7 - Packaging, deployment, and CI/CD
-
-- [x] Add Dockerfiles for every backend service.
-- [x] Add production-oriented Compose or Kubernetes manifests.
-- [x] Add CI pipeline for compile, tests, and docker build.
+- [x] Create Dockerfiles for all microservices.
+- [x] Create docker-compose.prod.yml.
+- [x] Implement CI/CD pipeline (GitHub Actions).
+- [x] Build and release Flutter app for Web and Android.
 - [x] Add image publishing to CI.
 - [x] Add migration deployment strategy and rollback notes.
 - [x] Add secret/config management guidance.
