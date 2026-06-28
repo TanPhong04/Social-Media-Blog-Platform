@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:provider/provider.dart';
 import 'package:frontend/main.dart';
+import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/providers/article_provider.dart';
+import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/api_service.dart';
+import 'package:frontend/services/secure_storage_service.dart';
+import 'package:frontend/services/article_service.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockSecureStorageService extends Mock implements SecureStorageService {}
+class MockApiService extends Mock implements ApiService {}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App loads cleanly', (WidgetTester tester) async {
+    final storageService = MockSecureStorageService();
+    when(() => storageService.getAccessToken()).thenAnswer((_) async => null);
+    
+    final apiService = MockApiService();
+    final authService = AuthService(apiService, storageService);
+    final articleService = ArticleService(apiService);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          Provider.value(value: articleService),
+          ChangeNotifierProvider(create: (_) => AuthProvider(authService, storageService)),
+          ChangeNotifierProvider(create: (_) => ArticleProvider(articleService)),
+        ],
+        child: const SocialBlogApp(),
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
     await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }
