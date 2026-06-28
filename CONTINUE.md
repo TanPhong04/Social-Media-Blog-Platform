@@ -269,7 +269,7 @@ Backend-first continuation rule:
 - [x] Scaffold Flutter app.
 - [x] Implement auth/register/login/logout/refresh/profile.
 - [x] Implement article feed, following feed, article detail, draft editor, publish/unpublish/delete.
-- [ ] Implement comments/replies, likes, follows, notifications, unread state.
+- [x] Implement comments/replies, likes, follows, notifications, unread state.
 - [ ] Add frontend tests for auth state, API client, and critical screens.
 - [ ] Add environment configuration for local/staging/prod API base URLs.
 

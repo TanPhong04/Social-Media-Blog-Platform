@@ -36,6 +36,12 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
     return Scaffold(
       appBar: AppBar(
         title: const Text('Social Blog'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => context.push('/notifications'),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
