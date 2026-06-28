@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/article.dart';
 import '../services/article_service.dart';
+import '../widgets/like_button.dart';
+import '../widgets/follow_button.dart';
+import '../widgets/comment_section.dart';
 
 class ArticleDetailScreen extends StatefulWidget {
   final String slug;
@@ -68,11 +71,30 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
           children: [
             Text(_article!.title, style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32)),
             const SizedBox(height: 16),
+            if (_article!.authorId != null) ...[
+              Row(
+                children: [
+                  const CircleAvatar(child: Icon(Icons.person)),
+                  const SizedBox(width: 12),
+                  const Expanded(child: Text('Author Name')),
+                  FollowButton(targetId: _article!.authorId!),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
             if (_article!.summary != null) ...[
               Text(_article!.summary!, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontStyle: FontStyle.italic)),
               const SizedBox(height: 24),
             ],
             Text(_article!.content ?? '', style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6)),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                LikeButton(targetType: 'ARTICLE', targetId: _article!.id),
+              ],
+            ),
+            const SizedBox(height: 24),
+            CommentSection(articleId: _article!.id),
           ],
         ),
       ),

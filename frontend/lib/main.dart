@@ -10,12 +10,17 @@ import 'screens/feed_screen.dart';
 import 'screens/my_articles_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/editor_screen.dart';
+import 'screens/notification_screen.dart';
 import 'screens/article_detail_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/article_service.dart';
+import 'services/comment_service.dart';
+import 'services/interaction_service.dart';
+import 'services/follow_service.dart';
+import 'services/notification_service.dart';
 import 'services/secure_storage_service.dart';
 
 void main() {
@@ -23,11 +28,19 @@ void main() {
   final apiService = ApiService(storageService);
   final authService = AuthService(apiService, storageService);
   final articleService = ArticleService(apiService);
+  final commentService = CommentService(apiService);
+  final interactionService = InteractionService(apiService);
+  final followService = FollowService(apiService);
+  final notificationService = NotificationService(apiService);
 
   runApp(
     MultiProvider(
       providers: [
         Provider.value(value: articleService),
+        Provider.value(value: commentService),
+        Provider.value(value: interactionService),
+        Provider.value(value: followService),
+        Provider.value(value: notificationService),
         ChangeNotifierProvider(create: (_) => AuthProvider(authService, storageService)),
         ChangeNotifierProvider(create: (_) => ArticleProvider(articleService)),
       ],
@@ -84,6 +97,10 @@ class _SocialBlogAppState extends State<SocialBlogApp> {
         GoRoute(
           path: '/article/:slug',
           builder: (context, state) => ArticleDetailScreen(slug: state.pathParameters['slug']!),
+        ),
+        GoRoute(
+          path: '/notifications',
+          builder: (context, state) => const NotificationScreen(),
         ),
       ],
       redirect: (context, state) {
