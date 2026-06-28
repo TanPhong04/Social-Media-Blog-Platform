@@ -1,6 +1,6 @@
 # Continuation handoff
 
-Updated: 2026-06-28 (Asia/Saigon)
+Updated: 2026-06-28 (Asia/Saigon) — Backend P1-P5, P7 COMPLETE ✅
 
 ## Completed
 
@@ -104,6 +104,7 @@ Updated: 2026-06-28 (Asia/Saigon)
 
 ## Verification evidence
 
+- `mvn test --batch-mode`: BUILD SUCCESS; **62 active tests passed** and 17 opt-in Kafka/PostgreSQL Testcontainers tests skipped after adding Kafka consumer integration tests (embedded Kafka) for all 5 consumer services (2026-06-28). PowerShell exit code 1 from JVM stderr warning; Maven reports BUILD SUCCESS.
 - `mvn test --batch-mode`: BUILD SUCCESS; 48 active tests passed and 17 opt-in Kafka/PostgreSQL Testcontainers tests skipped after adding Kafka Testcontainers outbox publisher coverage across user, article, comment, interaction, and follower services (2026-06-28). PowerShell exit code 1 from JVM stderr warning; Maven reports BUILD SUCCESS.
 - `mvn test`: BUILD SUCCESS; 32 tests passed before personalized feed work.
 - `mvn -pl backend/article-service test`: BUILD SUCCESS; 5 tests passed after adding follow projection and following feed.
