@@ -9,7 +9,7 @@
 - [x] Backend integration tests
 - [x] Transactional outbox and `UserRegistered` publication
 - [x] Propagate gateway correlation ID into event envelope
-- [ ] Add PostgreSQL/Kafka integration test (Docker Desktop is not running)
+- [ ] Add PostgreSQL/Kafka integration test (PostgreSQL coverage exists for all services; local Testcontainers execution is skipped because Docker Desktop is exposed through a broken `docker_cli` pipe; Kafka Testcontainers still pending)
 - [ ] Flutter authentication client (blocked by local Flutter CLI hanging)
 
 ## M2 - Articles
@@ -34,11 +34,12 @@
 ## M4 - Notifications and production readiness
 
 - [x] Notification service and unread state
-- [ ] PostgreSQL Testcontainers for every service
+- [x] PostgreSQL Testcontainers for every service
 - [ ] Kafka Testcontainers for outbox publishers and consumers
 - [x] Consumer retry/backoff and dead-letter topics
 - [x] Observability: structured logs, metrics, Kafka topic docs, health/readiness, dashboard notes, and runbooks complete
 - [x] Security hardening: JWKS, gateway rate limits, environment-specific CORS/config, key rotation config/docs, gateway/service boundary docs, and validation review complete
+- [x] Backend security review checklist documented
 - [x] API contracts and gateway route tests
 - [ ] Flutter client for all completed backend flows
 - [x] Backend service Dockerfiles

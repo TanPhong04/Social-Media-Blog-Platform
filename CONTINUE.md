@@ -1,6 +1,6 @@
 # Continuation handoff
 
-Updated: 2026-06-27 (Asia/Saigon)
+Updated: 2026-06-28 (Asia/Saigon)
 
 ## Completed
 
@@ -16,6 +16,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Correlation ID from the HTTP request is preserved in the event envelope.
   - Logout endpoint, refresh-token revocation, and scheduled expired/revoked token cleanup.
   - PostgreSQL `FOR UPDATE SKIP LOCKED` row claiming prevents concurrent outbox publishers from selecting the same batch.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, JPA repositories, FK cascade, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/article-service`:
   - Independent `article_db` Flyway schema for articles and tags.
   - Authenticated create/edit/publish/unpublish/soft-delete operations with ownership checks.
@@ -23,6 +24,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Stable paginated JSON representation.
   - Transactional ArticlePublished/ArticleDeleted outbox events with request correlation ID.
   - Kafka publisher with SKIP LOCKED claiming, retry/failed state, and tests.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, article tags, follow projection, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/comment-service`:
   - Independent `comment_db` Flyway schema.
   - Public paginated article comments, authenticated root comments/replies, ownership checks, editing, and soft deletion.
@@ -31,23 +33,32 @@ Updated: 2026-06-27 (Asia/Saigon)
   - SKIP LOCKED Kafka publisher with acknowledgement, retry, terminal failure, and tests.
   - Idempotent ArticlePublished/ArticleDeleted consumer with processed-event deduplication and local article projection.
   - Comment creation is rejected for unknown, unpublished, or deleted articles.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, article projection, comment ordering, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/interaction-service`:
   - Independent `interaction_db`, Gateway route, and JWT authorization.
   - Idempotent like/unlike for ARTICLE and COMMENT with a database uniqueness constraint.
   - Public aggregate count plus authenticated current-user state.
   - Idempotent article/comment event consumers with processed-event deduplication and target projection.
   - InteractionCreated/InteractionRemoved transactional outbox, correlation propagation, SKIP LOCKED publisher, retry/failure state, and tests.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, target projection, database uniqueness, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/follower-service`:
   - Independent `follower_db`, Gateway route, and JWT authorization.
   - Idempotent follow/unfollow with database uniqueness and self-follow prevention.
   - Public paginated followers/following lists and authenticated relationship status/counts.
   - Idempotent UserRegistered consumer with local user projection.
   - UserFollowed/UserUnfollowed transactional outbox, correlation propagation, SKIP LOCKED publisher, retry/failure state, and tests.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, user projection, follow graph constraints, and outbox `FOR UPDATE SKIP LOCKED` claiming.
 - `backend/notification-service`:
   - Independent `notification_db`, Gateway route, and JWT authorization.
   - Authenticated paginated notification inbox, unread count, mark-one-read, and mark-all-read APIs.
   - Idempotently consumes UserFollowed/UserUnfollowed, CommentCreated, InteractionCreated, and ArticlePublished events.
   - Stores recipient, actor, notification type, entity type/id, metadata, created/read timestamps, follow projection, and processed event IDs.
+  - Opt-in PostgreSQL Testcontainers repository/Flyway coverage exists for migrations, inbox queries, unread updates, follow projection, processed events, and notification uniqueness.
+- Kafka Testcontainers outbox publisher coverage:
+  - Opt-in `OutboxPublisherKafkaIntegrationTest` added to user, article, comment, interaction, and follower services.
+  - Each test spins up `apache/kafka-native:3.8.0` via Testcontainers, creates a unique topic, mocks `OutboxEventRepository.lockPendingBatch`, calls `OutboxPublisher.publish()`, and asserts the record key/value/status.
+  - `testcontainers-kafka` dependency added to all five service `pom.xml` files.
+  - Tests are opt-in (`@EnabledIf("kafkaTestcontainersEnabled")`) and skip cleanly when Docker is unavailable.
 - `backend/article-service` personalized feed:
   - Idempotently consumes UserFollowed/UserUnfollowed events into a local follow projection.
   - Exposes authenticated `/api/v1/articles/following` fan-out-on-read feed for published articles by followed authors.
@@ -65,6 +76,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Backend services and the API Gateway enable Spring Boot ECS structured console logs.
   - Prometheus dashboard notes, first alert suggestions, and runbooks for failed outbox rows, stuck consumers, migration failures, Kafka replay, and DLT recovery are documented in `docs/operations.md`.
   - Production-oriented backend Compose, migration/rollback guidance, secret/config guidance, image publishing notes, and Gateway smoke tests are documented in `docs/deployment.md`.
+  - Maven Surefire is configured to load Byte Buddy as a test JVM agent, avoiding Mockito dynamic self-attach warnings on newer JDKs.
 - Backend security hardening:
   - User Service signs access tokens with RSA/RS256, validates issuer, and exposes a public JWKS endpoint at `/.well-known/jwks.json`.
   - User Service supports overlapping JWT key rotation by publishing configured previous public keys in JWKS and validating against the active plus previous keys during the rotation window.
@@ -72,6 +84,7 @@ Updated: 2026-06-27 (Asia/Saigon)
   - Resource services can use `JWT_PUBLIC_KEY` for static public-key verification or `JWT_JWK_SET_URI` for JWKS-based verification.
   - Local development defaults generate the same deterministic RSA key pair across services; production must override with real managed keys.
   - Gateway/service authentication boundaries, key rotation workflow, and validation limits are documented in `docs/security.md`.
+  - Backend production acceptance security review checklist is documented in `docs/security-review.md`.
   - Pagination parameters are guarded across article, comment, follower, and notification list APIs.
 - Backend API quality:
   - Public REST contract is documented in `docs/openapi/social-blog-api.yaml`.
@@ -91,6 +104,7 @@ Updated: 2026-06-27 (Asia/Saigon)
 
 ## Verification evidence
 
+- `mvn test --batch-mode`: BUILD SUCCESS; 48 active tests passed and 17 opt-in Kafka/PostgreSQL Testcontainers tests skipped after adding Kafka Testcontainers outbox publisher coverage across user, article, comment, interaction, and follower services (2026-06-28). PowerShell exit code 1 from JVM stderr warning; Maven reports BUILD SUCCESS.
 - `mvn test`: BUILD SUCCESS; 32 tests passed before personalized feed work.
 - `mvn -pl backend/article-service test`: BUILD SUCCESS; 5 tests passed after adding follow projection and following feed.
 - `mvn test`: BUILD SUCCESS; 33 tests passed after personalized feed work.
@@ -119,6 +133,25 @@ Updated: 2026-06-27 (Asia/Saigon)
 - `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after adding production-oriented backend Compose; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
 - PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed.
 - `mvn test`: BUILD SUCCESS; 48 tests passed after backend deployment readiness work.
+- `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after merging backend deployment readiness to `dev`; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed after merging backend deployment readiness to `dev`.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after merging backend deployment readiness to `dev`.
+- `git diff --check`: exit code 0 after backend security review checklist work; PowerShell reported expected CRLF working-copy warnings for Markdown files.
+- `docker-compose -f deploy/compose/backend.compose.yml config --quiet`: exit code 0 after backend security review checklist work; Docker printed `WARNING: Error loading config file: open C:\Users\dev-phong\.docker\config.json: Access is denied.`
+- PowerShell smoke script syntax validation with `[scriptblock]::Create((Get-Content -Raw scripts\smoke-backend.ps1))`: passed after backend security review checklist work.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after backend security review checklist work.
+- `mvn -pl backend/user-service test`: BUILD SUCCESS; 7 tests passed after configuring the Surefire Byte Buddy Java agent for Mockito tests.
+- `mvn test`: BUILD SUCCESS; 48 tests passed after configuring the Surefire Byte Buddy Java agent for Mockito tests. Mockito dynamic self-attach warnings no longer appeared; JVM class-sharing warnings remain.
+- `mvn -pl backend/user-service test`: BUILD SUCCESS; 7 tests passed and 2 opt-in PostgreSQL Testcontainers tests skipped after adding user-service PostgreSQL Testcontainers coverage.
+- `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"`: BUILD FAILURE; 7 H2/unit tests passed, then `UserServicePostgresIntegrationTest` failed before executing because Testcontainers could not find a valid Docker environment. Testcontainers repeatedly received HTTP 400 with empty Docker info from `npipe://\\.\pipe\docker_cli`, while `docker -H npipe:////./pipe/dockerDesktopLinuxEngine info` succeeds. TCP Docker endpoints `localhost:2375` and `localhost:2376` are closed.
+- `mvn test`: BUILD SUCCESS; 48 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped after adding user-service PostgreSQL Testcontainers coverage.
+- `mvn -pl backend/article-service test`: BUILD SUCCESS; 6 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/comment-service test`: BUILD SUCCESS; 8 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 8 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/follower-service test`: BUILD SUCCESS; 7 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/notification-service test`: BUILD SUCCESS; 5 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped because Testcontainers could not find a valid Docker environment.
+- `mvn -pl backend/user-service test "-Dsocialblog.testcontainers.enabled=true"`: BUILD SUCCESS; 7 active tests passed and 2 opt-in PostgreSQL Testcontainers tests were skipped after adding the opt-in `@EnabledIf` Docker availability guard.
+- `mvn test`: BUILD SUCCESS; 48 active tests passed and 12 opt-in PostgreSQL Testcontainers tests were skipped because local Testcontainers still resolves the Docker endpoint to the broken `npipe://\\.\pipe\docker_cli` path.
 - Previous baseline: 28 tests passed before notification and feed work.
 - `mvn -pl backend/comment-service test`: BUILD SUCCESS; 6 tests passed after the final Comment publisher test was added.
 - `mvn -pl backend/interaction-service test`: BUILD SUCCESS; 6 tests passed.
@@ -129,12 +162,13 @@ Updated: 2026-06-27 (Asia/Saigon)
 ## Known limitations / immediate work
 
 1. Flutter scaffold is not present. `flutter create`, `flutter create --no-pub`, and `flutter doctor -v` all hung without output and were terminated.
-2. Outbox publisher has unit coverage but no real Kafka integration test. Docker Desktop is not running (`docker info --format "{{.ServerVersion}}"` failed with `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; ... The system cannot find the file specified.`), so Testcontainers cannot start.
+2. Outbox publisher has unit coverage but no real Kafka integration test. PostgreSQL Testcontainers coverage has been added for user, article, comment, interaction, follower, and notification services, but opt-in execution is skipped by local Docker Desktop/Testcontainers pipe configuration: Testcontainers is redirected to `npipe://\\.\pipe\docker_cli` and receives HTTP 400 empty Docker info even though `docker -H npipe:////./pipe/dockerDesktopLinuxEngine info` works.
 3. JWT key rotation supports active plus previous public keys and has a documented workflow; automated multi-key end-to-end verification through all resource services still needs real deployment or contract coverage.
 4. Flutter client is not implemented yet.
-5. Tests use H2. Add PostgreSQL/Kafka Testcontainers after Docker Desktop is available.
-6. Kafka DLT behavior is configured but not verified against a real broker because Docker/Testcontainers is unavailable.
-7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution were not run because Docker engine is unavailable and no staging target is configured in this workspace.
+5. Most active service tests still use H2. All backend services now have opt-in PostgreSQL Testcontainers coverage, but those tests do not execute locally until Testcontainers can use the Docker Desktop Linux engine pipe.
+6. Kafka DLT behavior is configured but not verified against a real broker because Kafka Testcontainers coverage has not been added yet.
+7. Dockerfiles, production-oriented backend Compose, CI image publishing, and smoke-test scripts exist, but local `docker build`, `docker-compose up`, and staging smoke execution have not been run in this workspace branch; no staging target is configured.
+8. Backend security review is complete at source/config level; pre-deploy verification in `docs/security-review.md` still requires real staging/production infrastructure.
 
 ## Continue-work protocol
 
@@ -188,8 +222,9 @@ Backend-first continuation rule:
 ### P1 - Real integration coverage
 
 - [ ] Start Docker Desktop or otherwise make a local Docker engine available.
-- [ ] Add Testcontainers PostgreSQL coverage for Flyway migrations and JPA repository behavior in user, article, comment, interaction, follower, and notification services.
-- [ ] Add Testcontainers Kafka coverage for outbox publishers and event consumers.
+- [x] Add Testcontainers PostgreSQL coverage for Flyway migrations and JPA repository behavior in user, article, comment, interaction, follower, and notification services.
+- [x] Add Testcontainers Kafka coverage for outbox publishers across user, article, comment, interaction, and follower services.
+- [ ] Add Testcontainers Kafka coverage for idempotent event consumers (verify committed offsets, DLT routing, deduplication under real broker).
 - [ ] Verify consumer idempotency with real Kafka records and committed offsets.
 - [ ] Keep H2 tests only for fast controller/service feedback; do not rely on H2 as the only database confidence layer.
 
@@ -254,15 +289,16 @@ Backend-first continuation rule:
 - [x] API contract tests green.
 - [ ] Frontend critical flow tests green.
 - [ ] Staging deployment smoke test green.
-- [ ] Security review checklist complete.
-- [ ] Runbook and continuation handoff complete.
+- [x] Security review checklist complete.
+- [x] Runbook and continuation handoff complete.
 
 ## Exact next implementation order
 
 1. Run `mvn test` and preserve the green baseline.
-2. If Docker Desktop is available, add PostgreSQL Testcontainers coverage for `user-service`; if Docker is still unavailable, record the blocker and continue with source-only backend work.
-3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
-4. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
+2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL and Kafka tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
+3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes and any Kafka-specific failures in the five outbox publisher Kafka integration tests.
+4. Add Testcontainers Kafka consumer integration tests for idempotency, DLT routing, and committed-offset verification in article, comment, interaction, follower, and notification services.
+5. Only after backend P1-P5, P7, and P8 backend acceptance are complete, report readiness to move to Flutter and ask whether to start frontend work.
 
 ## Prompt for the next Codex session
 
@@ -277,9 +313,10 @@ Backend-first instruction: keep working on backend production readiness until ba
 
 Continue toward production readiness in this exact order:
 1. Run `mvn test` and preserve the green baseline.
-2. Check whether Docker Desktop or another Docker engine is available. If available, add PostgreSQL Testcontainers coverage for `user-service`; if not available, record the exact blocker and continue with source-only backend hardening.
-3. Complete the production acceptance security review checklist and continuation handoff; run staging smoke tests when a staging Gateway URL exists.
-4. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
+2. Fix the local Docker Desktop/Testcontainers host configuration so opt-in PostgreSQL and Kafka tests can connect to the real Docker Desktop Linux engine instead of the broken `npipe://\\.\pipe\docker_cli` endpoint.
+3. Run `mvn test "-Dsocialblog.testcontainers.enabled=true"` against a working Docker engine and fix any PostgreSQL-specific failures in the six repository/Flyway test classes and any Kafka-specific failures in the five outbox publisher Kafka integration tests.
+4. Add Testcontainers Kafka consumer integration tests for idempotency, DLT routing, and committed-offset verification across article, comment, interaction, follower, and notification services.
+5. Keep updating CONTINUE.md after each completed slice. Do not start Flutter until backend P1-P5, P7, and P8 backend acceptance are complete, then report readiness and ask the user whether to start frontend work.
 
 Rules:
 - Java 21, Spring Boot 3.4.6, Spring Cloud 2024.0.1.
