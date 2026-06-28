@@ -1,17 +1,14 @@
 import 'package:dio/dio.dart';
+import '../core/config.dart';
 import 'secure_storage_service.dart';
 
 class ApiService {
   late final Dio dio;
   final SecureStorageService _storageService;
 
-  // Use 10.0.2.2 if testing on Android Emulator, or localhost for web/desktop.
-  // We use localhost here since we are targeting web/desktop according to tests.
-  static const String baseUrl = 'http://localhost:8080/api/v1';
-
   ApiService(this._storageService) {
     dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
+      baseUrl: AppConfig.apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
