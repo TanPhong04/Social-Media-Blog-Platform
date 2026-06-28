@@ -4,22 +4,32 @@ import 'package:provider/provider.dart';
 
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
-import 'screens/home_screen.dart';
+import 'providers/article_provider.dart';
+import 'screens/main_layout.dart';
+import 'screens/feed_screen.dart';
+import 'screens/my_articles_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/editor_screen.dart';
+import 'screens/article_detail_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/article_service.dart';
 import 'services/secure_storage_service.dart';
 
 void main() {
   final storageService = SecureStorageService();
   final apiService = ApiService(storageService);
   final authService = AuthService(apiService, storageService);
+  final articleService = ArticleService(apiService);
 
   runApp(
     MultiProvider(
       providers: [
+        Provider.value(value: articleService),
         ChangeNotifierProvider(create: (_) => AuthProvider(authService, storageService)),
+        ChangeNotifierProvider(create: (_) => ArticleProvider(articleService)),
       ],
       child: const SocialBlogApp(),
     ),
@@ -40,7 +50,7 @@ class _SocialBlogAppState extends State<SocialBlogApp> {
   void initState() {
     super.initState();
     _router = GoRouter(
-      initialLocation: '/login',
+      initialLocation: '/home/feed',
       routes: [
         GoRoute(
           path: '/login',
@@ -50,9 +60,30 @@ class _SocialBlogAppState extends State<SocialBlogApp> {
           path: '/register',
           builder: (context, state) => const RegisterScreen(),
         ),
+        ShellRoute(
+          builder: (context, state, child) => MainLayout(child: child),
+          routes: [
+            GoRoute(
+              path: '/home/feed',
+              builder: (context, state) => const FeedScreen(),
+            ),
+            GoRoute(
+              path: '/home/mine',
+              builder: (context, state) => const MyArticlesScreen(),
+            ),
+            GoRoute(
+              path: '/home/profile',
+              builder: (context, state) => const ProfileScreen(),
+            ),
+          ],
+        ),
         GoRoute(
-          path: '/home',
-          builder: (context, state) => const HomeScreen(),
+          path: '/editor',
+          builder: (context, state) => const EditorScreen(),
+        ),
+        GoRoute(
+          path: '/article/:slug',
+          builder: (context, state) => ArticleDetailScreen(slug: state.pathParameters['slug']!),
         ),
       ],
       redirect: (context, state) {
@@ -63,7 +94,7 @@ class _SocialBlogAppState extends State<SocialBlogApp> {
         if (authProvider.isLoading) return null;
 
         if (!isAuth && !isGoingToLogin) return '/login';
-        if (isAuth && isGoingToLogin) return '/home';
+        if (isAuth && isGoingToLogin) return '/home/feed';
 
         return null;
       },
