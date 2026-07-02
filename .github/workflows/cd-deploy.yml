@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Bước 1: Copy compose files & init.sql lên VPS ──────────
+      # Bước 1: Copy compose files & init.sql lên VPS
       - name: Copy deploy files to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -27,13 +27,14 @@ jobs:
           target: /opt/socialblog
           strip_components: 0
 
-      # ── Bước 2: SSH vào VPS và chạy deploy ─────────────────────
+      # Bước 2: SSH vào VPS và chạy deploy
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: JWT_PRIVATE_KEY,JWT_PUBLIC_KEY
           script: |
             set -e
 
@@ -49,26 +50,26 @@ jobs:
             [ -f infra/postgres/init.sql ] && mv infra/postgres/init.sql . 2>/dev/null || true
             rm -rf deploy infra 2>/dev/null || true
 
-            # Ghi file .env
-            cat > .env << 'ENVEOF'
+            # Ghi JWT keys ra file riêng (tránh lỗi parse ký tự đặc biệt + trong .env)
+            echo "${{ secrets.JWT_PRIVATE_KEY }}" > jwt-private.pem
+            echo "${{ secrets.JWT_PUBLIC_KEY }}"  > jwt-public.pem
+            chmod 600 jwt-private.pem jwt-public.pem
+
+            # Ghi .env - chỉ chứa biến đơn giản, KHÔNG chứa JWT key
+            cat > .env <<ENVEOF
             IMAGE_REGISTRY=ghcr.io
             IMAGE_NAMESPACE=tanphong04/social-media-blog-platform
+            IMAGE_TAG=${BRANCH_TAG}
             SPRING_PROFILES_ACTIVE=prod
             OUTBOX_PUBLISHER_ENABLED=true
             KAFKA_CONSUMER_ENABLED=true
             BACKEND_NETWORK=social-blog-backend
             GATEWAY_PORT=8080
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            JWT_ISSUER=http://${{ secrets.VPS_HOST }}:8080
+            JWT_KEY_ID=managed-rsa
             ENVEOF
-
-            # Append secrets vào .env
-            echo "IMAGE_TAG=${BRANCH_TAG}" >> .env
-            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
-            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
-            echo "JWT_ISSUER=http://${{ secrets.VPS_HOST }}:8080" >> .env
-            echo "JWT_KEY_ID=managed-rsa" >> .env
-            printf 'JWT_PRIVATE_KEY=%s\n' "${{ secrets.JWT_PRIVATE_KEY }}" >> .env
-            printf 'JWT_PUBLIC_KEY=%s\n' "${{ secrets.JWT_PUBLIC_KEY }}" >> .env
-            printf 'JWT_VERIFICATION_KEYS=%s\n' "${{ secrets.JWT_PUBLIC_KEY }}" >> .env
 
             # Login GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | \
@@ -77,23 +78,26 @@ jobs:
             # Pull tất cả images song song
             SERVICES=(user-service article-service comment-service interaction-service follower-service notification-service api-gateway)
             for svc in "${SERVICES[@]}"; do
-              echo "Pulling ${svc}:${BRANCH_TAG}..."
               docker pull "ghcr.io/tanphong04/social-media-blog-platform/${svc}:${BRANCH_TAG}" &
             done
             wait
-            echo "✅ All images pulled"
+            echo "All images pulled"
 
             # Khởi động infra (postgres, kafka, redis) trước
             docker compose -f infra.compose.yml --env-file .env up -d
 
             # Chờ postgres sẵn sàng
-            echo "⏳ Chờ PostgreSQL..."
             sleep 15
 
-            # Khởi động backend services
-            docker compose -f backend.compose.yml --env-file .env up -d --remove-orphans
+            # Khởi động backend — JWT key đọc từ file, truyền qua -e để tránh lỗi .env
+            docker compose -f backend.compose.yml \
+              --env-file .env \
+              -e "JWT_PRIVATE_KEY=$(cat jwt-private.pem)" \
+              -e "JWT_PUBLIC_KEY=$(cat jwt-public.pem)" \
+              -e "JWT_VERIFICATION_KEYS=$(cat jwt-public.pem)" \
+              up -d --remove-orphans
 
             # Dọn image cũ
             docker image prune -f
 
-            echo "✅ Deploy hoàn tất! API đang chạy tại http://${{ secrets.VPS_HOST }}:8080"
+            echo "Deploy hoat dong tai http://${{ secrets.VPS_HOST }}:8080"
