@@ -16,6 +16,7 @@ class CommentService {
     final response = await _apiService.dio.post('/comments', data: {
       'articleId': articleId,
       'content': content,
+      // ignore: use_null_aware_elements
       if (parentId != null) 'parentId': parentId,
     });
     return Comment.fromJson(response.data);

@@ -5,10 +5,10 @@ import '../services/interaction_service.dart';
 class LikeButton extends StatefulWidget {
   final String targetType;
   final String targetId;
-  const LikeButton({Key? key, required this.targetType, required this.targetId}) : super(key: key);
+  const LikeButton({super.key, required this.targetType, required this.targetId});
 
   @override
-  _LikeButtonState createState() => _LikeButtonState();
+  State<LikeButton> createState() => _LikeButtonState();
 }
 
 class _LikeButtonState extends State<LikeButton> {

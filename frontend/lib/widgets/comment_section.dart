@@ -6,14 +6,14 @@ import 'like_button.dart';
 
 class CommentSection extends StatefulWidget {
   final String articleId;
-  const CommentSection({Key? key, required this.articleId}) : super(key: key);
+  const CommentSection({super.key, required this.articleId});
 
   @override
-  _CommentSectionState createState() => _CommentSectionState();
+  State<CommentSection> createState() => _CommentSectionState();
 }
 
 class _CommentSectionState extends State<CommentSection> {
-  List<Comment> _comments = [];
+  final List<Comment> _comments = [];
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 0;
