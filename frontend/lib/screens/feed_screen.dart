@@ -5,10 +5,10 @@ import '../providers/article_provider.dart';
 import '../models/article.dart';
 
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({Key? key}) : super(key: key);
+  const FeedScreen({super.key});
 
   @override
-  _FeedScreenState createState() => _FeedScreenState();
+  State<FeedScreen> createState() => _FeedScreenState();
 }
 
 class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateMixin {

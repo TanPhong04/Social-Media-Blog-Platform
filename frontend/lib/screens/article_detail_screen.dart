@@ -8,10 +8,10 @@ import '../widgets/comment_section.dart';
 
 class ArticleDetailScreen extends StatefulWidget {
   final String slug;
-  const ArticleDetailScreen({Key? key, required this.slug}) : super(key: key);
+  const ArticleDetailScreen({super.key, required this.slug});
 
   @override
-  _ArticleDetailScreenState createState() => _ArticleDetailScreenState();
+  State<ArticleDetailScreen> createState() => _ArticleDetailScreenState();
 }
 
 class _ArticleDetailScreenState extends State<ArticleDetailScreen> {

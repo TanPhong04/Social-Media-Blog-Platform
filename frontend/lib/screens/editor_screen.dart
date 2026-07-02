@@ -5,10 +5,10 @@ import 'package:dio/dio.dart';
 import '../services/article_service.dart';
 
 class EditorScreen extends StatefulWidget {
-  const EditorScreen({Key? key}) : super(key: key);
+  const EditorScreen({super.key});
 
   @override
-  _EditorScreenState createState() => _EditorScreenState();
+  State<EditorScreen> createState() => _EditorScreenState();
 }
 
 class _EditorScreenState extends State<EditorScreen> {

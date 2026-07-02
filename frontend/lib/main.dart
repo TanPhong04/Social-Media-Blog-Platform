@@ -50,7 +50,7 @@ void main() {
 }
 
 class SocialBlogApp extends StatefulWidget {
-  const SocialBlogApp({Key? key}) : super(key: key);
+  const SocialBlogApp({super.key});
 
   @override
   State<SocialBlogApp> createState() => _SocialBlogAppState();

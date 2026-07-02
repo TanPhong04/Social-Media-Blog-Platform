@@ -3,10 +3,10 @@ import 'package:go_router/go_router.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
-  const MainLayout({Key? key, required this.child}) : super(key: key);
+  const MainLayout({super.key, required this.child});
 
   @override
-  _MainLayoutState createState() => _MainLayoutState();
+  State<MainLayout> createState() => _MainLayoutState();
 }
 
 class _MainLayoutState extends State<MainLayout> {

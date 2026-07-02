@@ -4,10 +4,10 @@ import '../models/notification.dart';
 import '../services/notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({Key? key}) : super(key: key);
+  const NotificationScreen({super.key});
 
   @override
-  _NotificationScreenState createState() => _NotificationScreenState();
+  State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
@@ -117,7 +117,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
                       final note = _notifications[index];
                       return ListTile(
-                        tileColor: note.readAt == null ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
+                        tileColor: note.readAt == null ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : null,
                         leading: Icon(
                           note.type == 'ARTICLE_PUBLISHED' ? Icons.article :
                           note.type == 'COMMENT_CREATED' ? Icons.comment :

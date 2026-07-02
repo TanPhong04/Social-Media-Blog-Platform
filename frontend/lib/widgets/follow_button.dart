@@ -4,10 +4,10 @@ import '../services/follow_service.dart';
 
 class FollowButton extends StatefulWidget {
   final String targetId;
-  const FollowButton({Key? key, required this.targetId}) : super(key: key);
+  const FollowButton({super.key, required this.targetId});
 
   @override
-  _FollowButtonState createState() => _FollowButtonState();
+  State<FollowButton> createState() => _FollowButtonState();
 }
 
 class _FollowButtonState extends State<FollowButton> {

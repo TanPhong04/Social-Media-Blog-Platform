@@ -5,10 +5,10 @@ import '../providers/article_provider.dart';
 import '../services/article_service.dart' as import_service;
 
 class MyArticlesScreen extends StatefulWidget {
-  const MyArticlesScreen({Key? key}) : super(key: key);
+  const MyArticlesScreen({super.key});
 
   @override
-  _MyArticlesScreenState createState() => _MyArticlesScreenState();
+  State<MyArticlesScreen> createState() => _MyArticlesScreenState();
 }
 
 class _MyArticlesScreenState extends State<MyArticlesScreen> {
