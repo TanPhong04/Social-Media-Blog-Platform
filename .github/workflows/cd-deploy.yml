@@ -74,12 +74,14 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | \
               docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-            # Pull images mới nhất
+            # Pull tất cả images song song
             SERVICES=(user-service article-service comment-service interaction-service follower-service notification-service api-gateway)
             for svc in "${SERVICES[@]}"; do
               echo "Pulling ${svc}:${BRANCH_TAG}..."
-              docker pull "ghcr.io/tanphong04/social-media-blog-platform/${svc}:${BRANCH_TAG}" || true
+              docker pull "ghcr.io/tanphong04/social-media-blog-platform/${svc}:${BRANCH_TAG}" &
             done
+            wait
+            echo "✅ All images pulled"
 
             # Khởi động infra (postgres, kafka, redis) trước
             docker compose -f infra.compose.yml --env-file .env up -d
