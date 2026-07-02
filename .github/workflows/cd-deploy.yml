@@ -16,7 +16,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS via SSH
+      # ── Bước 1: Copy compose files & init.sql lên VPS ──────────
+      - name: Copy deploy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "deploy/compose/backend.compose.yml,infra/docker/infra.compose.yml,infra/postgres/init.sql"
+          target: /opt/socialblog
+          strip_components: 0
+
+      # ── Bước 2: SSH vào VPS và chạy deploy ─────────────────────
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -25,64 +37,61 @@ jobs:
           script: |
             set -e
 
-            # ── Variables ──────────────────────────────────────────────
             APP_DIR=/opt/socialblog
-            IMAGE_TAG=${{ github.event.workflow_run.head_sha }}
-            IMAGE_TAG=${IMAGE_TAG::12}
-            BRANCH=${{ github.event.workflow_run.head_branch }}
+            BRANCH="${{ github.event.workflow_run.head_branch }}"
+            BRANCH_TAG="${BRANCH//\//-}"
 
-            mkdir -p $APP_DIR
             cd $APP_DIR
 
-            # ── Write .env ─────────────────────────────────────────────
-            cat > .env <<EOF
+            # Dọn dẹp cấu trúc thư mục sau khi scp
+            [ -f deploy/compose/backend.compose.yml ] && mv deploy/compose/backend.compose.yml . 2>/dev/null || true
+            [ -f infra/docker/infra.compose.yml ] && mv infra/docker/infra.compose.yml . 2>/dev/null || true
+            [ -f infra/postgres/init.sql ] && mv infra/postgres/init.sql . 2>/dev/null || true
+            rm -rf deploy infra 2>/dev/null || true
+
+            # Ghi file .env
+            cat > .env << 'ENVEOF'
             IMAGE_REGISTRY=ghcr.io
             IMAGE_NAMESPACE=tanphong04/social-media-blog-platform
-            IMAGE_TAG=${BRANCH//\//-}
             SPRING_PROFILES_ACTIVE=prod
-            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            JWT_ISSUER=http://${{ secrets.VPS_HOST }}:8080
-            JWT_KEY_ID=managed-rsa
-            JWT_PRIVATE_KEY=${{ secrets.JWT_PRIVATE_KEY }}
-            JWT_PUBLIC_KEY=${{ secrets.JWT_PUBLIC_KEY }}
-            JWT_VERIFICATION_KEYS=${{ secrets.JWT_PUBLIC_KEY }}
-            CORS_ALLOWED_ORIGINS=*
+            OUTBOX_PUBLISHER_ENABLED=true
+            KAFKA_CONSUMER_ENABLED=true
+            BACKEND_NETWORK=social-blog-backend
             GATEWAY_PORT=8080
-            EOF
+            ENVEOF
 
-            # ── Pull infra compose & backend compose ───────────────────
-            curl -fsSL \
-              https://raw.githubusercontent.com/TanPhong04/Social-Media-Blog-Platform/${BRANCH}/infra/postgres/init.sql \
-              -o /tmp/init.sql 2>/dev/null || true
+            # Append secrets vào .env
+            echo "IMAGE_TAG=${BRANCH_TAG}" >> .env
+            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+            echo "JWT_ISSUER=http://${{ secrets.VPS_HOST }}:8080" >> .env
+            echo "JWT_KEY_ID=managed-rsa" >> .env
+            printf 'JWT_PRIVATE_KEY=%s\n' "${{ secrets.JWT_PRIVATE_KEY }}" >> .env
+            printf 'JWT_PUBLIC_KEY=%s\n' "${{ secrets.JWT_PUBLIC_KEY }}" >> .env
+            printf 'JWT_VERIFICATION_KEYS=%s\n' "${{ secrets.JWT_PUBLIC_KEY }}" >> .env
 
-            # ── Login to GHCR ──────────────────────────────────────────
+            # Login GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | \
-              docker login ghcr.io -u ${{ github.actor }} --password-stdin
+              docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-            # ── Pull latest images ─────────────────────────────────────
+            # Pull images mới nhất
             SERVICES=(user-service article-service comment-service interaction-service follower-service notification-service api-gateway)
             for svc in "${SERVICES[@]}"; do
-              docker pull ghcr.io/tanphong04/social-media-blog-platform/${svc}:${BRANCH//\//-} || true
+              echo "Pulling ${svc}:${BRANCH_TAG}..."
+              docker pull "ghcr.io/tanphong04/social-media-blog-platform/${svc}:${BRANCH_TAG}" || true
             done
 
-            # ── Restart stack ──────────────────────────────────────────
-            docker compose -f $APP_DIR/infra.compose.yml \
-                           -f $APP_DIR/backend.compose.yml \
-                           --env-file $APP_DIR/.env \
-                           up -d --remove-orphans
+            # Khởi động infra (postgres, kafka, redis) trước
+            docker compose -f infra.compose.yml --env-file .env up -d
 
-            # ── Cleanup old images ─────────────────────────────────────
+            # Chờ postgres sẵn sàng
+            echo "⏳ Chờ PostgreSQL..."
+            sleep 15
+
+            # Khởi động backend services
+            docker compose -f backend.compose.yml --env-file .env up -d --remove-orphans
+
+            # Dọn image cũ
             docker image prune -f
 
-            echo "✅ Deploy completed!"
-
-      - name: Copy compose files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "deploy/compose/backend.compose.yml,infra/docker/infra.compose.yml"
-          target: /opt/socialblog
-          strip_components: 2
+            echo "✅ Deploy hoàn tất! API đang chạy tại http://${{ secrets.VPS_HOST }}:8080"
