@@ -6,6 +6,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-blog}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
       POSTGRES_DB: user_db
+      POSTGRES_SHARED_BUFFERS: 64MB
+      POSTGRES_WORK_MEM: 4MB
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -14,6 +16,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 200M
     networks: [backend]
 
   kafka:
@@ -31,11 +37,20 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_HEAP_OPTS: "-Xmx256m -Xms128m"
+    deploy:
+      resources:
+        limits:
+          memory: 400M
     networks: [backend]
 
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 80M
     networks: [backend]
 
 networks:
