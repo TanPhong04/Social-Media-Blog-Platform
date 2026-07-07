@@ -86,7 +86,7 @@ jobs:
             echo "All images pulled"
 
             # Khởi động infra (postgres, kafka, redis) trước
-            docker compose -f infra.compose.yml --env-file .env up -d
+            docker compose -p socialblog-infra -f infra.compose.yml --env-file .env up -d
 
             # Chờ postgres sẵn sàng
             sleep 15
@@ -95,7 +95,7 @@ jobs:
             JWT_PRIVATE_KEY="$(cat jwt-private.pem)" \
             JWT_PUBLIC_KEY="$(cat jwt-public.pem)" \
             JWT_VERIFICATION_KEYS="$(cat jwt-public.pem)" \
-            docker compose -f backend.compose.yml --env-file .env up -d --remove-orphans
+            docker compose -p socialblog-backend -f backend.compose.yml --env-file .env up -d --remove-orphans
 
             # Dọn image cũ
             docker image prune -f

@@ -6,9 +6,13 @@ axion.id.vn, www.axion.id.vn {
     encode gzip
 
     # Chuyển hướng các request API tới backend chạy trên VPS
-    reverse_proxy /api/* http://206.189.156.230:8080
+    handle /api/* {
+        reverse_proxy http://206.189.156.230:8080
+    }
 
     # Phục vụ file web
-    try_files {path} /index.html
-    file_server
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
 }
