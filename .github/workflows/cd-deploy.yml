@@ -91,13 +91,11 @@ jobs:
             # Chờ postgres sẵn sàng
             sleep 15
 
-            # Khởi động backend — JWT key đọc từ file, truyền qua -e để tránh lỗi .env
-            docker compose -f backend.compose.yml \
-              --env-file .env \
-              -e "JWT_PRIVATE_KEY=$(cat jwt-private.pem)" \
-              -e "JWT_PUBLIC_KEY=$(cat jwt-public.pem)" \
-              -e "JWT_VERIFICATION_KEYS=$(cat jwt-public.pem)" \
-              up -d --remove-orphans
+            # Khởi động backend — JWT key đọc từ file, truyền trực tiếp vào biến môi trường trước lệnh docker compose
+            JWT_PRIVATE_KEY="$(cat jwt-private.pem)" \
+            JWT_PUBLIC_KEY="$(cat jwt-public.pem)" \
+            JWT_VERIFICATION_KEYS="$(cat jwt-public.pem)" \
+            docker compose -f backend.compose.yml --env-file .env up -d --remove-orphans
 
             # Dọn image cũ
             docker image prune -f
