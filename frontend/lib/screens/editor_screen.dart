@@ -15,6 +15,14 @@ class _EditorScreenState extends State<EditorScreen> {
   final _titleController = TextEditingController();
   final _summaryController = TextEditingController();
   final _contentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _summaryController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
   bool _isSaving = false;
 
   Future<void> _saveDraft() async {

@@ -16,6 +16,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _displayNameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _displayNameController.dispose();
+    super.dispose();
+  }
   String? _error;
 
   Future<void> _handleRegister() async {
@@ -26,11 +34,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _passwordController.text,
             _displayNameController.text,
           );
-      if (mounted) context.go('/home');
+      if (mounted) context.go('/home/feed');
     } catch (e) {
       setState(() {
         if (e is DioException) {
-          _error = e.response?.data['message'] ?? 'Registration failed';
+          final data = e.response?.data;
+          _error = (data is Map<String, dynamic> ? data['message'] as String? : null) ?? 'Registration failed';
         } else {
           _error = 'An unexpected error occurred';
         }

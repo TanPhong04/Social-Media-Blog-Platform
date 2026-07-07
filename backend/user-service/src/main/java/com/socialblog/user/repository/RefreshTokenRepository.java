@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.*;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByTokenHash(String tokenHash);
+    List<RefreshToken> findByUserIdOrderByCreatedAtAsc(UUID userId);
     @Modifying @Query("delete from RefreshToken t where t.expiresAt < :now or (t.revokedAt is not null and t.revokedAt < :revokedBefore)")
     int deleteExpiredAndOldRevoked(@Param("now") Instant now,@Param("revokedBefore") Instant revokedBefore);
 }

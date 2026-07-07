@@ -26,7 +26,12 @@ public class AuthService {
         return issue(user);
     }
     @Transactional public TokenResponse login(LoginRequest req){
-        UserAccount user=users.findByEmailIgnoreCase(normalize(req.email())).orElseThrow(this::invalidCredentials);
+        Optional<UserAccount> userOpt=users.findByEmailIgnoreCase(normalize(req.email()));
+        if(userOpt.isEmpty()){
+            passwords.matches(req.password(), "$2a$10$00000000000000000000000000000000000000000000000000000"); // Dummy hash
+            throw invalidCredentials();
+        }
+        UserAccount user=userOpt.get();
         if(!passwords.matches(req.password(),user.getPasswordHash())) throw invalidCredentials();
         if(user.getStatus()!=UserAccount.Status.ACTIVE) throw new ApiException(HttpStatus.FORBIDDEN,"ACCOUNT_NOT_ACTIVE","Account is not active");
         return issue(user);
@@ -34,10 +39,14 @@ public class AuthService {
     @Transactional public TokenResponse refresh(RefreshRequest req){
         RefreshToken stored=refreshTokens.findByTokenHash(hash(req.refreshToken())).orElseThrow(this::invalidRefresh);
         if(!stored.isUsable()) throw invalidRefresh(); stored.revoke();
-        UserAccount user=users.findById(stored.getUserId()).orElseThrow(this::invalidRefresh); return issue(user);
+        UserAccount user=users.findById(stored.getUserId()).orElseThrow(this::invalidRefresh);
+        if(user.getStatus()!=UserAccount.Status.ACTIVE) throw new ApiException(HttpStatus.FORBIDDEN,"ACCOUNT_NOT_ACTIVE","Account is not active");
+        return issue(user);
     }
     @Transactional public void logout(RefreshRequest req){refreshTokens.findByTokenHash(hash(req.refreshToken())).ifPresent(RefreshToken::revoke);}
     private TokenResponse issue(UserAccount user){
+        List<RefreshToken> existing = refreshTokens.findByUserIdOrderByCreatedAtAsc(user.getId());
+        if(existing.size() >= 5) refreshTokens.delete(existing.get(0));
         byte[] bytes=new byte[48];random.nextBytes(bytes);String raw=Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         refreshTokens.save(new RefreshToken(user.getId(),hash(raw),Instant.now().plus(Duration.ofDays(refreshDays))));
         return new TokenResponse(jwt.create(user),raw,"Bearer",jwt.expiresInSeconds());

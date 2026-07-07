@@ -29,12 +29,18 @@ class ArticleProvider with ChangeNotifier {
 
   bool _isFeedLoading = false;
   bool get isFeedLoading => _isFeedLoading;
+  String? _feedError;
+  String? get feedError => _feedError;
 
   bool _isFollowingLoading = false;
   bool get isFollowingLoading => _isFollowingLoading;
+  String? _followingError;
+  String? get followingError => _followingError;
 
   bool _isMyArticlesLoading = false;
   bool get isMyArticlesLoading => _isMyArticlesLoading;
+  String? _myArticlesError;
+  String? get myArticlesError => _myArticlesError;
 
   PaginatedList<Article> _feed = PaginatedList(items: [], currentPage: 0, hasMore: true);
   PaginatedList<Article> get feed => _feed;
@@ -46,6 +52,7 @@ class ArticleProvider with ChangeNotifier {
   PaginatedList<Article> get myArticles => _myArticles;
 
   Future<void> refreshFeed() async {
+    _feedError = null;
     _feed = PaginatedList(items: [], currentPage: 0, hasMore: true);
     await loadMoreFeed();
   }
@@ -64,6 +71,9 @@ class ArticleProvider with ChangeNotifier {
         currentPage: _feed.currentPage + 1,
         hasMore: !page.last,
       );
+      _feedError = null;
+    } catch (e) {
+      _feedError = e.toString();
     } finally {
       _isFeedLoading = false;
       notifyListeners();
@@ -71,6 +81,7 @@ class ArticleProvider with ChangeNotifier {
   }
 
   Future<void> refreshFollowing() async {
+    _followingError = null;
     _following = PaginatedList(items: [], currentPage: 0, hasMore: true);
     await loadMoreFollowing();
   }
@@ -87,6 +98,9 @@ class ArticleProvider with ChangeNotifier {
         currentPage: _following.currentPage + 1,
         hasMore: !page.last,
       );
+      _followingError = null;
+    } catch (e) {
+      _followingError = e.toString();
     } finally {
       _isFollowingLoading = false;
       notifyListeners();
@@ -94,6 +108,7 @@ class ArticleProvider with ChangeNotifier {
   }
 
   Future<void> refreshMyArticles() async {
+    _myArticlesError = null;
     _myArticles = PaginatedList(items: [], currentPage: 0, hasMore: true);
     await loadMoreMyArticles();
   }
@@ -110,6 +125,9 @@ class ArticleProvider with ChangeNotifier {
         currentPage: _myArticles.currentPage + 1,
         hasMore: !page.last,
       );
+      _myArticlesError = null;
+    } catch (e) {
+      _myArticlesError = e.toString();
     } finally {
       _isMyArticlesLoading = false;
       notifyListeners();
