@@ -17,8 +17,8 @@ const Home: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await articleApi.getFeed(0, 20);
-      setArticles(response.data.content);
+      const response: any = await articleApi.getFeed(0, 20);
+      setArticles(response.content);
     } catch (err) {
       console.error('Failed to fetch articles', err);
       setError('Không thể tải danh sách bài viết. Vui lòng thử lại sau.');
