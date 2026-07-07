@@ -7,7 +7,7 @@ void main() {
     // it usually requires passing --dart-define to the test runner.
     // By default without defines, it should fallback to local.
     
-    // Testing default behavior
-    expect(AppConfig.apiBaseUrl, 'http://localhost:8080/api/v1');
+    // Testing default behavior (now defaults to prod)
+    expect(AppConfig.apiBaseUrl, 'https://axion.id.vn/api/v1');
   });
 }
