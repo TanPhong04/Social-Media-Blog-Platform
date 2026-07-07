@@ -5,11 +5,20 @@ on:
     branches:
       - main
       - dev
-      - "feature/**"
+    paths-ignore:
+      - 'frontend/**'
+      - 'frontend-react/**'
   pull_request:
     branches:
       - main
       - dev
+    paths-ignore:
+      - 'frontend/**'
+      - 'frontend-react/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
