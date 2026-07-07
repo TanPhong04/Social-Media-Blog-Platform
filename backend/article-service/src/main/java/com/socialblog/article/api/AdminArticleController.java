@@ -35,6 +35,12 @@ public class AdminArticleController {
         return service.getArticles(PageRequest.of(page, size));
     }
 
+    @GetMapping("/stats")
+    public com.socialblog.article.api.AdminDtos.AdminArticleStats stats(@AuthenticationPrincipal Jwt jwt) {
+        requireAdmin(jwt);
+        return service.getStats();
+    }
+
     @PutMapping("/{id}/archive")
     public void archive(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         requireAdmin(jwt);

@@ -24,6 +24,11 @@ public class AdminArticleService {
             .map(a -> new AdminArticleResponse(a.getId(), a.getAuthorId(), "User " + a.getAuthorId().toString().substring(0, 4), a.getTitle(), a.getSlug(), a.getSummary(), a.getStatus().name(), a.getTags(), a.getCreatedAt(), a.getPublishedAt()));
     }
 
+    public com.socialblog.article.api.AdminDtos.AdminArticleStats getStats() {
+        java.time.Instant startOfDay = java.time.LocalDate.now(java.time.ZoneId.of("UTC")).atStartOfDay(java.time.ZoneId.of("UTC")).toInstant();
+        return new com.socialblog.article.api.AdminDtos.AdminArticleStats(repository.count(), repository.countByCreatedAtAfter(startOfDay));
+    }
+
     public void archiveArticle(UUID id) {
         Article article = repository.findById(id).orElseThrow();
         article.archive();

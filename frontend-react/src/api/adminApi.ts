@@ -42,23 +42,29 @@ export interface PageResponse<T> {
   pageSize: number;
 }
 
-// Mock data for Dashboard ONLY since we didn't build cross-service aggregator yet
-const MOCK_STATS: AdminStats = {
-  totalUsers: 1247,
-  totalArticles: 3892,
-  totalComments: 12450,
-  activeUsers: 892,
-  newUsersToday: 23,
-  newArticlesToday: 47,
-};
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 export const adminApi = {
-  // Dashboard (Still Mocked as requested, since creating a cross-db aggregator was deemed unnecessary)
+  // Dashboard - API Composition
   getStats: async (): Promise<AdminStats> => {
-    await delay(600);
-    return MOCK_STATS;
+    try {
+      const [userStatsRes, articleStatsRes, commentStatsRes] = await Promise.all([
+        axiosClient.get('/admin/users/stats'),
+        axiosClient.get('/admin/articles/stats'),
+        axiosClient.get('/admin/comments/stats')
+      ]);
+      
+      return {
+        totalUsers: userStatsRes.data.totalUsers || 0,
+        activeUsers: userStatsRes.data.activeUsers || 0,
+        newUsersToday: userStatsRes.data.newUsersToday || 0,
+        totalArticles: articleStatsRes.data.totalArticles || 0,
+        newArticlesToday: articleStatsRes.data.newArticlesToday || 0,
+        totalComments: commentStatsRes.data.totalComments || 0,
+      };
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      // Fallback or throw error
+      throw error;
+    }
   },
 
   // Users (Real API)

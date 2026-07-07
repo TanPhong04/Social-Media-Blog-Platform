@@ -24,6 +24,11 @@ public class AdminUserService {
             .map(u -> new AdminUserResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.getBio(), u.getAvatarUrl(), u.getRole().name(), u.getStatus().name(), u.getCreatedAt()));
     }
 
+    public com.socialblog.user.api.AdminDtos.AdminUserStats getStats() {
+        java.time.Instant startOfDay = java.time.LocalDate.now(java.time.ZoneId.of("UTC")).atStartOfDay(java.time.ZoneId.of("UTC")).toInstant();
+        return new com.socialblog.user.api.AdminDtos.AdminUserStats(repository.count(), repository.countByStatus(UserAccount.Status.ACTIVE), repository.countByCreatedAtAfter(startOfDay));
+    }
+
     public void suspendUser(UUID id) {
         UserAccount user = repository.findById(id).orElseThrow();
         user.suspend();

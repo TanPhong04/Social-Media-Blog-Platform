@@ -8,6 +8,7 @@ import java.util.*;
 
 public interface ArticleRepository extends JpaRepository<Article, UUID> {
     Optional<Article> findBySlugAndStatus(String slug, Article.Status status);
+    long countByCreatedAtAfter(java.time.Instant date);
 
     Page<Article> findByStatusOrderByPublishedAtDesc(Article.Status status, Pageable pageable);
 
