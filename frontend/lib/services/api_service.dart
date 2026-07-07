@@ -45,7 +45,7 @@ class ApiService {
               final res = await tokenDio.post('/auth/refresh', data: {'refreshToken': refreshToken});
               final newAccess = res.data['accessToken'];
               final newRefresh = res.data['refreshToken'];
-              await _storageService.saveTokens(newAccess, newRefresh);
+              await _storageService.saveTokens(accessToken: newAccess, refreshToken: newRefresh);
               _refreshCompleter!.complete(newAccess);
               _refreshCompleter = null;
               e.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
