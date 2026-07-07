@@ -1,0 +1,87 @@
+name: ReactJS CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'frontend-react/**'
+      - '.github/workflows/react-ci-cd.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'frontend-react/**'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy ReactJS
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set lower case owner name
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >> $GITHUB_ENV
+        env:
+          OWNER: '${{ github.repository_owner }}'
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Format tag
+        id: format_tag
+        run: |
+          TAG="${{ steps.extract_branch.outputs.branch }}"
+          echo "tag=${TAG//\//-}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend-react
+          push: true
+          tags: ghcr.io/${{ env.OWNER_LC }}/social-blog-react:${{ steps.format_tag.outputs.tag }}
+
+      - name: Deploy ReactJS to VPS via SSH
+        if: github.event_name == 'push'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            TAG="${{ steps.format_tag.outputs.tag }}"
+            IMAGE="ghcr.io/${{ env.OWNER_LC }}/social-blog-react:${TAG}"
+            
+            # Login to GHCR on VPS
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            
+            # Pull the new image
+            docker pull $IMAGE
+            
+            # Stop and remove old container if exists
+            docker stop react-frontend || true
+            docker rm react-frontend || true
+            
+            # Run the new container on port 80 and 443 with Caddy volumes
+            docker run -d --name react-frontend -p 80:80 -p 443:443 -v caddy_data:/data -v caddy_config:/config --restart always $IMAGE
+            
+            # Cleanup old images
+            docker image prune -f

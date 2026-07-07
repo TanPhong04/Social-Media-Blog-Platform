@@ -14,6 +14,9 @@ frontend/.flutter-plugins*
 *.pem
 jwt-key*
 
+# Local Guides
+HUONG_DAN_NOP_BAI_CLASSROOM.md
+
 # Android build outputs
 frontend/android/build/
 frontend/android/.gradle/
