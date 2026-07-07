@@ -80,8 +80,8 @@ jobs:
             docker stop react-frontend || true
             docker rm react-frontend || true
             
-            # Run the new container on port 3000
-            docker run -d --name react-frontend -p 3000:80 --restart always $IMAGE
+            # Run the new container on port 80
+            docker run -d --name react-frontend -p 80:80 --restart always $IMAGE
             
             # Cleanup old images
             docker image prune -f
