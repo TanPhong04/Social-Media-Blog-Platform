@@ -1,6 +1,6 @@
-# React + TypeScript + Vite
+# Axion – Social Blog Platform (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Axion is the React-based frontend for the Social Media Blog Platform. Built with React 19, TypeScript, Tailwind CSS v4, and Vite.
 
 Currently, two official plugins are available:
 
