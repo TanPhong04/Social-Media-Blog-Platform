@@ -13,3 +13,8 @@ frontend/.flutter-plugins*
 # JWT keys - NEVER commit private keys
 *.pem
 jwt-key*
+
+# Android build outputs
+frontend/android/build/
+frontend/android/.gradle/
+**/.gradle/
