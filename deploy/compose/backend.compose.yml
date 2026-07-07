@@ -14,7 +14,7 @@ services:
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_VERIFICATION_KEYS: ${JWT_VERIFICATION_KEYS:-}
-      JAVA_TOOL_OPTIONS: "-Xmx150m -Xms64m"
+      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     expose:
       - "8081"
     deploy:
@@ -37,7 +37,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx150m -Xms64m"
+      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -62,7 +62,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx150m -Xms64m"
+      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -87,7 +87,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx150m -Xms64m"
+      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -112,7 +112,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx150m -Xms64m"
+      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -137,7 +137,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx150m -Xms64m"
+      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -163,7 +163,7 @@ services:
       NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8086}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
       TRUST_FORWARDED_FOR: ${TRUST_FORWARDED_FOR:-true}
-      JAVA_TOOL_OPTIONS: "-Xmx150m -Xms64m"
+      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     depends_on:
       - user-service
       - article-service
