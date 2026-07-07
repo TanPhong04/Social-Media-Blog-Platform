@@ -35,6 +35,12 @@ public class AdminUserController {
         return service.getUsers(PageRequest.of(page, size));
     }
 
+    @GetMapping("/stats")
+    public com.socialblog.user.api.AdminDtos.AdminUserStats stats(@AuthenticationPrincipal Jwt jwt) {
+        requireAdmin(jwt);
+        return service.getStats();
+    }
+
     @PutMapping("/{id}/suspend")
     public void suspend(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         requireAdmin(jwt);

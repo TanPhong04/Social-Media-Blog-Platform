@@ -104,7 +104,7 @@ spring:
           uri: ${COMMENT_SERVICE_URL:http://localhost:8083}
           order: 100
           predicates:
-            - Path=/api/v1/comments/**
+            - Path=/api/v1/comments/**,/api/v1/admin/comments/**
         - id: interaction-service
           uri: ${INTERACTION_SERVICE_URL:http://localhost:8084}
           order: 100
