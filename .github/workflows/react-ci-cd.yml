@@ -80,8 +80,8 @@ jobs:
             docker stop react-frontend || true
             docker rm react-frontend || true
             
-            # Run the new container on port 80
-            docker run -d --name react-frontend -p 80:80 --restart always $IMAGE
+            # Run the new container on port 80 and 443 with Caddy volumes
+            docker run -d --name react-frontend -p 80:80 -p 443:443 -v caddy_data:/data -v caddy_config:/config --restart always $IMAGE
             
             # Cleanup old images
             docker image prune -f
