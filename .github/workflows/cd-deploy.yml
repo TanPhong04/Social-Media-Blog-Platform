@@ -55,10 +55,12 @@ jobs:
             echo "${{ secrets.JWT_PUBLIC_KEY }}"  > jwt-public.pem
             chmod 600 jwt-private.pem jwt-public.pem
 
+            LOWERCASE_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+
             # Ghi .env - chỉ chứa biến đơn giản, KHÔNG chứa JWT key
             cat > .env <<ENVEOF
             IMAGE_REGISTRY=ghcr.io
-            IMAGE_NAMESPACE=tanphong04/social-media-blog-platform
+            IMAGE_NAMESPACE=${LOWERCASE_REPO}
             IMAGE_TAG=${BRANCH_TAG}
             SPRING_PROFILES_ACTIVE=prod
             OUTBOX_PUBLISHER_ENABLED=true
@@ -78,7 +80,7 @@ jobs:
             # Pull tất cả images song song
             SERVICES=(user-service article-service comment-service interaction-service follower-service notification-service api-gateway)
             for svc in "${SERVICES[@]}"; do
-              docker pull "ghcr.io/tanphong04/social-media-blog-platform/${svc}:${BRANCH_TAG}" &
+              docker pull "ghcr.io/${LOWERCASE_REPO}/${svc}:${BRANCH_TAG}" &
             done
             wait
             echo "All images pulled"
