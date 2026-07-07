@@ -5,11 +5,16 @@ on:
     branches:
       - main
       - dev
-      - "feature/**"
+    paths-ignore:
+      - 'frontend/**'
+      - 'frontend-react/**'
   pull_request:
     branches:
       - main
       - dev
+    paths-ignore:
+      - 'frontend/**'
+      - 'frontend-react/**'
 
 permissions:
   contents: read
