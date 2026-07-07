@@ -5,6 +5,7 @@ import '../services/article_service.dart';
 import '../widgets/like_button.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/comment_section.dart';
+import '../services/auth_service.dart';
 
 class ArticleDetailScreen extends StatefulWidget {
   final String slug;
@@ -16,6 +17,7 @@ class ArticleDetailScreen extends StatefulWidget {
 
 class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   Article? _article;
+  String? _authorName;
   bool _isLoading = true;
   String? _error;
 
@@ -29,9 +31,22 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     try {
       final service = context.read<ArticleService>();
       final article = await service.getArticleBySlug(widget.slug);
+      
+      String? authorName;
+      if (article.authorId != null) {
+        try {
+          final authService = context.read<AuthService>();
+          final authorProfile = await authService.getUserProfile(article.authorId!);
+          authorName = authorProfile.displayName;
+        } catch (_) {
+          authorName = 'Unknown Author';
+        }
+      }
+
       if (mounted) {
         setState(() {
           _article = article;
+          _authorName = authorName;
           _isLoading = false;
         });
       }
@@ -76,7 +91,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                 children: [
                   const CircleAvatar(child: Icon(Icons.person)),
                   const SizedBox(width: 12),
-                  const Expanded(child: Text('Author Name')),
+                  Expanded(child: Text(_authorName ?? 'Unknown Author')),
                   FollowButton(targetId: _article!.authorId!),
                 ],
               ),

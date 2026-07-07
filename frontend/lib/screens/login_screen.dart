@@ -15,6 +15,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
   String? _error;
 
   Future<void> _handleLogin() async {
@@ -24,11 +31,12 @@ class _LoginScreenState extends State<LoginScreen> {
             _emailController.text,
             _passwordController.text,
           );
-      if (mounted) context.go('/home');
+      if (mounted) context.go('/home/feed');
     } catch (e) {
       setState(() {
         if (e is DioException) {
-          _error = e.response?.data['message'] ?? 'Login failed';
+          final data = e.response?.data;
+          _error = (data is Map<String, dynamic> ? data['message'] as String? : null) ?? 'Login failed';
         } else {
           _error = 'An unexpected error occurred';
         }

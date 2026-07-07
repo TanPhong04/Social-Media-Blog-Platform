@@ -69,9 +69,7 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public Page<Response> followingFeed(UUID reader, Pageable p) {
-        List<UUID> authorIds = follows.findByIdFollowerId(reader).stream().map(f -> f.getId().followedId()).toList();
-        if (authorIds.isEmpty()) return Page.empty(p);
-        return articles.findByStatusAndAuthorIdInOrderByPublishedAtDesc(Article.Status.PUBLISHED, authorIds, p).map(this::map);
+        return articles.findFollowingFeed(Article.Status.PUBLISHED, reader, p).map(this::map);
     }
 
     @Transactional(readOnly = true)
@@ -81,6 +79,7 @@ public class ArticleService {
 
     private Article owned(UUID id, UUID author) {
         Article a = articles.findById(id).orElseThrow(this::notFound);
+        if (a.getStatus() == Article.Status.DELETED) throw notFound();
         if (!a.getAuthorId().equals(author))
             throw new ApiException(HttpStatus.FORBIDDEN, "ARTICLE_FORBIDDEN", "Only the author can modify this article");
         return a;

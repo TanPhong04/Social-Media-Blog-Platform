@@ -11,7 +11,8 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
     Page<Article> findByStatusOrderByPublishedAtDesc(Article.Status status, Pageable pageable);
 
-    Page<Article> findByStatusAndAuthorIdInOrderByPublishedAtDesc(Article.Status status, Collection<UUID> authorIds, Pageable pageable);
+    @org.springframework.data.jpa.repository.Query("select a from Article a where a.status = :status and a.authorId in (select f.id.followedId from FollowProjection f where f.id.followerId = :reader) order by a.publishedAt desc")
+    Page<Article> findFollowingFeed(@org.springframework.data.repository.query.Param("status") Article.Status status, @org.springframework.data.repository.query.Param("reader") UUID reader, Pageable pageable);
 
     Page<Article> findByAuthorIdAndStatusNotOrderByUpdatedAtDesc(UUID authorId, Article.Status status, Pageable pageable);
 }

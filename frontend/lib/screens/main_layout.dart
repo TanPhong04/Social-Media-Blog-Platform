@@ -10,11 +10,14 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 0;
+  int _calculateSelectedIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).matchedLocation;
+    if (location.startsWith('/home/mine')) return 1;
+    if (location.startsWith('/home/profile')) return 2;
+    return 0;
+  }
 
   void _onTap(int index) {
-    if (index == _currentIndex) return;
-    setState(() => _currentIndex = index);
 
     switch (index) {
       case 0:
@@ -31,10 +34,11 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = _calculateSelectedIndex(context);
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+        selectedIndex: currentIndex,
         onDestinationSelected: _onTap,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Feed'),
@@ -42,7 +46,7 @@ class _MainLayoutState extends State<MainLayout> {
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-      floatingActionButton: _currentIndex == 1
+      floatingActionButton: currentIndex == 1
           ? FloatingActionButton(
               onPressed: () => context.push('/editor'),
               child: const Icon(Icons.edit),

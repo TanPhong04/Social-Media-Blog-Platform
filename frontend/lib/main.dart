@@ -41,6 +41,7 @@ void main() {
         Provider.value(value: interactionService),
         Provider.value(value: followService),
         Provider.value(value: notificationService),
+        Provider.value(value: authService),
         ChangeNotifierProvider(create: (_) => AuthProvider(authService, storageService)),
         ChangeNotifierProvider(create: (_) => ArticleProvider(articleService)),
       ],
@@ -63,6 +64,7 @@ class _SocialBlogAppState extends State<SocialBlogApp> {
   void initState() {
     super.initState();
     _router = GoRouter(
+      refreshListenable: context.read<AuthProvider>(),
       initialLocation: '/home/feed',
       routes: [
         GoRoute(

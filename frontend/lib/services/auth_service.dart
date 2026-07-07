@@ -59,4 +59,9 @@ class AuthService {
     final response = await _apiService.dio.get('/users/me');
     return User.fromJson(response.data);
   }
+
+  Future<User> getUserProfile(String userId) async {
+    final response = await _apiService.dio.get('/users/$userId');
+    return User.fromJson(response.data);
+  }
 }
