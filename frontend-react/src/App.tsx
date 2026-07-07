@@ -5,6 +5,11 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ComingSoon from './pages/ComingSoon';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
+import AdminLayout from './components/layout/AdminLayout';
+import Dashboard from './pages/admin/Dashboard';
+import UserManagement from './pages/admin/UserManagement';
+import ArticleManagement from './pages/admin/ArticleManagement';
 
 function App() {
   return (
@@ -29,6 +34,15 @@ function App() {
           <Route path="/notifications" element={<ComingSoon />} />
           <Route path="/settings" element={<ComingSoon />} />
           <Route path="/create-article" element={<ComingSoon />} />
+        </Route>
+      </Route>
+
+      {/* Admin Routes */}
+      <Route element={<AdminRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/users" element={<UserManagement />} />
+          <Route path="/admin/articles" element={<ArticleManagement />} />
         </Route>
       </Route>
     </Routes>

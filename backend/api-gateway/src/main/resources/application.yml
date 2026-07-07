@@ -94,17 +94,17 @@ spring:
           uri: ${USER_SERVICE_URL:http://localhost:8081}
           order: 100
           predicates:
-            - Path=/api/v1/auth/**,/api/v1/users/**
+            - Path=/api/v1/auth/**,/api/v1/users/**,/api/v1/admin/users/**
         - id: article-service
           uri: ${ARTICLE_SERVICE_URL:http://localhost:8082}
           order: 100
           predicates:
-            - Path=/api/v1/articles/**
+            - Path=/api/v1/articles/**,/api/v1/admin/articles/**
         - id: comment-service
           uri: ${COMMENT_SERVICE_URL:http://localhost:8083}
           order: 100
           predicates:
-            - Path=/api/v1/comments/**
+            - Path=/api/v1/comments/**,/api/v1/admin/comments/**
         - id: interaction-service
           uri: ${INTERACTION_SERVICE_URL:http://localhost:8084}
           order: 100

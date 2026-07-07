@@ -54,9 +54,9 @@ class ApiGatewayApplicationTest {
     @Test
     void gatewayRoutesMatchDocumentedServicePrefixes() {
         Map<String, Set<String>> documentedPrefixes = Map.of(
-                "user-service", Set.of("/api/v1/auth/**", "/api/v1/users/**"),
-                "article-service", Set.of("/api/v1/articles/**"),
-                "comment-service", Set.of("/api/v1/comments/**"),
+                "user-service", Set.of("/api/v1/auth/**", "/api/v1/users/**", "/api/v1/admin/users/**"),
+                "article-service", Set.of("/api/v1/articles/**", "/api/v1/admin/articles/**"),
+                "comment-service", Set.of("/api/v1/comments/**", "/api/v1/admin/comments/**"),
                 "interaction-service", Set.of("/api/v1/interactions/**"),
                 "follower-service", Set.of("/api/v1/follows/**"),
                 "notification-service", Set.of("/api/v1/notifications/**")

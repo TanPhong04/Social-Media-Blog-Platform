@@ -23,6 +23,9 @@ public class UserAccount {
         this.role=Role.USER; this.status=Status.ACTIVE; this.createdAt=Instant.now(); this.updatedAt=this.createdAt;
     }
     public void updateProfile(String displayName, String bio, String avatarUrl) { this.displayName=displayName; this.bio=bio; this.avatarUrl=avatarUrl; this.updatedAt=Instant.now(); }
+    public void suspend() { this.status = Status.SUSPENDED; this.updatedAt = Instant.now(); }
+    public void activate() { this.status = Status.ACTIVE; this.updatedAt = Instant.now(); }
+    public void delete() { this.status = Status.DELETED; this.updatedAt = Instant.now(); }
     public UUID getId(){return id;} public String getEmail(){return email;} public String getPasswordHash(){return passwordHash;}
     public String getDisplayName(){return displayName;} public String getBio(){return bio;} public String getAvatarUrl(){return avatarUrl;}
     public Role getRole(){return role;} public Status getStatus(){return status;} public Instant getCreatedAt(){return createdAt;}
