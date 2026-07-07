@@ -15,6 +15,10 @@ on:
     paths:
       - 'frontend-react/**'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     name: Build and Deploy ReactJS
