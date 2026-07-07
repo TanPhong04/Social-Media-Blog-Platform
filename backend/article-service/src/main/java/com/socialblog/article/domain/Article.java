@@ -76,6 +76,13 @@ public class Article {
         return true;
     }
 
+    public boolean archive() {
+        if (status == Status.ARCHIVED) return false;
+        status = Status.ARCHIVED;
+        updatedAt = Instant.now();
+        return true;
+    }
+
     private String slugify(String value) {
         String s = Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
         return s.isBlank() ? "article" : s;
@@ -125,5 +132,5 @@ public class Article {
         return publishedAt;
     }
 
-    public enum Status {DRAFT, PUBLISHED, DELETED}
+    public enum Status {DRAFT, PUBLISHED, DELETED, ARCHIVED}
 }
