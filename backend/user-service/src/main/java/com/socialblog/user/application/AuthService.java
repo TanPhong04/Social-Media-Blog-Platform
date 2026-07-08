@@ -28,7 +28,7 @@ public class AuthService {
         
         try {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            String json = String.format("{\"from\":\"onboarding@resend.dev\",\"to\":\"%s\",\"subject\":\"Your Registration OTP\",\"html\":\"Your code is: <b>%s</b>\"}", email, otp);
+            String json = String.format("{\"from\":\"noreply@axion.id.vn\",\"to\":\"%s\",\"subject\":\"Your Registration OTP\",\"html\":\"Your code is: <b>%s</b>\"}", email, otp);
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create("https://api.resend.com/emails"))
                 .header("Authorization", "Bearer " + resendApiKey)
