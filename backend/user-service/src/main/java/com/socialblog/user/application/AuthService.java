@@ -17,8 +17,8 @@ import java.util.*;
 
 @Service
 public class AuthService {
-    private final UserRepository users; private final RefreshTokenRepository refreshTokens; private final OutboxEventRepository outbox; private final DomainEventFactory events; private final PasswordEncoder passwords; private final JwtService jwt; private final EmailOtpRepository otps; private final long refreshDays; private final String resendApiKey; private final SecureRandom random=new SecureRandom();
-    public AuthService(UserRepository users,RefreshTokenRepository refreshTokens,OutboxEventRepository outbox,DomainEventFactory events,PasswordEncoder passwords,JwtService jwt,EmailOtpRepository otps,@Value("${app.security.refresh-token-days}") long refreshDays,@Value("${app.resend.api-key:}") String resendApiKey){this.users=users;this.refreshTokens=refreshTokens;this.outbox=outbox;this.events=events;this.passwords=passwords;this.jwt=jwt;this.otps=otps;this.refreshDays=refreshDays;this.resendApiKey=resendApiKey;}
+    private final UserRepository users; private final RefreshTokenRepository refreshTokens; private final OutboxEventRepository outbox; private final DomainEventFactory events; private final PasswordEncoder passwords; private final JwtService jwt; private final EmailOtpRepository otps; private final long refreshDays; private final String resendApiKey; private final String googleClientId; private final SecureRandom random=new SecureRandom();
+    public AuthService(UserRepository users,RefreshTokenRepository refreshTokens,OutboxEventRepository outbox,DomainEventFactory events,PasswordEncoder passwords,JwtService jwt,EmailOtpRepository otps,@Value("${app.security.refresh-token-days}") long refreshDays,@Value("${app.resend.api-key:}") String resendApiKey,@Value("${app.google.client-id:}") String googleClientId){this.users=users;this.refreshTokens=refreshTokens;this.outbox=outbox;this.events=events;this.passwords=passwords;this.jwt=jwt;this.otps=otps;this.refreshDays=refreshDays;this.resendApiKey=resendApiKey;this.googleClientId=googleClientId;}
     
     @Transactional public void sendOtp(SendOtpRequest req) {
         String email = normalize(req.email());
@@ -69,6 +69,12 @@ public class AuthService {
             
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(response.body());
+            
+            if (googleClientId != null && !googleClientId.isBlank()) {
+                String aud = node.has("aud") ? node.get("aud").asText() : "";
+                if (!googleClientId.equals(aud)) throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_GOOGLE_TOKEN", "Token audience mismatch");
+            }
+
             String email = normalize(node.get("email").asText());
             String name = node.has("name") ? node.get("name").asText() : email.split("@")[0];
             
