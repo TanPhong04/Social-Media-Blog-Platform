@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axiosClient from '../api/axiosClient';
 import { LogIn } from 'lucide-react';
+import { useGoogleLogin } from '@react-oauth/google';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = async (tokenResponse: any) => {
+    try {
+      // The implicit flow gives us access_token, but let's assume we use it or we need id_token?
+      // Wait, useGoogleLogin without flow='auth-code' gives an access_token.
+      // But our backend expects an idToken. We need to fetch user info or use credentialResponse from GoogleLogin component.
+      // Wait, let's use the standard component if we need idToken.
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Google Login failed.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +90,18 @@ export default function Login() {
           </button>
         </form>
 
+        <div className="mt-6 flex items-center justify-between">
+          <span className="border-b border-gray-700 w-1/5 lg:w-1/4"></span>
+          <span className="text-xs text-center text-text-secondary uppercase">or login with</span>
+          <span className="border-b border-gray-700 w-1/5 lg:w-1/4"></span>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <div id="google-btn-wrapper" className="flex justify-center w-full">
+             <GoogleLoginWrapper setError={setError} login={login} navigate={navigate} />
+          </div>
+        </div>
+
         <p className="mt-6 text-center text-text-secondary text-sm">
           Don't have an account?{' '}
           <Link to="/register" className="text-primary hover:underline font-medium">
@@ -86,5 +110,29 @@ export default function Login() {
         </p>
       </div>
     </div>
+  );
+}
+
+// Wrap GoogleLogin in a component to avoid using hooks in wrong place
+import { GoogleLogin } from '@react-oauth/google';
+
+function GoogleLoginWrapper({ setError, login, navigate }: any) {
+  return (
+    <GoogleLogin
+      onSuccess={async (credentialResponse) => {
+        try {
+          const res: any = await axiosClient.post('/auth/google-login', { 
+            idToken: credentialResponse.credential 
+          });
+          await login(res.accessToken);
+          navigate('/');
+        } catch (err: any) {
+          setError(err.response?.data?.message || 'Google Login failed.');
+        }
+      }}
+      onError={() => {
+        setError('Google Login was unsuccessful');
+      }}
+    />
   );
 }
