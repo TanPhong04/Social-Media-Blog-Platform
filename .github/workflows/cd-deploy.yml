@@ -62,7 +62,7 @@ jobs:
             LOWERCASE_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
 
             # Ghi .env - chỉ chứa biến đơn giản, KHÔNG chứa JWT key
-            cat > .env <<ENVEOF
+            cat > .env.new <<ENVEOF
             IMAGE_REGISTRY=ghcr.io
             IMAGE_NAMESPACE=${LOWERCASE_REPO}
             IMAGE_TAG=${BRANCH_TAG}
@@ -76,6 +76,12 @@ jobs:
             JWT_ISSUER=http://${{ secrets.VPS_HOST }}:8080
             JWT_KEY_ID=managed-rsa
             ENVEOF
+            
+            # Giữ lại các biến môi trường cấu hình thủ công (Google, Resend) nếu có
+            if [ -f .env ]; then
+                grep -E "^(GOOGLE_CLIENT_ID|RESEND_API_KEY)=" .env >> .env.new || true
+            fi
+            mv .env.new .env
 
             # Login GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | \
