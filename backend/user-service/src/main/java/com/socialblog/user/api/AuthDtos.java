@@ -8,7 +8,10 @@ public final class AuthDtos {
     private AuthDtos() {}
     public record RegisterRequest(@NotBlank @Email @Size(max=320) String email,
                                   @NotBlank @Size(min=8,max=72) String password,
-                                  @NotBlank @Size(max=80) String displayName) {}
+                                  @NotBlank @Size(max=80) String displayName,
+                                  @NotBlank String otp) {}
+    public record SendOtpRequest(@NotBlank @Email @Size(max=320) String email) {}
+    public record GoogleLoginRequest(@NotBlank String idToken) {}
     public record LoginRequest(@NotBlank @Email @Size(max=320) String email, @NotBlank @Size(max=72) String password) {}
     public record RefreshRequest(@NotBlank @Size(max=512) String refreshToken) {}
     public record TokenResponse(String accessToken, String refreshToken, String tokenType, long expiresIn) {}

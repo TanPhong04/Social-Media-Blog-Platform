@@ -17,14 +17,78 @@ import java.util.*;
 
 @Service
 public class AuthService {
-    private final UserRepository users; private final RefreshTokenRepository refreshTokens; private final OutboxEventRepository outbox; private final DomainEventFactory events; private final PasswordEncoder passwords; private final JwtService jwt; private final long refreshDays; private final SecureRandom random=new SecureRandom();
-    public AuthService(UserRepository users,RefreshTokenRepository refreshTokens,OutboxEventRepository outbox,DomainEventFactory events,PasswordEncoder passwords,JwtService jwt,@Value("${app.security.refresh-token-days}") long refreshDays){this.users=users;this.refreshTokens=refreshTokens;this.outbox=outbox;this.events=events;this.passwords=passwords;this.jwt=jwt;this.refreshDays=refreshDays;}
+    private final UserRepository users; private final RefreshTokenRepository refreshTokens; private final OutboxEventRepository outbox; private final DomainEventFactory events; private final PasswordEncoder passwords; private final JwtService jwt; private final EmailOtpRepository otps; private final long refreshDays; private final SecureRandom random=new SecureRandom();
+    public AuthService(UserRepository users,RefreshTokenRepository refreshTokens,OutboxEventRepository outbox,DomainEventFactory events,PasswordEncoder passwords,JwtService jwt,EmailOtpRepository otps,@Value("${app.security.refresh-token-days}") long refreshDays){this.users=users;this.refreshTokens=refreshTokens;this.outbox=outbox;this.events=events;this.passwords=passwords;this.jwt=jwt;this.otps=otps;this.refreshDays=refreshDays;}
+    
+    @Transactional public void sendOtp(SendOtpRequest req) {
+        String email = normalize(req.email());
+        if(users.existsByEmailIgnoreCase(email)) throw new ApiException(HttpStatus.CONFLICT,"EMAIL_ALREADY_EXISTS","Email is already registered");
+        String otp = String.format("%06d", random.nextInt(1000000));
+        otps.save(new EmailOtp(email, otp, Instant.now().plus(Duration.ofMinutes(10))));
+        
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            String json = String.format("{\"from\":\"onboarding@resend.dev\",\"to\":\"%s\",\"subject\":\"Your Registration OTP\",\"html\":\"Your code is: <b>%s</b>\"}", email, otp);
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create("https://api.resend.com/emails"))
+                .header("Authorization", "Bearer re_gXoUSFuS_LWjBXAFrcNSqi6ggh785eujT")
+                .header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
+                .build();
+            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_FAILED", "Failed to send OTP email");
+        }
+    }
+
     @Transactional public TokenResponse register(RegisterRequest req){
-        String email=normalize(req.email()); if(users.existsByEmailIgnoreCase(email)) throw new ApiException(HttpStatus.CONFLICT,"EMAIL_ALREADY_EXISTS","Email is already registered");
+        String email=normalize(req.email()); 
+        if(users.existsByEmailIgnoreCase(email)) throw new ApiException(HttpStatus.CONFLICT,"EMAIL_ALREADY_EXISTS","Email is already registered");
+        
+        EmailOtp otpEntity = otps.findFirstByEmailAndUsedFalseOrderByExpiresAtDesc(email)
+            .filter(o -> o.getExpiresAt().isAfter(Instant.now()))
+            .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_OTP", "OTP is invalid or expired"));
+        
+        if(!otpEntity.getOtp().equals(req.otp())) throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_OTP", "OTP is incorrect");
+        otpEntity.markUsed();
+        otps.save(otpEntity);
+
         UserAccount user=users.save(new UserAccount(email,passwords.encode(req.password()),req.displayName().trim()));
         outbox.save(events.userRegistered(user));
         return issue(user);
     }
+    
+    @Transactional public TokenResponse googleLogin(GoogleLoginRequest req) {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=" + req.idToken()))
+                .GET().build();
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_GOOGLE_TOKEN", "Invalid Google ID token");
+            
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(response.body());
+            String email = normalize(node.get("email").asText());
+            String name = node.has("name") ? node.get("name").asText() : email.split("@")[0];
+            
+            Optional<UserAccount> userOpt = users.findByEmailIgnoreCase(email);
+            UserAccount user;
+            if (userOpt.isEmpty()) {
+                user = users.save(new UserAccount(email, passwords.encode(UUID.randomUUID().toString()), name.trim()));
+                outbox.save(events.userRegistered(user));
+            } else {
+                user = userOpt.get();
+                if (user.getStatus() != UserAccount.Status.ACTIVE) throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_NOT_ACTIVE", "Account is not active");
+            }
+            return issue(user);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "GOOGLE_LOGIN_FAILED", "Failed to login with Google");
+        }
+    }
+
     @Transactional public TokenResponse login(LoginRequest req){
         Optional<UserAccount> userOpt=users.findByEmailIgnoreCase(normalize(req.email()));
         if(userOpt.isEmpty()){
