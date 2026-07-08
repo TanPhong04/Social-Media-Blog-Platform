@@ -35,7 +35,13 @@ public class AuthService {
                 .header("Content-Type", "application/json")
                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
                 .build();
-            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 300) {
+                System.err.println("Resend API failed: " + response.body());
+                throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_FAILED", "Email service rejected the request: " + response.body());
+            }
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_FAILED", "Failed to send OTP email");
         }
