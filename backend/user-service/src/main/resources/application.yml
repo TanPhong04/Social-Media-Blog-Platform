@@ -39,3 +39,5 @@ app:
       verification-keys: ${JWT_VERIFICATION_KEYS:}
     access-token-minutes: 15
     refresh-token-days: 30
+  resend:
+    api-key: ${RESEND_API_KEY:}
