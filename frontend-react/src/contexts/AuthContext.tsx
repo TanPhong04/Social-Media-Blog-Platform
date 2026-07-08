@@ -15,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (token: string) => Promise<void>;
+  login: (token: string) => Promise<User | null>;
   logout: () => void;
 }
 
@@ -25,14 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (): Promise<User | null> => {
     try {
       const response: any = await axiosClient.get('/users/me');
       setUser(response);
+      return response;
     } catch (error) {
       console.error('Failed to fetch profile', error);
       setUser(null);
       localStorage.removeItem('accessToken');
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (token: string) => {
     localStorage.setItem('accessToken', token);
-    await fetchProfile();
+    return await fetchProfile();
   };
 
   const logout = () => {

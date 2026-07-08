@@ -19,8 +19,12 @@ export default function Login() {
 
     try {
       const response: any = await axiosClient.post('/auth/login', { email, password });
-      await login(response.accessToken);
-      navigate('/');
+      const user = await login(response.accessToken);
+      if (user?.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
@@ -111,8 +115,12 @@ function GoogleLoginWrapper({ setError, login, navigate }: any) {
           const res: any = await axiosClient.post('/auth/google-login', { 
             idToken: credentialResponse.credential 
           });
-          await login(res.accessToken);
-          navigate('/');
+          const user = await login(res.accessToken);
+          if (user?.role === 'ADMIN') {
+            navigate('/admin');
+          } else {
+            navigate('/');
+          }
         } catch (err: any) {
           setError(err.response?.data?.message || 'Đăng nhập Google thất bại.');
         }
