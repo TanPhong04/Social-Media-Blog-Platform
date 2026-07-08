@@ -1,4 +1,0 @@
-# Git Push Rule
-- NEVER push code to the `origin` remote.
-- ALWAYS push code to the `classroom` remote when requested to push or commit and push.
-- Example: Use `git push classroom <branch>` instead of `git push origin <branch>`.
