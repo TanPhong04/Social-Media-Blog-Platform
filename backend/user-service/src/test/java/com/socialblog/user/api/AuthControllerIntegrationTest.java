@@ -11,6 +11,11 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 import com.socialblog.user.domain.OutboxEvent;
 import com.socialblog.user.repository.OutboxEventRepository;
+import com.socialblog.user.repository.EmailOtpRepository;
+import com.socialblog.user.domain.EmailOtp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -18,8 +23,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest @AutoConfigureMockMvc
 class AuthControllerIntegrationTest {
     @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired OutboxEventRepository outbox; @Autowired JwtDecoder jwtDecoder;
+    @Autowired EmailOtpRepository otpRepository;
+    
+    private void createOtp(String email, String otp) {
+        EmailOtp emailOtp = new EmailOtp(email.toLowerCase(), otp, Instant.now().plus(10, ChronoUnit.MINUTES));
+        otpRepository.save(emailOtp);
+    }
+
     @Test void registerLoginRefreshAndReadProfile() throws Exception {
-        String register="{\"email\":\"Alice@Example.com\",\"password\":\"password123\",\"displayName\":\"Alice\"}";
+        createOtp("Alice@Example.com", "123456");
+        String register="{\"email\":\"Alice@Example.com\",\"password\":\"password123\",\"displayName\":\"Alice\",\"otp\":\"123456\"}";
         String body=mvc.perform(post("/api/v1/auth/register").header("X-Correlation-ID","test-correlation-123").contentType(MediaType.APPLICATION_JSON).content(register))
                 .andExpect(status().isCreated()).andExpect(header().string("X-Correlation-ID","test-correlation-123"))
                 .andExpect(jsonPath("$.accessToken").isString()).andReturn().getResponse().getContentAsString();
@@ -49,16 +62,21 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
     @Test void rejectsDuplicateEmail() throws Exception {
-        String request="{\"email\":\"duplicate@example.com\",\"password\":\"password123\",\"displayName\":\"One\"}";
+        createOtp("duplicate@example.com", "654321");
+        String request="{\"email\":\"duplicate@example.com\",\"password\":\"password123\",\"displayName\":\"One\",\"otp\":\"654321\"}";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(request)).andExpect(status().isCreated());
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(request)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("EMAIL_ALREADY_EXISTS"));
+        
+        createOtp("duplicate@example.com", "111111");
+        String request2="{\"email\":\"duplicate@example.com\",\"password\":\"password123\",\"displayName\":\"One\",\"otp\":\"111111\"}";
+        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content(request2)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("EMAIL_ALREADY_EXISTS"));
     }
     @Test void validatesRegistration() throws Exception {
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"bad\",\"password\":\"short\",\"displayName\":\"\"}"))
+        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"bad\",\"password\":\"short\",\"displayName\":\"\",\"otp\":\"\"}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.path").value("/api/v1/auth/register"))
                 .andExpect(jsonPath("$.fields.email").isNotEmpty())
                 .andExpect(jsonPath("$.fields.password").isNotEmpty())
+                .andExpect(jsonPath("$.fields.otp").isNotEmpty())
                 .andExpect(jsonPath("$.fields.displayName").isNotEmpty());
     }
 }
