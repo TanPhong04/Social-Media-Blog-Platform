@@ -65,7 +65,7 @@ public class AuthService {
             </div>
             """;
             
-            payload.put("html", String.format(htmlTemplate, otp));
+            payload.put("html", htmlTemplate.replace("%s", otp));
             String json = mapper.writeValueAsString(payload);
             
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
