@@ -17,8 +17,8 @@ import java.util.*;
 
 @Service
 public class AuthService {
-    private final UserRepository users; private final RefreshTokenRepository refreshTokens; private final OutboxEventRepository outbox; private final DomainEventFactory events; private final PasswordEncoder passwords; private final JwtService jwt; private final EmailOtpRepository otps; private final long refreshDays; private final SecureRandom random=new SecureRandom();
-    public AuthService(UserRepository users,RefreshTokenRepository refreshTokens,OutboxEventRepository outbox,DomainEventFactory events,PasswordEncoder passwords,JwtService jwt,EmailOtpRepository otps,@Value("${app.security.refresh-token-days}") long refreshDays){this.users=users;this.refreshTokens=refreshTokens;this.outbox=outbox;this.events=events;this.passwords=passwords;this.jwt=jwt;this.otps=otps;this.refreshDays=refreshDays;}
+    private final UserRepository users; private final RefreshTokenRepository refreshTokens; private final OutboxEventRepository outbox; private final DomainEventFactory events; private final PasswordEncoder passwords; private final JwtService jwt; private final EmailOtpRepository otps; private final long refreshDays; private final String resendApiKey; private final SecureRandom random=new SecureRandom();
+    public AuthService(UserRepository users,RefreshTokenRepository refreshTokens,OutboxEventRepository outbox,DomainEventFactory events,PasswordEncoder passwords,JwtService jwt,EmailOtpRepository otps,@Value("${app.security.refresh-token-days}") long refreshDays,@Value("${app.resend.api-key:}") String resendApiKey){this.users=users;this.refreshTokens=refreshTokens;this.outbox=outbox;this.events=events;this.passwords=passwords;this.jwt=jwt;this.otps=otps;this.refreshDays=refreshDays;this.resendApiKey=resendApiKey;}
     
     @Transactional public void sendOtp(SendOtpRequest req) {
         String email = normalize(req.email());
@@ -31,7 +31,7 @@ public class AuthService {
             String json = String.format("{\"from\":\"onboarding@resend.dev\",\"to\":\"%s\",\"subject\":\"Your Registration OTP\",\"html\":\"Your code is: <b>%s</b>\"}", email, otp);
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create("https://api.resend.com/emails"))
-                .header("Authorization", "Bearer re_gXoUSFuS_LWjBXAFrcNSqi6ggh785eujT")
+                .header("Authorization", "Bearer " + resendApiKey)
                 .header("Content-Type", "application/json")
                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
                 .build();
