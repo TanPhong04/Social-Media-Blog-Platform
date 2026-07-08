@@ -24,7 +24,7 @@ export default function Register() {
       await axiosClient.post('/auth/send-otp', { email });
       setStep(2);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send OTP. Email might be registered.');
+      setError(err.response?.data?.message || 'Gửi OTP thất bại. Email có thể đã được đăng ký.');
     } finally {
       setLoading(false);
     }
@@ -37,12 +37,11 @@ export default function Register() {
 
     try {
       await axiosClient.post('/auth/register', { displayName, email, password, otp });
-      // Usually, we'd log the user in immediately after registering
       const response: any = await axiosClient.post('/auth/login', { email, password });
       await login(response.accessToken);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Check your OTP.');
+      setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại mã OTP.');
     } finally {
       setLoading(false);
     }
@@ -56,7 +55,7 @@ export default function Register() {
             <UserPlus className="w-8 h-8" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-center mb-8 text-text-primary">Create an Account</h2>
+        <h2 className="text-2xl font-bold text-center mb-8 text-text-primary">Tạo Tài Khoản Mới</h2>
         
         {error && (
           <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 text-red-500 text-sm rounded-md text-center">
@@ -67,33 +66,33 @@ export default function Register() {
         {step === 1 ? (
           <form onSubmit={handleSendOtp} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">Display Name</label>
+              <label className="block text-sm font-medium text-text-secondary mb-2">Tên Hiển Thị</label>
               <input
                 type="text"
                 required
                 className="w-full bg-background border border-gray-700 text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="John Doe"
+                placeholder="Nguyễn Văn A"
                 maxLength={80}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">Email Address</label>
+              <label className="block text-sm font-medium text-text-secondary mb-2">Địa Chỉ Email</label>
               <input
                 type="email"
                 required
                 className="w-full bg-background border border-gray-700 text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="ban@example.com"
                 maxLength={320}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">Password</label>
+              <label className="block text-sm font-medium text-text-secondary mb-2">Mật Khẩu</label>
               <input
                 type="password"
                 required
@@ -104,7 +103,7 @@ export default function Register() {
                 minLength={8}
                 maxLength={72}
               />
-              <p className="text-xs text-text-secondary mt-2">Must be at least 8 characters long.</p>
+              <p className="text-xs text-text-secondary mt-2">Phải có ít nhất 8 ký tự.</p>
             </div>
 
             <button
@@ -112,12 +111,12 @@ export default function Register() {
               disabled={loading}
               className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2.5 rounded-md transition-colors flex justify-center items-center"
             >
-              {loading ? 'Sending OTP...' : 'Continue'}
+              {loading ? 'Đang gửi OTP...' : 'Tiếp tục'}
             </button>
             
             <div className="mt-6 flex items-center justify-between">
               <span className="border-b border-gray-700 w-1/5 lg:w-1/4"></span>
-              <span className="text-xs text-center text-text-secondary uppercase">or sign up with</span>
+              <span className="text-xs text-center text-text-secondary uppercase">hoặc đăng ký bằng</span>
               <span className="border-b border-gray-700 w-1/5 lg:w-1/4"></span>
             </div>
             
@@ -130,10 +129,10 @@ export default function Register() {
         ) : (
           <form onSubmit={handleRegister} className="space-y-6">
             <p className="text-sm text-text-secondary text-center mb-6">
-              We've sent a 6-digit verification code to <strong>{email}</strong>.
+              Chúng tôi đã gửi mã xác thực 6 số đến <strong>{email}</strong>.
             </p>
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">OTP Code</label>
+              <label className="block text-sm font-medium text-text-secondary mb-2">Mã OTP</label>
               <input
                 type="text"
                 required
@@ -150,7 +149,7 @@ export default function Register() {
               disabled={loading}
               className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2.5 rounded-md transition-colors flex justify-center items-center"
             >
-              {loading ? 'Verifying...' : 'Verify and Register'}
+              {loading ? 'Đang xác thực...' : 'Xác thực và Đăng ký'}
             </button>
             <div className="text-center mt-4">
               <button
@@ -158,16 +157,16 @@ export default function Register() {
                 onClick={() => setStep(1)}
                 className="text-primary text-sm hover:underline"
               >
-                Go back
+                Quay lại
               </button>
             </div>
           </form>
         )}
 
         <p className="mt-6 text-center text-text-secondary text-sm">
-          Already have an account?{' '}
+          Đã có tài khoản?{' '}
           <Link to="/login" className="text-primary hover:underline font-medium">
-            Sign in
+            Đăng nhập
           </Link>
         </p>
       </div>
@@ -187,11 +186,11 @@ function GoogleLoginWrapper({ setError, login, navigate }: any) {
           await login(res.accessToken);
           navigate('/');
         } catch (err: any) {
-          setError(err.response?.data?.message || 'Google Login failed.');
+          setError(err.response?.data?.message || 'Đăng nhập Google thất bại.');
         }
       }}
       onError={() => {
-        setError('Google Login was unsuccessful');
+        setError('Đăng nhập Google không thành công');
       }}
     />
   );

@@ -28,7 +28,7 @@ const Navbar = () => {
             {isAuthenticated ? (
               <>
                 <div className="hidden sm:flex items-center gap-2 text-text-secondary mr-2">
-                  <span>Welcome,</span>
+                  <span>Xin chào,</span>
                   <span className="font-medium text-text-primary">{user?.displayName}</span>
                 </div>
                 <Link 
@@ -46,7 +46,7 @@ const Navbar = () => {
                   className="flex items-center gap-2 text-text-secondary hover:text-red-400 font-medium transition-colors ml-2"
                 >
                   <LogOut className="w-5 h-5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <span className="hidden sm:inline">Đăng xuất</span>
                 </button>
               </>
             ) : (
@@ -56,14 +56,14 @@ const Navbar = () => {
                   className="flex items-center gap-2 text-text-secondary hover:text-primary font-medium transition-colors"
                 >
                   <LogIn className="w-5 h-5" />
-                  <span>Login</span>
+                  <span>Đăng nhập</span>
                 </Link>
                 <Link 
                   to="/register" 
                   className="flex items-center gap-2 bg-primary text-white hover:bg-primary-hover px-4 py-2 rounded-md font-medium transition-colors"
                 >
                   <UserPlus className="w-5 h-5" />
-                  <span className="hidden sm:inline">Sign Up</span>
+                  <span className="hidden sm:inline">Đăng ký</span>
                 </Link>
               </>
             )}
