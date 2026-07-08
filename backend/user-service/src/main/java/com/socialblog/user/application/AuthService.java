@@ -27,8 +27,48 @@ public class AuthService {
         otps.save(new EmailOtp(email, otp, Instant.now().plus(Duration.ofMinutes(10))));
         
         try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, String> payload = new java.util.HashMap<>();
+            payload.put("from", "noreply@axion.id.vn");
+            payload.put("to", email);
+            payload.put("subject", "Mã xác thực đăng ký tài khoản - Axion Social");
+            
+            String htmlTemplate = """
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px 20px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">AXION SOCIAL</h1>
+                </div>
+                <div style="padding: 40px 30px; background-color: #ffffff;">
+                    <h2 style="margin-top: 0; color: #1f2937; font-size: 22px; font-weight: 600;">Xác thực tài khoản của bạn</h2>
+                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563; margin-bottom: 25px;">
+                        Chào bạn,<br><br>
+                        Cảm ơn bạn đã tham gia cộng đồng Axion Social. Để hoàn tất việc đăng ký, vui lòng sử dụng mã xác thực gồm 6 chữ số dưới đây:
+                    </p>
+                    <div style="text-align: center; margin: 35px 0;">
+                        <span style="display: inline-block; font-size: 36px; font-weight: 800; letter-spacing: 12px; color: #4f46e5; background-color: #e0e7ff; padding: 20px 35px; border-radius: 12px; border: 2px dashed #818cf8; margin-left: 12px;">
+                            %s
+                        </span>
+                    </div>
+                    <p style="font-size: 15px; color: #4b5563; text-align: center; margin-bottom: 5px;">
+                        Mã này sẽ hết hạn sau <b>10 phút</b>.
+                    </p>
+                    <p style="font-size: 14px; color: #9ca3af; text-align: center; margin-top: 20px;">
+                        Nếu bạn không yêu cầu mã này, xin vui lòng bỏ qua email này. Tài khoản của bạn vẫn an toàn.
+                    </p>
+                </div>
+                <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0; font-size: 13px; color: #6b7280;">
+                        &copy; 2026 Axion Social Blog. All rights reserved.<br>
+                        <a href="https://axion.id.vn" style="color: #4f46e5; text-decoration: none; margin-top: 5px; display: inline-block;">https://axion.id.vn</a>
+                    </p>
+                </div>
+            </div>
+            """;
+            
+            payload.put("html", String.format(htmlTemplate, otp));
+            String json = mapper.writeValueAsString(payload);
+            
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            String json = String.format("{\"from\":\"noreply@axion.id.vn\",\"to\":\"%s\",\"subject\":\"Your Registration OTP\",\"html\":\"Your code is: <b>%s</b>\"}", email, otp);
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create("https://api.resend.com/emails"))
                 .header("Authorization", "Bearer " + resendApiKey)
