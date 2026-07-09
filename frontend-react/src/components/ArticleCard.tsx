@@ -113,6 +113,60 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     });
   };
 
+  // Hàm phân tích và hiển thị nội dung kèm Media Base64 nhúng
+  const renderContentWithMedia = (content: string) => {
+    if (!content) return null;
+
+    let textToShow = content;
+    let imageSrc = '';
+    let videoSrc = '';
+
+    // Phát hiện ảnh nhúng Markdown base64: ![image](data:...)
+    const imgMatch = content.match(/!\[image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
+    if (imgMatch) {
+      imageSrc = imgMatch[1];
+      textToShow = textToShow.replace(imgMatch[0], '');
+    }
+
+    // Phát hiện video nhúng HTML tag base64: <video src="..."></video>
+    const videoMatch = content.match(/<video src="([^"]+)"[^>]*><\/video>/);
+    if (videoMatch) {
+      videoSrc = videoMatch[1];
+      textToShow = textToShow.replace(videoMatch[0], '');
+    }
+
+    return (
+      <div className="space-y-2.5">
+        {textToShow.trim() && (
+          <p className="text-text-primary text-[15px] whitespace-pre-wrap break-words leading-normal">
+            {renderHighlightedContent(textToShow.trim())}
+          </p>
+        )}
+
+        {imageSrc && (
+          <div className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center mt-2">
+            <img
+              src={imageSrc}
+              alt="Attachment"
+              className="max-h-[450px] max-w-full object-contain rounded-app hover:opacity-95 transition-opacity cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
+        {videoSrc && (
+          <div className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center mt-2" onClick={(e) => e.stopPropagation()}>
+            <video
+              src={videoSrc}
+              controls
+              className="max-h-[450px] max-w-full object-contain rounded-app"
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Gọi API tương tác Like/Unlike và cập nhật local storage cho tab Likes
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -400,15 +454,13 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         </div>
 
         {/* Body: Nội dung bài viết */}
-        <div className="mt-1 space-y-1 text-text-primary whitespace-pre-wrap break-words leading-normal">
+        <div className="mt-1 space-y-1 text-text-primary leading-normal">
           {article.title && !article.content.startsWith(article.title) && (
             <h3 className="font-bold text-base mb-1 text-text-primary">
               {article.title}
             </h3>
           )}
-          <p className="text-text-primary">
-            {renderHighlightedContent(article.content)}
-          </p>
+          {renderContentWithMedia(article.content)}
         </div>
 
         {/* Footer: Hộp tương tác */}

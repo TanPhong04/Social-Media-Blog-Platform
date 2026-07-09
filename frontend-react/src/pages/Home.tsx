@@ -4,12 +4,13 @@ import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import { Image, Smile, Calendar, MapPin, BarChart2, Globe, AlertCircle } from 'lucide-react';
+import { Image, Smile, Calendar, MapPin, BarChart2, Globe, AlertCircle, X } from 'lucide-react';
 
 const Home: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [articles, setArticles] = useState<ArticleResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,37 @@ const Home: React.FC = () => {
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+
+  // Trạng thái cho tệp đính kèm (Ảnh/Video)
+  const [selectedFile, setSelectedFile] = useState<{
+    name: string;
+    url: string;
+    base64: string;
+    type: 'image' | 'video';
+  } | null>(null);
+
+  // Helper: Chuyển đổi tệp sang chuỗi Base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Helper: Kiểm tra thời lượng video bằng cách tạo thẻ video ảo
+  const checkVideoDuration = (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        resolve(video.duration);
+      };
+      video.src = URL.createObjectURL(file);
+    });
+  };
 
   // Tự động focus vào ô nhập khi click từ Sidebar
   useEffect(() => {
@@ -55,9 +87,53 @@ const Home: React.FC = () => {
     }
   };
 
+  // Xử lý chọn hình ảnh hoặc video
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      setPostError('Chỉ cho phép tải lên hình ảnh hoặc video.');
+      return;
+    }
+
+    // Nếu là video, kiểm tra giới hạn dưới 2 phút (120 giây)
+    if (isVideo) {
+      try {
+        const duration = await checkVideoDuration(file);
+        if (duration > 120) {
+          setPostError('Thời lượng video phải dưới 2 phút!');
+          return;
+        }
+      } catch (err) {
+        console.error('Error checking video duration', err);
+        setPostError('Không thể kiểm tra thời lượng video.');
+        return;
+      }
+    }
+
+    try {
+      setPostError(null);
+      const base64 = await fileToBase64(file);
+      const url = URL.createObjectURL(file);
+      setSelectedFile({
+        name: file.name,
+        url,
+        base64,
+        type: isImage ? 'image' : 'video'
+      });
+    } catch (err) {
+      console.error('Error reading file', err);
+      setPostError('Lỗi đọc tệp tin từ thiết bị.');
+    }
+  };
+
   // Hàm xử lý đăng bài (Post)
   const handlePost = async () => {
-    if (!postText.trim()) return;
+    if (!postText.trim() && !selectedFile) return;
 
     setPosting(true);
     setPostError(null);
@@ -65,7 +141,7 @@ const Home: React.FC = () => {
     // 1. Tự động sinh tiêu đề (title) từ dòng đầu tiên hoặc 80 ký tự đầu
     const lines = postText.trim().split('\n');
     const firstLine = lines[0].trim();
-    const title = firstLine.substring(0, 100) || 'Bài đăng mới';
+    const title = firstLine.substring(0, 100) || (selectedFile?.type === 'image' ? 'Hình ảnh mới' : 'Video mới');
 
     // 2. Tự động lọc ra các hashtag từ nội dung bài viết
     const hashtagRegex = /#(\w+)/g;
@@ -78,20 +154,39 @@ const Home: React.FC = () => {
     // 3. Tự động sinh tóm tắt (summary)
     const summary = postText.substring(0, 150) + (postText.length > 150 ? '...' : '');
 
+    // 4. Nhúng mã Base64 vào nội dung nếu có file đính kèm
+    let mediaEmbed = '';
+    if (selectedFile) {
+      if (selectedFile.type === 'image') {
+        mediaEmbed = `\n\n![image](${selectedFile.base64})`;
+      } else {
+        mediaEmbed = `\n\n<video src="${selectedFile.base64}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
+      }
+    }
+
+    const finalContent = postText.trim() + mediaEmbed;
+
     try {
       // Gọi API tạo bản nháp bài viết
       const res: any = await articleApi.createArticle({
         title,
         summary,
-        content: postText.trim(),
+        content: finalContent,
         tags
       });
 
       // Xuất bản (Publish) bài viết ngay lập tức
       await articleApi.publishArticle(res.id);
 
+      // Giải phóng bộ nhớ Blob URL
+      if (selectedFile?.url) {
+        URL.revokeObjectURL(selectedFile.url);
+      }
+
       // Làm sạch ô nhập và tải lại feed
       setPostText('');
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       fetchArticles();
     } catch (err: any) {
       console.error('Lỗi khi đăng bài viết', err);
@@ -99,6 +194,14 @@ const Home: React.FC = () => {
     } finally {
       setPosting(false);
     }
+  };
+
+  const handleRemoveFile = () => {
+    if (selectedFile?.url) {
+      URL.revokeObjectURL(selectedFile.url);
+    }
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -154,6 +257,32 @@ const Home: React.FC = () => {
               className="w-full bg-transparent border-0 text-text-primary text-lg focus:outline-none focus:ring-0 resize-none placeholder-text-secondary py-1"
             />
 
+            {/* KHUNG XEM TRƯỚC (PREVIEW) TỆP ĐÃ CHỌN */}
+            {selectedFile && (
+              <div className="relative mt-2 rounded-app overflow-hidden border border-gray-800 bg-black/40 max-h-80 flex items-center justify-center">
+                {selectedFile.type === 'image' ? (
+                  <img
+                    src={selectedFile.url}
+                    alt="Preview"
+                    className="max-h-80 max-w-full object-contain rounded-app"
+                  />
+                ) : (
+                  <video
+                    src={selectedFile.url}
+                    controls
+                    className="max-h-80 max-w-full object-contain rounded-app"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  className="absolute top-2.5 right-2.5 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors cursor-pointer hover:scale-105"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {postError && (
               <div className="text-error text-xs flex items-center gap-1.5 mt-2 bg-error/5 p-2 rounded-md border border-error/10">
                 <AlertCircle className="w-3.5 h-3.5" />
@@ -169,29 +298,44 @@ const Home: React.FC = () => {
                 <span>Mọi người đều có thể trả lời</span>
               </div>
 
-              {/* Hộp icon giả lập và nút Post */}
+              {/* Hộp icon và nút Post */}
               <div className="flex items-center gap-2">
+                {/* Input File ẩn */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*,video/mp4,video/quicktime"
+                  className="hidden"
+                />
+                
                 <div className="hidden sm:flex items-center gap-1 text-primary">
-                  <button className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
+                  {/* Thay nút Image thành nút click chọn file thực tế */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer"
+                    title="Chọn hình ảnh hoặc video"
+                  >
                     <Image className="w-4 h-4" />
                   </button>
-                  <button className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
+                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
                     <BarChart2 className="w-4 h-4" />
                   </button>
-                  <button className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
+                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
                     <Smile className="w-4 h-4" />
                   </button>
-                  <button className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
+                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
                     <Calendar className="w-4 h-4" />
                   </button>
-                  <button className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
+                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
                     <MapPin className="w-4 h-4" />
                   </button>
                 </div>
 
                 <button
                   onClick={handlePost}
-                  disabled={posting || !postText.trim()}
+                  disabled={posting || (!postText.trim() && !selectedFile)}
                   className="px-5 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-sm rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {posting ? 'Đang đăng...' : 'Post'}
