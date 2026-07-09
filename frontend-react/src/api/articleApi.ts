@@ -14,6 +14,13 @@ export interface ArticleResponse {
   publishedAt: string;
 }
 
+export interface ArticleWriteRequest {
+  title: string;
+  summary: string;
+  content: string;
+  tags: string[];
+}
+
 export interface Page<T> {
   content: T[];
   pageable: {
@@ -32,5 +39,18 @@ export const articleApi = {
     return axiosClient.get<Page<ArticleResponse>>('/articles', {
       params: { page, size }
     });
+  },
+  createArticle: (data: ArticleWriteRequest) => {
+    return axiosClient.post<ArticleResponse>('/articles', data);
+  },
+  updateArticle: (id: string, data: ArticleWriteRequest) => {
+    return axiosClient.put<ArticleResponse>(`/articles/${id}`, data);
+  },
+  publishArticle: (id: string) => {
+    return axiosClient.post<ArticleResponse>(`/articles/${id}/publish`);
+  },
+  unpublishArticle: (id: string) => {
+    return axiosClient.post<ArticleResponse>(`/articles/${id}/unpublish`);
   }
 };
+
