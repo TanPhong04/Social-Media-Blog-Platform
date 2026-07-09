@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
@@ -7,6 +8,9 @@ import { Image, Smile, Calendar, MapPin, BarChart2, Globe, AlertCircle } from 'l
 
 const Home: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
   const [articles, setArticles] = useState<ArticleResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +20,15 @@ const Home: React.FC = () => {
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+
+  // Tự động focus vào ô nhập khi click từ Sidebar
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('focus') === 'true' && textareaRef.current) {
+      textareaRef.current.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [location]);
 
   useEffect(() => {
     fetchArticles();
@@ -132,6 +145,7 @@ const Home: React.FC = () => {
           {/* Form nhập */}
           <div className="flex-1">
             <textarea
+              ref={textareaRef}
               value={postText}
               onChange={(e) => setPostText(e.target.value)}
               disabled={posting}

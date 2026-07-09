@@ -4,7 +4,6 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ComingSoon from './pages/ComingSoon';
-import CreateArticle from './pages/CreateArticle';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminLayout from './components/layout/AdminLayout';
@@ -34,7 +33,6 @@ function App() {
           <Route path="/bookmarks" element={<ComingSoon />} />
           <Route path="/notifications" element={<ComingSoon />} />
           <Route path="/settings" element={<ComingSoon />} />
-          <Route path="/create-article" element={<CreateArticle />} />
         </Route>
       </Route>
 

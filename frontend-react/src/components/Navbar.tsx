@@ -1,4 +1,4 @@
-import { Home as HomeIcon, User, LogIn, LogOut, UserPlus, PenTool } from 'lucide-react';
+import { Home as HomeIcon, User, LogIn, LogOut, UserPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -27,17 +27,11 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/create-article"
-                  className="flex items-center gap-2 px-4 py-2 border border-primary/30 hover:border-primary text-primary bg-primary/5 hover:bg-primary/10 rounded-md font-medium transition-colors cursor-pointer mr-2"
-                >
-                  <PenTool className="w-4 h-4" />
-                  <span className="hidden sm:inline">Viết bài mới</span>
-                </Link>
                 <div className="hidden sm:flex items-center gap-2 text-text-secondary mr-2">
                   <span>Xin chào,</span>
                   <span className="font-medium text-text-primary">{user?.displayName}</span>
                 </div>
+
 
                 <Link 
                   to="/profile" 
