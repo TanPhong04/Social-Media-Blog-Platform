@@ -31,6 +31,8 @@ const Navbar = () => {
                   <span>Xin chào,</span>
                   <span className="font-medium text-text-primary">{user?.displayName}</span>
                 </div>
+
+
                 <Link 
                   to="/profile" 
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-background border border-gray-800 text-primary hover:bg-gray-800 transition-colors"

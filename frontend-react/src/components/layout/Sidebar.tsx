@@ -56,7 +56,7 @@ const Sidebar = () => {
       {isAuthenticated && (
         <div className="mt-8 pt-6 border-t border-white/5 px-2">
           <NavLink
-            to="/create-article"
+            to="/?focus=true"
             className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 text-white py-3 px-4 rounded-app transition-colors shadow-lg hover:shadow-primary/25 font-medium"
           >
             <FileText className="w-5 h-5" />

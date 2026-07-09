@@ -10,4 +10,5 @@ public class ProfileController {
     private final ProfileService service; public ProfileController(ProfileService service){this.service=service;}
     @GetMapping("/me") ProfileResponse me(@org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt){return service.get(UUID.fromString(jwt.getSubject()));}
     @PutMapping("/me") ProfileResponse update(@org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt,@Valid @RequestBody UpdateProfileRequest r){return service.update(UUID.fromString(jwt.getSubject()),r);}
+    @GetMapping("/{id}") ProfileResponse getById(@PathVariable UUID id){return service.get(id);}
 }
