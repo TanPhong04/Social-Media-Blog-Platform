@@ -235,7 +235,15 @@ const Home: React.FC = () => {
       fetchArticles();
     } catch (err: any) {
       console.error('Lỗi khi đăng bài viết', err);
-      setPostError(err.response?.data?.message || 'Không thể đăng bài viết lúc này.');
+      const serverError = err.response?.data;
+      if (serverError && serverError.code === 'VALIDATION_FAILED' && serverError.fields) {
+        const fieldErrors = Object.entries(serverError.fields)
+          .map(([field, msg]) => `${field}: ${msg}`)
+          .join(', ');
+        setPostError(`Lỗi kiểm tra dữ liệu (${fieldErrors})`);
+      } else {
+        setPostError(err.response?.data?.message || 'Không thể đăng bài viết lúc này.');
+      }
     } finally {
       setPosting(false);
     }
