@@ -233,12 +233,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   }, [article.id, user]);
 
-  // Tải danh sách bình luận khi mở khung Comments
+  // Tải danh sách bình luận ngay khi mount để hiển thị số lượng thực tế
   useEffect(() => {
-    if (showComments) {
-      fetchComments();
-    }
-  }, [showComments, article.id]);
+    fetchComments();
+  }, [article.id]);
 
   const fetchComments = async () => {
     setLoadingComments(true);
@@ -860,7 +858,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>{comments.length > 0 ? comments.length : Math.floor(Math.random() * 8) + 2}</span>
+              <span>{comments.length}</span>
             </button>
 
             {/* Repost (Đăng lại) */}

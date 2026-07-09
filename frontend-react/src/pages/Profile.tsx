@@ -1,15 +1,58 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userApi } from '../api/userApi';
 import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Calendar, FileText, Heart, Globe, X, Check, Gift, Repeat } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Heart, Globe, X, Check, Gift, Repeat, Image as ImageIcon } from 'lucide-react';
+
+// Helper: Nén hình ảnh dùng Canvas
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = document.createElement('img');
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        resolve(dataUrl);
+      };
+    };
+  });
+};
 
 const Profile: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Refs chọn file ảnh
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   // Trạng thái hồ sơ
   const [profile, setProfile] = useState<any>(null);
@@ -133,6 +176,39 @@ const Profile: React.FC = () => {
     }
   };
 
+  // Chọn ảnh từ máy và nén
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Chỉ hỗ trợ file hình ảnh.', 'error');
+      return;
+    }
+    try {
+      const base64 = await compressImage(file);
+      setEditAvatar(base64);
+    } catch (err) {
+      console.error(err);
+      showToastMessage('Lỗi đọc ảnh đại diện.', 'error');
+    }
+  };
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Chỉ hỗ trợ file hình ảnh.', 'error');
+      return;
+    }
+    try {
+      const base64 = await compressImage(file);
+      setEditBanner(base64);
+    } catch (err) {
+      console.error(err);
+      showToastMessage('Lỗi đọc ảnh nền.', 'error');
+    }
+  };
+
   // Cập nhật thông tin profile
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,7 +221,7 @@ const Profile: React.FC = () => {
       return;
     }
 
-    // Kiểm tra định dạng username (chỉ cho phép chữ thường, số và dấu gạch dưới từ 3-30 ký tự)
+    // Kiểm tra định dạng username
     const usernameRegex = /^[a-z0-9_]{3,30}$/;
     if (!usernameRegex.test(editUsername.trim())) {
       showToastMessage('Username chỉ được dùng chữ thường, số, dấu gạch dưới (từ 3-30 ký tự).', 'error');
@@ -212,7 +288,6 @@ const Profile: React.FC = () => {
 
       const nextFollowing = !target.following;
 
-      // Giả lập cập nhật trạng thái UI gợi ý
       setWhoToFollow(prev => prev.map(item => {
         if (item.id === id) {
           return { ...item, following: nextFollowing };
@@ -220,7 +295,6 @@ const Profile: React.FC = () => {
         return item;
       }));
 
-      // Đồng thời tăng/giảm realtime số lượng Following của tài khoản hiện tại trên giao diện
       setFollowStats(prev => ({
         ...prev,
         followingCount: nextFollowing ? prev.followingCount + 1 : prev.followingCount - 1
@@ -283,7 +357,7 @@ const Profile: React.FC = () => {
       {/* Avatar và nút Chỉnh sửa */}
       <div className="px-4 relative flex justify-between items-end -mt-16 mb-4">
         {/* Avatar tròn đè banner */}
-        <div className="w-32 h-32 rounded-full border-4 border-background bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white text-4xl font-bold shadow-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
+        <div className="w-32 h-32 rounded-full border-4 border-background bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white text-4xl font-bold shadow-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity overflow-hidden">
           {profile.avatarUrl ? (
             <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
           ) : (
@@ -485,6 +559,63 @@ const Profile: React.FC = () => {
 
             {/* Modal Content Form */}
             <form onSubmit={handleUpdateProfile} className="p-6 space-y-5 overflow-y-auto flex-1 text-sm">
+              
+              {/* Chọn ảnh đại diện & ảnh nền trực quan (Twitter Style) */}
+              <div className="space-y-4">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                  Ảnh đại diện & Ảnh bìa
+                </label>
+                
+                {/* Khu vực chọn ảnh bìa (Banner) */}
+                <div className="relative h-32 w-full bg-surface rounded-lg overflow-hidden border border-gray-800 group">
+                  {editBanner ? (
+                    <img src={editBanner} alt="Banner Preview" className="w-full h-full object-cover opacity-80" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-primary/40 to-purple-600/40" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => bannerInputRef.current?.click()}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold gap-1.5 cursor-pointer"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Thay đổi ảnh bìa</span>
+                  </button>
+                </div>
+
+                {/* Khu vực chọn ảnh đại diện (Avatar) */}
+                <div className="relative w-20 h-20 rounded-full border-4 border-surface -mt-10 ml-4 overflow-hidden bg-gradient-to-tr from-primary to-purple-500 group shadow-lg flex items-center justify-center text-white font-bold text-lg">
+                  {editAvatar ? (
+                    <img src={editAvatar} alt="Avatar Preview" className="w-full h-full object-cover opacity-85" />
+                  ) : (
+                    editName.substring(0, 2).toUpperCase()
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[11px] font-bold cursor-pointer text-center"
+                  >
+                    Đổi ảnh
+                  </button>
+                </div>
+              </div>
+
+              {/* Input file ẩn */}
+              <input
+                type="file"
+                ref={avatarInputRef}
+                onChange={handleAvatarChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={bannerInputRef}
+                onChange={handleBannerChange}
+                accept="image/*"
+                className="hidden"
+              />
+
               {/* Tên hiển thị */}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
@@ -547,38 +678,6 @@ const Profile: React.FC = () => {
                   rows={3}
                   className="w-full bg-background border border-gray-700 text-text-primary rounded-lg p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary text-sm"
                   placeholder="Giới thiệu đôi chút về bản thân bạn..."
-                />
-              </div>
-
-              {/* URL Ảnh đại diện */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Link Ảnh đại diện (Avatar URL)
-                </label>
-                <input
-                  type="text"
-                  maxLength={500}
-                  disabled={updating}
-                  value={editAvatar}
-                  onChange={(e) => setEditAvatar(e.target.value)}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
-                  placeholder="Nhập URL ảnh đại diện của bạn..."
-                />
-              </div>
-
-              {/* URL Ảnh nền banner */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Link Ảnh nền (Banner URL)
-                </label>
-                <input
-                  type="text"
-                  maxLength={500}
-                  disabled={updating}
-                  value={editBanner}
-                  onChange={(e) => setEditBanner(e.target.value)}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
-                  placeholder="Nhập URL ảnh nền banner của bạn..."
                 />
               </div>
             </form>
