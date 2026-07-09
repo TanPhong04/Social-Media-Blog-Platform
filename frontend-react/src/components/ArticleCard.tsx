@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { ArticleResponse } from '../api/articleApi';
 import { articleApi } from '../api/articleApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check } from 'lucide-react';
+import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon } from 'lucide-react';
 
 interface ArticleCardProps {
   article: ArticleResponse;
@@ -23,8 +23,16 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
   // Trạng thái cho Modal Chỉnh sửa bài đăng
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(article.content);
+  const [editContent, setEditContent] = useState('');
   const [updating, setUpdating] = useState(false);
+
+  // Trạng thái tệp đính kèm khi chỉnh sửa (Ảnh/Video)
+  const [editFile, setEditFile] = useState<{
+    url: string;
+    base64: string;
+    type: 'image' | 'video';
+  } | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   // Trạng thái Toast thông báo thành công / lỗi
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -36,6 +44,107 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }, 2500);
   };
 
+  // Helper: Đổi file sang Base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Helper: Nén hình ảnh dùng Canvas
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = document.createElement('img');
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(dataUrl);
+        };
+      };
+    });
+  };
+
+  // Helper: Đo thời lượng video
+  const checkVideoDuration = (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        resolve(video.duration);
+      };
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Tự động phân tách phần text và tệp đính kèm khi mở Modal Chỉnh sửa
+  useEffect(() => {
+    if (isEditing) {
+      let text = article.content;
+      let fileData: any = null;
+
+      // Tìm ảnh nhúng Base64: ![image](data:...)
+      const imgMatch = article.content.match(/!\[image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
+      if (imgMatch) {
+        fileData = {
+          url: imgMatch[1],
+          base64: imgMatch[1],
+          type: 'image'
+        };
+        text = text.replace(imgMatch[0], '');
+      }
+
+      // Tìm video nhúng HTML base64: <video src="..."></video>
+      const videoMatch = article.content.match(/<video src="([^"]+)"[^>]*><\/video>/);
+      if (videoMatch) {
+        fileData = {
+          url: videoMatch[1],
+          base64: videoMatch[1],
+          type: 'video'
+        };
+        text = text.replace(videoMatch[0], '');
+      }
+
+      setEditContent(text.trim());
+      setEditFile(fileData);
+    } else {
+      // Hủy URL Blob tạm thời của file chỉnh sửa nếu có khi đóng Modal
+      if (editFile && editFile.url && editFile.url.startsWith('blob:')) {
+        URL.revokeObjectURL(editFile.url);
+      }
+      setEditFile(null);
+    }
+  }, [isEditing, article.content]);
+
   // Đọc trạng thái like thực tế từ backend
   useEffect(() => {
     const fetchLikeStatus = async () => {
@@ -46,7 +155,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         setLikeCount(res.count);
       } catch (err) {
         console.warn('Interaction service unavailable, falling back to mock likes', err);
-        // Fallback số lượng like ngẫu nhiên để giao diện luôn sinh động
         setLikeCount(Math.floor(Math.random() * 30) + 5);
       }
     };
@@ -176,7 +284,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
 
     const nextLiked = !liked;
-    // Optimistic UI Update
     setLiked(nextLiked);
     setLikeCount(prev => nextLiked ? prev + 1 : prev - 1);
 
@@ -187,7 +294,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         await articleApi.unlikeArticle(article.id);
       }
 
-      // Lưu trữ/Gỡ bỏ bài viết đã like ở localStorage của người dùng
       const likedKey = `liked_posts_${user.id}`;
       const likedList = JSON.parse(localStorage.getItem(likedKey) || '[]');
       let newLikedList;
@@ -203,7 +309,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       }
       localStorage.setItem(likedKey, JSON.stringify(newLikedList));
 
-      // Refresh UI nếu đây là view đang hiển thị tab Likes
       if (onRefresh && !nextLiked) {
         setTimeout(() => {
           onRefresh();
@@ -211,7 +316,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       }
     } catch (err) {
       console.error('Error liking/unliking article', err);
-      // Revert UI state if error
       setLiked(liked);
       setLikeCount(prev => liked ? prev + 1 : prev - 1);
       showToastMessage('Không thể thực hiện tương tác thích.', 'error');
@@ -242,7 +346,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
       setBookmarked(!bookmarked);
 
-      // Nếu parent là Bookmarks, bỏ lưu cần cập nhật UI nhanh
       if (onRefresh) {
         setTimeout(() => {
           onRefresh();
@@ -265,21 +368,18 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       await articleApi.deleteArticle(article.id);
       showToastMessage('Xóa bài đăng thành công!');
 
-      // Xóa khỏi bookmarks trong localStorage nếu bài đăng bị xóa
       if (user) {
         const storageKey = `bookmarks_${user.id}`;
         const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
         const newBookmarks = bookmarks.filter((b: any) => b.id !== article.id);
         localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
 
-        // Xóa khỏi liked_posts trong localStorage nếu bài đăng bị xóa
         const likedKey = `liked_posts_${user.id}`;
         const likedList = JSON.parse(localStorage.getItem(likedKey) || '[]');
         const newLikedList = likedList.filter((b: any) => b.id !== article.id);
         localStorage.setItem(likedKey, JSON.stringify(newLikedList));
       }
 
-      // Kích hoạt callback UI reload sau 500ms
       setTimeout(() => {
         if (onRefresh) onRefresh();
       }, 500);
@@ -291,15 +391,76 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   };
 
+  // Xử lý khi chọn file trong Modal chỉnh sửa
+  const handleEditFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      showToastMessage('Chỉ cho phép tải lên hình ảnh hoặc video.', 'error');
+      return;
+    }
+
+    if (isVideo) {
+      try {
+        const duration = await checkVideoDuration(file);
+        if (duration > 120) {
+          showToastMessage('Thời lượng video phải dưới 2 phút!', 'error');
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+        showToastMessage('Không thể kiểm tra thời lượng video.', 'error');
+        return;
+      }
+    }
+
+    try {
+      // Giải phóng URL Blob cũ nếu có
+      if (editFile && editFile.url && editFile.url.startsWith('blob:')) {
+        URL.revokeObjectURL(editFile.url);
+      }
+
+      let base64 = '';
+      if (isImage) {
+        base64 = await compressImage(file);
+      } else {
+        base64 = await fileToBase64(file);
+      }
+      const url = URL.createObjectURL(file);
+      setEditFile({
+        url,
+        base64,
+        type: isImage ? 'image' : 'video'
+      });
+    } catch (err) {
+      console.error(err);
+      showToastMessage('Lỗi đọc file.', 'error');
+    }
+  };
+
+  const handleRemoveEditFile = () => {
+    if (editFile && editFile.url && editFile.url.startsWith('blob:')) {
+      URL.revokeObjectURL(editFile.url);
+    }
+    setEditFile(null);
+    if (editFileInputRef.current) editFileInputRef.current.value = '';
+  };
+
   // Xử lý cập nhật bài viết và đồng bộ bookmarks, liked_posts
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editContent.trim()) return;
+    if (!editContent.trim() && !editFile) return;
 
     setUpdating(true);
+    
+    // Tách dòng đầu làm tiêu đề
     const lines = editContent.trim().split('\n');
     const firstLine = lines[0].trim();
-    const title = firstLine.substring(0, 100) || article.title;
+    const title = firstLine.substring(0, 100) || (editFile?.type === 'image' ? 'Hình ảnh mới' : 'Video mới');
 
     const hashtagRegex = /#(\w+)/g;
     const tags: string[] = [];
@@ -310,15 +471,32 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
     const summary = editContent.substring(0, 150) + (editContent.length > 150 ? '...' : '');
 
+    // Nhúng mã Base64 vào nội dung gửi lên backend
+    let mediaEmbed = '';
+    if (editFile) {
+      if (editFile.type === 'image') {
+        mediaEmbed = `\n\n![image](${editFile.base64})`;
+      } else {
+        mediaEmbed = `\n\n<video src="${editFile.base64}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
+      }
+    }
+
+    const finalContent = editContent.trim() + mediaEmbed;
+
     try {
       await articleApi.updateArticle(article.id, {
         title,
         summary,
-        content: editContent.trim(),
+        content: finalContent,
         tags
       });
 
-      // Đồng bộ nội dung mới vào danh sách bookmarks ở localStorage nếu có
+      // Giải phóng URL Blob tạm thời của file
+      if (editFile && editFile.url && editFile.url.startsWith('blob:')) {
+        URL.revokeObjectURL(editFile.url);
+      }
+
+      // Đồng bộ vào localStorage bookmarks
       if (user) {
         const storageKey = `bookmarks_${user.id}`;
         const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -328,7 +506,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               ...b,
               title,
               summary,
-              content: editContent.trim(),
+              content: finalContent,
               tags,
               updatedAt: new Date().toISOString()
             };
@@ -337,7 +515,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         });
         localStorage.setItem(storageKey, JSON.stringify(updatedBookmarks));
 
-        // Đồng bộ nội dung mới vào danh sách liked_posts ở localStorage nếu có
+        // Đồng bộ vào localStorage liked_posts
         const likedKey = `liked_posts_${user.id}`;
         const likedList = JSON.parse(localStorage.getItem(likedKey) || '[]');
         const updatedLiked = likedList.map((b: any) => {
@@ -346,7 +524,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               ...b,
               title,
               summary,
-              content: editContent.trim(),
+              content: finalContent,
               tags,
               updatedAt: new Date().toISOString()
             };
@@ -359,7 +537,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       showToastMessage('Cập nhật bài viết thành công!');
       setIsEditing(false);
 
-      // Kích hoạt callback reload sau 500ms
       setTimeout(() => {
         if (onRefresh) onRefresh();
       }, 500);
@@ -495,10 +672,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         </div>
       </div>
 
-      {/* MODAL CHỈNH SỬA BÀI VIẾT (EDIT MODAL) */}
+      {/* MODAL CHỈNH SỬA BÀI VIẾT (EDIT MODAL - NÂNG CẤP CHỌN FILE) */}
       {isEditing && (
         <div className="fixed inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-surface w-full max-w-lg rounded-app border border-gray-800 shadow-2xl overflow-hidden">
+          <div className="bg-surface w-full max-w-lg rounded-app border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
               <h2 className="text-lg font-bold text-text-primary">Chỉnh sửa bài đăng</h2>
@@ -506,7 +683,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                 type="button"
                 onClick={() => {
                   setIsEditing(false);
-                  setEditContent(article.content);
                 }}
                 className="text-text-secondary hover:text-text-primary p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
               >
@@ -514,41 +690,89 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               </button>
             </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleUpdate}>
-              <div className="p-6">
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  disabled={updating}
-                  rows={6}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg p-3 text-[15px] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary"
-                  placeholder="Nội dung bài viết mới..."
-                />
+            {/* Modal Scrollable Body */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                disabled={updating}
+                rows={5}
+                className="w-full bg-background border border-gray-700 text-text-primary rounded-lg p-3 text-[15px] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary"
+                placeholder="Nội dung bài đăng..."
+              />
+
+              {/* Khung hiển thị Preview tệp đính kèm trong Modal */}
+              {editFile && (
+                <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-800 bg-black/40 max-h-56 flex items-center justify-center">
+                  {editFile.type === 'image' ? (
+                    <img
+                      src={editFile.url}
+                      alt="Preview"
+                      className="max-h-56 max-w-full object-contain"
+                    />
+                  ) : (
+                    <video
+                      src={editFile.url}
+                      controls
+                      className="max-h-56 max-w-full object-contain"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleRemoveEditFile}
+                    className="absolute top-2.5 right-2.5 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors cursor-pointer hover:scale-105"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Input file ẩn trong Modal chỉnh sửa */}
+            <input
+              type="file"
+              ref={editFileInputRef}
+              onChange={handleEditFileChange}
+              accept="image/*,video/mp4,video/quicktime"
+              className="hidden"
+            />
+
+            {/* Modal Footer với nút công cụ chọn file */}
+            <div className="flex justify-between items-center px-6 py-4 bg-background border-t border-gray-800/80">
+              {/* Nút chọn hình ảnh/video mới */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => editFileInputRef.current?.click()}
+                  className="p-2 rounded-full hover:bg-primary/10 text-primary transition-colors cursor-pointer"
+                  title="Thay đổi hoặc thêm hình ảnh/video"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Modal Footer */}
-              <div className="flex justify-end items-center gap-3 px-6 py-4 bg-background border-t border-gray-800/80">
+              {/* Các nút Hủy / Lưu */}
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   disabled={updating}
                   onClick={() => {
                     setIsEditing(false);
-                    setEditContent(article.content);
                   }}
                   className="px-4 py-2 bg-white/5 hover:bg-white/10 text-text-primary text-sm font-semibold rounded-full transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
-                  type="submit"
-                  disabled={updating || !editContent.trim() || editContent === article.content}
+                  type="button"
+                  onClick={handleUpdate}
+                  disabled={updating || (!editContent.trim() && !editFile)}
                   className="px-5 py-2 bg-primary hover:bg-primary/95 text-white text-sm font-bold rounded-full transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
