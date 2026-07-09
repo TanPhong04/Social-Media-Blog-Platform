@@ -1,10 +1,33 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { articleApi } from '../api/articleApi';
+import { userApi } from '../api/userApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
 import { Image, Smile, Calendar, MapPin, BarChart2, Globe, AlertCircle, X } from 'lucide-react';
+
+// Hàm helper upload tệp tin trực tiếp lên Cloudinary sử dụng Unsigned Preset
+const uploadToCloudinary = async (file: File): Promise<string> => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'djy5p3y4g';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+    method: 'POST',
+    body: formData
+  });
+  
+  if (!response.ok) {
+    throw new Error('Đăng tải tệp tin lên Cloudinary thất bại.');
+  }
+  
+  const data = await response.json();
+  return data.secure_url;
+};
 
 const Home: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -17,6 +40,9 @@ const Home: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'for-you' | 'following'>('for-you');
 
+  // Thông tin profile thực của người dùng hiện tại
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+
   // Trạng thái cho Khung Đăng Bài (Tweet Box)
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
@@ -26,21 +52,11 @@ const Home: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<{
     name: string;
     url: string;
-    base64: string;
     type: 'image' | 'video';
+    file: File;
   } | null>(null);
 
-  // Helper: Chuyển đổi tệp sang chuỗi Base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  // Helper: Kiểm tra thời lượng video bằng cách tạo thẻ video ảo
+  // Helper: Kiểm tra thời lượng video
   const checkVideoDuration = (file: File): Promise<number> => {
     return new Promise((resolve) => {
       const video = document.createElement('video');
@@ -66,6 +82,19 @@ const Home: React.FC = () => {
     fetchArticles();
   }, [activeTab]);
 
+  // Fetch avatar thật của người dùng hiện tại
+  useEffect(() => {
+    if (isAuthenticated) {
+      userApi.getProfile()
+        .then((res: any) => {
+          setCurrentUserProfile(res);
+        })
+        .catch(err => {
+          console.warn('Không thể tải profile thật của user hiện tại, dùng fallback', err);
+        });
+    }
+  }, [isAuthenticated]);
+
   const fetchArticles = async () => {
     try {
       setLoading(true);
@@ -87,46 +116,6 @@ const Home: React.FC = () => {
     }
   };
 
-  // Helper: Nén ảnh dùng canvas trước khi chuyển sang Base64
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = document.createElement('img');
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Nén JPEG chất lượng 0.6 (giúp giảm dung lượng mạnh từ vài MB xuống còn ~50KB-150KB)
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          resolve(dataUrl);
-        };
-      };
-    });
-  };
-
   // Xử lý chọn hình ảnh hoặc video
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -140,12 +129,12 @@ const Home: React.FC = () => {
       return;
     }
 
-    // Nếu là video, kiểm tra giới hạn dưới 2 phút (120 giây)
+    // Kiểm tra giới hạn thời lượng video dưới 2.5 phút (150 giây)
     if (isVideo) {
       try {
         const duration = await checkVideoDuration(file);
-        if (duration > 120) {
-          setPostError('Thời lượng video phải dưới 2 phút!');
+        if (duration > 150) {
+          setPostError('Thời lượng video phải dưới 2.5 phút!');
           return;
         }
       } catch (err) {
@@ -157,18 +146,12 @@ const Home: React.FC = () => {
 
     try {
       setPostError(null);
-      let base64 = '';
-      if (isImage) {
-        base64 = await compressImage(file);
-      } else {
-        base64 = await fileToBase64(file);
-      }
       const url = URL.createObjectURL(file);
       setSelectedFile({
         name: file.name,
         url,
-        base64,
-        type: isImage ? 'image' : 'video'
+        type: isImage ? 'image' : 'video',
+        file: file
       });
     } catch (err) {
       console.error('Error reading file', err);
@@ -183,7 +166,7 @@ const Home: React.FC = () => {
     setPosting(true);
     setPostError(null);
 
-    // 1. Tự động sinh tiêu đề (title) từ dòng đầu tiên hoặc 80 ký tự đầu
+    // 1. Tự động sinh tiêu đề từ dòng đầu tiên
     const lines = postText.trim().split('\n');
     const firstLine = lines[0].trim();
     const title = firstLine.substring(0, 100) || (selectedFile?.type === 'image' ? 'Hình ảnh mới' : 'Video mới');
@@ -199,19 +182,27 @@ const Home: React.FC = () => {
     // 3. Tự động sinh tóm tắt (summary)
     const summary = postText.substring(0, 150) + (postText.length > 150 ? '...' : '');
 
-    // 4. Nhúng mã Base64 vào nội dung nếu có file đính kèm
-    let mediaEmbed = '';
-    if (selectedFile) {
-      if (selectedFile.type === 'image') {
-        mediaEmbed = `\n\n![image](${selectedFile.base64})`;
-      } else {
-        mediaEmbed = `\n\n<video src="${selectedFile.base64}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
-      }
-    }
-
-    const finalContent = postText.trim() + mediaEmbed;
-
     try {
+      let mediaUrl = '';
+      if (selectedFile) {
+        // Tải tệp lên Cloudinary trước khi gửi bài viết
+        setPostError('Đang tải tệp tin lên Cloudinary...');
+        mediaUrl = await uploadToCloudinary(selectedFile.file);
+        setPostError(null);
+      }
+
+      // 4. Nhúng URL Cloudinary vào nội dung thay thế cho Base64 cực nặng
+      let mediaEmbed = '';
+      if (mediaUrl) {
+        if (selectedFile?.type === 'image') {
+          mediaEmbed = `\n\n![image](${mediaUrl})`;
+        } else {
+          mediaEmbed = `\n\n<video src="${mediaUrl}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
+        }
+      }
+
+      const finalContent = postText.trim() + mediaEmbed;
+
       // Gọi API tạo bản nháp bài viết
       const res: any = await articleApi.createArticle({
         title,
@@ -242,7 +233,7 @@ const Home: React.FC = () => {
           .join(', ');
         setPostError(`Lỗi kiểm tra dữ liệu (${fieldErrors})`);
       } else {
-        setPostError(err.response?.data?.message || 'Không thể đăng bài viết lúc này.');
+        setPostError(err.message || err.response?.data?.message || 'Không thể đăng bài viết lúc này.');
       }
     } finally {
       setPosting(false);
@@ -293,8 +284,12 @@ const Home: React.FC = () => {
         <div className="p-4 border-b border-gray-800 flex gap-3">
           {/* Avatar người dùng */}
           <div className="shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-md">
-              {user?.displayName?.substring(0, 2).toUpperCase() || 'US'}
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-md overflow-hidden">
+              {currentUserProfile?.avatarUrl ? (
+                <img src={currentUserProfile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user?.displayName?.substring(0, 2).toUpperCase() || 'US'
+              )}
             </div>
           </div>
 
@@ -351,9 +346,8 @@ const Home: React.FC = () => {
                 <span>Mọi người đều có thể trả lời</span>
               </div>
 
-              {/* Hộp icon và nút Post */}
-              <div className="flex items-center gap-2">
-                {/* Input File ẩn */}
+              <div className="flex items-center gap-3">
+                {/* Nút chọn ảnh / video ẩn */}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -361,35 +355,33 @@ const Home: React.FC = () => {
                   accept="image/*,video/mp4,video/quicktime"
                   className="hidden"
                 />
-                
-                <div className="hidden sm:flex items-center gap-1 text-primary">
-                  {/* Thay nút Image thành nút click chọn file thực tế */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer"
-                    title="Chọn hình ảnh hoặc video"
-                  >
-                    <Image className="w-4 h-4" />
-                  </button>
-                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
-                    <BarChart2 className="w-4 h-4" />
-                  </button>
-                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
-                    <Smile className="w-4 h-4" />
-                  </button>
-                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
-                    <Calendar className="w-4 h-4" />
-                  </button>
-                  <button type="button" className="p-2 rounded-full hover:bg-primary/10 transition-colors cursor-pointer">
-                    <MapPin className="w-4 h-4" />
-                  </button>
-                </div>
 
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={posting}
+                  className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer"
+                  title="Thêm hình ảnh hoặc video ngắn"
+                >
+                  <Image className="w-5 h-5" />
+                </button>
+
+                {/* Nút biểu cảm Smile */}
+                <button
+                  type="button"
+                  onClick={() => setPostText(prev => prev + ' 😊')}
+                  disabled={posting}
+                  className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer"
+                  title="Biểu cảm"
+                >
+                  <Smile className="w-5 h-5" />
+                </button>
+
+                {/* Nút đăng bài */}
                 <button
                   onClick={handlePost}
                   disabled={posting || (!postText.trim() && !selectedFile)}
-                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-sm rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-sm rounded-full transition-colors disabled:opacity-50 cursor-pointer ml-2 shadow-md"
                 >
                   {posting ? 'Đang đăng...' : 'Post'}
                 </button>
@@ -399,46 +391,34 @@ const Home: React.FC = () => {
         </div>
       )}
 
-      {/* Feed hiển thị các bài đăng */}
-      {loading ? (
-        <div className="divide-y divide-gray-800">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="p-4 flex gap-3 animate-pulse">
-              <div className="w-10 h-10 rounded-full bg-white/5 shrink-0" />
-              <div className="flex-1 space-y-3">
-                <div className="w-1/3 h-4 bg-white/5 rounded" />
-                <div className="w-full h-5 bg-white/5 rounded" />
-                <div className="w-5/6 h-5 bg-white/5 rounded" />
-                <div className="w-1/2 h-4 bg-white/5 rounded mt-4" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : error ? (
-        <div className="p-8 text-center">
-          <p className="text-error mb-4">{error}</p>
-          <button
-            onClick={fetchArticles}
-            className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-full transition-colors font-medium cursor-pointer"
-          >
-            Thử lại
-          </button>
-        </div>
-      ) : articles.length === 0 ? (
-        <div className="p-12 text-center flex flex-col items-center justify-center">
-          <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-            <Globe className="w-6 h-6 text-text-secondary" />
+      {/* Danh sách bài đăng trên Newsfeed */}
+      <div className="divide-y divide-gray-800">
+        {loading ? (
+          <div className="p-8 text-center text-text-secondary flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mb-3" />
+            <p className="text-sm">Đang tải bảng tin của bạn...</p>
           </div>
-          <h3 className="text-lg font-bold text-text-primary mb-1">Chưa có bài đăng nào</h3>
-          <p className="text-text-secondary text-sm">Hãy là người đầu tiên chia sẻ câu chuyện!</p>
-        </div>
-      ) : (
-        <div className="divide-y divide-gray-800">
-          {articles.map((article) => (
-            <ArticleCard key={article.id} article={article} onRefresh={fetchArticles} />
-          ))}
-        </div>
-      )}
+        ) : error ? (
+          <div className="p-8 text-center">
+            <p className="text-error text-sm font-semibold">{error}</p>
+            <button
+              onClick={fetchArticles}
+              className="mt-4 px-4 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary font-bold text-xs rounded-full transition-colors cursor-pointer"
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : articles.length === 0 ? (
+          <div className="p-12 text-center text-text-secondary">
+            <p className="text-base font-semibold">Bảng tin hiện đang trống.</p>
+            <p className="text-xs mt-1">Hãy đăng bài viết đầu tiên của bạn hoặc theo dõi người dùng khác!</p>
+          </div>
+        ) : (
+          articles.map((art) => (
+            <ArticleCard key={art.id} article={art} onRefresh={fetchArticles} />
+          ))
+        )}
+      </div>
     </div>
   );
 };

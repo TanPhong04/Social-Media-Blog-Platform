@@ -15,6 +15,28 @@ interface ArticleCardProps {
 // Module-level cache để lưu thông tin người dùng, tránh gọi API trùng lặp
 const authorCache: { [id: string]: any } = {};
 
+// Hàm helper upload tệp tin trực tiếp lên Cloudinary sử dụng Unsigned Preset
+const uploadToCloudinary = async (file: File): Promise<string> => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'djy5p3y4g';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+    method: 'POST',
+    body: formData
+  });
+  
+  if (!response.ok) {
+    throw new Error('Đăng tải tệp tin lên Cloudinary thất bại.');
+  }
+  
+  const data = await response.json();
+  return data.secure_url;
+};
+
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
@@ -39,8 +61,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   // Trạng thái tệp đính kèm khi chỉnh sửa (Ảnh/Video)
   const [editFile, setEditFile] = useState<{
     url: string;
-    base64: string;
     type: 'image' | 'video';
+    file?: File;
+    base64?: string;
   } | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,16 +101,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     setTimeout(() => {
       setToast(null);
     }, 2500);
-  };
-
-  // Helper: Đổi file sang Base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
   };
 
   // Helper: Nén hình ảnh dùng Canvas
@@ -174,23 +187,25 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       let text = article.content;
       let fileData: any = null;
 
-      // Tìm ảnh nhúng Base64: ![image](data:...)
-      const imgMatch = article.content.match(/!\[image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
+      // Tìm ảnh nhúng (Base64 hoặc URL Cloudinary)
+      const imgMatch = article.content.match(/!\[image\]\(([^\)]+)\)/);
       if (imgMatch) {
+        const url = imgMatch[1];
         fileData = {
-          url: imgMatch[1],
-          base64: imgMatch[1],
+          url: url,
+          base64: url.startsWith('data:') ? url : '',
           type: 'image'
         };
         text = text.replace(imgMatch[0], '');
       }
 
-      // Tìm video nhúng HTML base64: <video src="..."></video>
+      // Tìm video nhúng
       const videoMatch = article.content.match(/<video src="([^"]+)"[^>]*><\/video>/);
       if (videoMatch) {
+        const url = videoMatch[1];
         fileData = {
-          url: videoMatch[1],
-          base64: videoMatch[1],
+          url: url,
+          base64: url.startsWith('data:') ? url : '',
           type: 'video'
         };
         text = text.replace(videoMatch[0], '');
@@ -278,7 +293,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         }
       }
 
-      // Tải trạng thái thả tim bình luận (COMMENT)
+      // Tải trạng thái thả tim bình luận
       const likesData: { [id: string]: { count: number; liked: boolean } } = {};
       await Promise.all(list.map(async (c: any) => {
         try {
@@ -345,7 +360,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     });
   };
 
-  // Hàm phân tích và hiển thị nội dung kèm Media Base64 nhúng
+  // Hàm phân tích và hiển thị nội dung kèm hình ảnh / video
   const renderContentWithMedia = (content: string) => {
     if (!content) return null;
 
@@ -353,12 +368,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     let imageSrc = '';
     let videoSrc = '';
 
-    const imgMatch = content.match(/!\[image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
+    // Tìm ảnh nhúng
+    const imgMatch = content.match(/!\[image\]\(([^\)]+)\)/);
     if (imgMatch) {
       imageSrc = imgMatch[1];
       textToShow = textToShow.replace(imgMatch[0], '');
     }
 
+    // Tìm video nhúng
     const videoMatch = content.match(/<video src="([^"]+)"[^>]*><\/video>/);
     if (videoMatch) {
       videoSrc = videoMatch[1];
@@ -498,7 +515,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       }
     } catch (err) {
       console.error('Error liking comment', err);
-      // Rollback
       setCommentLikes(prev => ({
         ...prev,
         [commentId]: current
@@ -791,11 +807,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       return;
     }
 
+    // Kiểm tra giới hạn video dưới 2.5 phút (150 giây)
     if (isVideo) {
       try {
         const duration = await checkVideoDuration(file);
-        if (duration > 120) {
-          showToastMessage('Thời lượng video phải dưới 2 phút!', 'error');
+        if (duration > 150) {
+          showToastMessage('Thời lượng video phải dưới 2.5 phút!', 'error');
           return;
         }
       } catch (err) {
@@ -810,17 +827,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         URL.revokeObjectURL(editFile.url);
       }
 
-      let base64 = '';
-      if (isImage) {
-        base64 = await compressImage(file);
-      } else {
-        base64 = await fileToBase64(file);
-      }
       const url = URL.createObjectURL(file);
       setEditFile({
         url,
-        base64,
-        type: isImage ? 'image' : 'video'
+        type: isImage ? 'image' : 'video',
+        file: file
       });
     } catch (err) {
       console.error(err);
@@ -856,18 +867,30 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
     const summary = editContent.substring(0, 150) + (editContent.length > 150 ? '...' : '');
 
-    let mediaEmbed = '';
-    if (editFile) {
-      if (editFile.type === 'image') {
-        mediaEmbed = `\n\n![image](${editFile.base64})`;
-      } else {
-        mediaEmbed = `\n\n<video src="${editFile.base64}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
-      }
-    }
-
-    const finalContent = editContent.trim() + mediaEmbed;
-
     try {
+      let mediaUrl = '';
+      if (editFile) {
+        if (editFile.file) {
+          // File được chọn mới -> Upload lên Cloudinary
+          showToastMessage('Đang tải file mới lên Cloudinary...');
+          mediaUrl = await uploadToCloudinary(editFile.file);
+        } else {
+          // Giữ nguyên file cũ (đã là Base64 hoặc là link Cloudinary trước đó)
+          mediaUrl = editFile.base64 || editFile.url;
+        }
+      }
+
+      let mediaEmbed = '';
+      if (mediaUrl) {
+        if (editFile?.type === 'image') {
+          mediaEmbed = `\n\n![image](${mediaUrl})`;
+        } else {
+          mediaEmbed = `\n\n<video src="${mediaUrl}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
+        }
+      }
+
+      const finalContent = editContent.trim() + mediaEmbed;
+
       await articleApi.updateArticle(article.id, {
         title,
         summary,
@@ -957,11 +980,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const authorInitials = authorName.substring(0, 2).toUpperCase();
   const avatarUrl = authorProfile ? authorProfile.avatarUrl : null;
 
-  // Lọc phân cấp comments: bình luận gốc (parentId là null)
+  // Lọc phân cấp comments
   const rootComments = comments.filter(c => c.parentId === null);
   const getRepliesFor = (parentId: string) => comments.filter(c => c.parentId === parentId);
 
-  // Render một phần tử bình luận (hỗ trợ cả gốc và con)
+  // Render một phần tử bình luận
   const renderSingleComment = (comment: CommentResponse, isReply = false) => {
     const cProfile = commentProfiles[comment.authorId];
     const cName = cProfile ? cProfile.displayName : `User ${comment.authorId.substring(0, 4)}`;
@@ -1000,7 +1023,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                 <button
                   onClick={() => {
                     setEditingCommentId(comment.id);
-                    // Lọc bỏ phần hình ảnh khi điền vào form sửa chữ
                     let text = comment.content;
                     const imgMatch = comment.content.match(/!\[comment_image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
                     if (imgMatch) {
@@ -1185,7 +1207,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
           {/* Footer: Hộp tương tác */}
           <div className="flex justify-between items-center max-w-md mt-3 text-text-secondary text-[13px] -ml-2">
-            {/* Comment (Click để đóng/mở comments) */}
+            {/* Comment */}
             <button
               onClick={() => setShowComments(!showComments)}
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
@@ -1194,7 +1216,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               <span>{comments.length}</span>
             </button>
 
-            {/* Repost (Đăng lại) */}
+            {/* Repost */}
             <button
               onClick={handleRepost}
               className={`flex items-center gap-1.5 hover:text-green-500 group p-2 rounded-full hover:bg-green-500/10 transition-all cursor-pointer ${reposted ? 'text-green-500' : ''}`}
@@ -1220,7 +1242,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               <Bookmark className={`w-4 h-4 group-hover:scale-110 transition-transform ${bookmarked ? 'fill-current' : ''}`} />
             </button>
 
-            {/* Share (Copy link) */}
+            {/* Share */}
             <button
               onClick={handleShare}
               className="flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer"
@@ -1310,7 +1332,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                     {/* Render bình luận cha */}
                     {renderSingleComment(comment, false)}
 
-                    {/* Khung ô nhập phản hồi (Reply Form) thụt lề dưới comment cha */}
+                    {/* Khung ô nhập phản hồi thụt lề dưới comment cha */}
                     {replyingToId === comment.id && user && (
                       <div className="ml-10 mt-1 pl-3 border-l-2 border-primary/40 space-y-2">
                         <form onSubmit={(e) => handlePostReply(comment.id, e)} className="flex gap-2.5 items-center">
@@ -1415,19 +1437,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               {/* Khung hiển thị Preview tệp đính kèm trong Modal */}
               {editFile && (
                 <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-800 bg-black/40 max-h-56 flex items-center justify-center">
-                  {editFile.type === 'image' ? (
-                    <img
-                      src={editFile.url}
-                      alt="Preview"
-                      className="max-h-56 max-w-full object-contain"
-                    />
-                  ) : (
-                    <video
-                      src={editFile.url}
-                      controls
-                      className="max-h-56 max-w-full object-contain"
-                    />
-                  )}
+                  <img
+                    src={editFile.url}
+                    alt="Preview"
+                    className="max-h-56 max-w-full object-contain"
+                  />
                   <button
                     type="button"
                     onClick={handleRemoveEditFile}
