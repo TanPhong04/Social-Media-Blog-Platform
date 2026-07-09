@@ -11,6 +11,7 @@ import Dashboard from './pages/admin/Dashboard';
 import UserManagement from './pages/admin/UserManagement';
 import ArticleManagement from './pages/admin/ArticleManagement';
 import MyArticles from './pages/MyArticles';
+import Bookmarks from './pages/Bookmarks';
 
 function App() {
   return (
@@ -31,7 +32,7 @@ function App() {
           <Route path="/profile" element={<ComingSoon />} />
           <Route path="/following" element={<ComingSoon />} />
           <Route path="/my-articles" element={<MyArticles />} />
-          <Route path="/bookmarks" element={<ComingSoon />} />
+          <Route path="/bookmarks" element={<Bookmarks />} />
           <Route path="/notifications" element={<ComingSoon />} />
           <Route path="/settings" element={<ComingSoon />} />
         </Route>

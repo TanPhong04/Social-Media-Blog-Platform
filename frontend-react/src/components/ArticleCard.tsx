@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { ArticleResponse } from '../api/articleApi';
 import { articleApi } from '../api/articleApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X } from 'lucide-react';
+import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check } from 'lucide-react';
 
 interface ArticleCardProps {
   article: ArticleResponse;
@@ -26,12 +26,23 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [editContent, setEditContent] = useState(article.content);
   const [updating, setUpdating] = useState(false);
 
+  // Trạng thái Toast thông báo thành công / lỗi
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 2500);
+  };
+
   // Đọc trạng thái bookmark khi mount
   useEffect(() => {
     if (user) {
       try {
         const bookmarks = JSON.parse(localStorage.getItem(`bookmarks_${user.id}`) || '[]');
-        setBookmarked(bookmarks.includes(article.id));
+        // Kiểm tra xem ID có tồn tại trong danh sách bookmarks dạng đối tượng không
+        setBookmarked(bookmarks.some((b: any) => b.id === article.id));
       } catch (e) {
         setBookmarked(false);
       }
@@ -92,11 +103,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     setLikeCount(prev => liked ? prev - 1 : prev + 1);
   };
 
-  // Xử lý bookmark vào localStorage
+  // Xử lý lưu nguyên object bài viết vào localStorage
   const handleBookmark = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
-      alert('Vui lòng đăng nhập để lưu bài viết.');
+      showToastMessage('Vui lòng đăng nhập để lưu bài viết.', 'error');
       return;
     }
 
@@ -106,37 +117,60 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       let newBookmarks;
 
       if (bookmarked) {
-        newBookmarks = bookmarks.filter((id: string) => id !== article.id);
+        newBookmarks = bookmarks.filter((b: any) => b.id !== article.id);
+        showToastMessage('Đã bỏ lưu bài viết!');
       } else {
-        newBookmarks = [...bookmarks, article.id];
+        newBookmarks = [...bookmarks, article];
+        showToastMessage('Đã lưu bài viết thành công!');
       }
 
       localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
       setBookmarked(!bookmarked);
+
+      // Nếu parent là Bookmarks, bỏ lưu cần cập nhật UI nhanh
+      if (onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+        }, 400);
+      }
     } catch (err) {
       console.error('Error handling bookmark', err);
+      showToastMessage('Thao tác lưu thất bại.', 'error');
     } finally {
       setShowDropdown(false);
     }
   };
 
-  // Xử lý xóa bài viết
+  // Xử lý xóa bài viết và cập nhật local bookmarks
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) return;
 
     try {
       await articleApi.deleteArticle(article.id);
-      if (onRefresh) onRefresh();
+      showToastMessage('Xóa bài đăng thành công!');
+
+      // Tự động xóa khỏi bookmarks trong localStorage nếu bài đăng bị xóa
+      if (user) {
+        const storageKey = `bookmarks_${user.id}`;
+        const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const newBookmarks = bookmarks.filter((b: any) => b.id !== article.id);
+        localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
+      }
+
+      // Kích hoạt callback UI reload sau 500ms
+      setTimeout(() => {
+        if (onRefresh) onRefresh();
+      }, 500);
     } catch (err) {
       console.error('Error deleting article', err);
-      alert('Xóa bài viết thất bại. Vui lòng thử lại sau.');
+      showToastMessage('Xóa bài đăng thất bại.', 'error');
     } finally {
       setShowDropdown(false);
     }
   };
 
-  // Xử lý cập nhật bài viết
+  // Xử lý cập nhật bài viết và đồng bộ bookmarks
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editContent.trim()) return;
@@ -162,11 +196,37 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         content: editContent.trim(),
         tags
       });
+
+      // Đồng bộ nội dung mới vào danh sách bookmarks ở localStorage nếu có
+      if (user) {
+        const storageKey = `bookmarks_${user.id}`;
+        const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const updatedBookmarks = bookmarks.map((b: any) => {
+          if (b.id === article.id) {
+            return {
+              ...b,
+              title,
+              summary,
+              content: editContent.trim(),
+              tags,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return b;
+        });
+        localStorage.setItem(storageKey, JSON.stringify(updatedBookmarks));
+      }
+
+      showToastMessage('Cập nhật bài viết thành công!');
       setIsEditing(false);
-      if (onRefresh) onRefresh();
+
+      // Kích hoạt callback reload sau 500ms
+      setTimeout(() => {
+        if (onRefresh) onRefresh();
+      }, 500);
     } catch (err) {
       console.error('Error updating article', err);
-      alert('Cập nhật bài viết thất bại.');
+      showToastMessage('Cập nhật thất bại.', 'error');
     } finally {
       setUpdating(false);
     }
@@ -353,6 +413,16 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* TOAST SYSTEM */}
+      {toast && (
+        <div className="fixed bottom-5 right-5 bg-surface border border-gray-800 text-text-primary px-4 py-3.5 rounded-app shadow-2xl flex items-center gap-2.5 animate-fade-in z-50 min-w-[200px]">
+          <div className={`p-1 rounded-full ${toast.type === 'success' ? 'bg-primary/10 text-primary' : 'bg-error/10 text-error'}`}>
+            {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+          </div>
+          <span className="font-semibold text-sm">{toast.message}</span>
         </div>
       )}
     </div>

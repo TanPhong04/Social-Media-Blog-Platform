@@ -238,7 +238,7 @@ const Home: React.FC = () => {
       ) : (
         <div className="divide-y divide-gray-800">
           {articles.map((article) => (
-            <ArticleCard key={article.id} article={article} />
+            <ArticleCard key={article.id} article={article} onRefresh={fetchArticles} />
           ))}
         </div>
       )}
