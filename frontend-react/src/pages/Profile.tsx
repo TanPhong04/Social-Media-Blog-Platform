@@ -71,24 +71,24 @@ const Profile: React.FC = () => {
       setError(null);
       
       // 1. Tải thông tin cá nhân
-      const profileRes = await userApi.getProfile();
-      setProfile(profileRes.data);
+      const profileRes: any = await userApi.getProfile();
+      setProfile(profileRes);
 
       // Điền sẵn form chỉnh sửa
-      setEditName(profileRes.data.displayName);
-      setEditBio(profileRes.data.bio || '');
-      setEditAvatar(profileRes.data.avatarUrl || '');
+      setEditName(profileRes.displayName);
+      setEditBio(profileRes.bio || '');
+      setEditAvatar(profileRes.avatarUrl || '');
 
       // Tải banner từ localStorage cục bộ
-      const storedBanner = localStorage.getItem(`profile_banner_${profileRes.data.id}`) || '';
+      const storedBanner = localStorage.getItem(`profile_banner_${profileRes.id}`) || '';
       setBannerUrl(storedBanner);
       setEditBanner(storedBanner);
 
       // 2. Tải số lượng follow/following
-      const followRes = await userApi.getFollowStatus(profileRes.data.id);
+      const followRes: any = await userApi.getFollowStatus(profileRes.id);
       setFollowStats({
-        followerCount: followRes.data.followerCount,
-        followingCount: followRes.data.followingCount
+        followerCount: followRes.followerCount,
+        followingCount: followRes.followingCount
       });
 
     } catch (err) {
@@ -124,7 +124,7 @@ const Profile: React.FC = () => {
 
     setUpdating(true);
     try {
-      const res = await userApi.updateProfile({
+      const res: any = await userApi.updateProfile({
         displayName: editName.trim(),
         bio: editBio.trim(),
         avatarUrl: editAvatar.trim()
@@ -136,7 +136,7 @@ const Profile: React.FC = () => {
         setBannerUrl(editBanner.trim());
       }
 
-      setProfile(res.data);
+      setProfile(res);
       setIsEditing(false);
       showToastMessage('Cập nhật hồ sơ thành công!');
       
