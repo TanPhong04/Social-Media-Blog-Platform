@@ -66,7 +66,7 @@ const Profile: React.FC = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
 
   // Trạng thái tab và loading
-  const [activeTab, setActiveTab] = useState<'posts' | 'reposts' | 'highlights' | 'articles' | 'media' | 'likes'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reposts' | 'media' | 'likes'>('posts');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -159,7 +159,7 @@ const Profile: React.FC = () => {
     if (!profile) return;
     setLoadingPosts(true);
     try {
-      if (activeTab === 'posts' || activeTab === 'articles') {
+      if (activeTab === 'posts' || activeTab === 'media') {
         const res: any = await articleApi.getMine(0, 50);
         setPosts(res.content || []);
       } else if (activeTab === 'likes') {
@@ -421,7 +421,7 @@ const Profile: React.FC = () => {
 
       {/* Hệ thống Tabs */}
       <div className="flex border-b border-gray-800 mt-4 overflow-x-auto">
-        {(['posts', 'reposts', 'highlights', 'articles', 'media', 'likes'] as const).map((tab) => (
+        {(['posts', 'reposts', 'media', 'likes'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -444,7 +444,7 @@ const Profile: React.FC = () => {
             <div className="h-5 bg-white/5 rounded w-1/3" />
             <div className="h-20 bg-white/5 rounded" />
           </div>
-        ) : activeTab === 'posts' || activeTab === 'articles' ? (
+        ) : activeTab === 'posts' ? (
           posts.length === 0 ? (
             <div className="p-12 text-center text-text-secondary">
               <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -483,14 +483,23 @@ const Profile: React.FC = () => {
               ))}
             </div>
           )
-        ) : (
-          /* Các tab khác (Highlights, Media) */
-          <div className="p-12 text-center text-text-secondary flex flex-col items-center justify-center">
-            <Globe className="w-10 h-10 mb-3 opacity-30" />
-            <h4 className="text-sm font-bold text-text-primary capitalize mb-1">Chưa có {activeTab}</h4>
-            <p className="text-xs">Tính năng này đang được phát triển thêm.</p>
-          </div>
-        )}
+        ) : activeTab === 'media' ? (
+          (() => {
+            const mediaOnly = posts.filter(art => art.content.includes('![image]') || art.content.includes('<video'));
+            return mediaOnly.length === 0 ? (
+              <div className="p-12 text-center text-text-secondary">
+                <ImageIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm font-semibold">Chưa đăng ảnh hoặc video nào.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-800">
+                {mediaOnly.map((art) => (
+                  <ArticleCard key={art.id} article={art} onRefresh={loadTabData} />
+                ))}
+              </div>
+            );
+          })()
+        ) : null}
       </div>
 
       {/* MỤC "WHO TO FOLLOW" */}

@@ -46,6 +46,7 @@ const Home: React.FC = () => {
   const location = useLocation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   
   const [articles, setArticles] = useState<ArticleResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +60,7 @@ const Home: React.FC = () => {
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Trạng thái cho tệp đính kèm (Ảnh/Video)
   const [selectedFile, setSelectedFile] = useState<{
@@ -89,6 +91,17 @@ const Home: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [location]);
+
+  // Đóng emoji picker khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetchArticles();
@@ -378,16 +391,36 @@ const Home: React.FC = () => {
                   <Image className="w-5 h-5" />
                 </button>
 
-                {/* Nút biểu cảm Smile */}
-                <button
-                  type="button"
-                  onClick={() => setPostText(prev => prev + ' 😊')}
-                  disabled={posting}
-                  className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer"
-                  title="Biểu cảm"
-                >
-                  <Smile className="w-5 h-5" />
-                </button>
+                {/* Nút biểu cảm Smile (Mở bảng chọn biểu cảm đa dạng) */}
+                <div className="relative" ref={emojiPickerRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    disabled={posting}
+                    className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer"
+                    title="Biểu cảm"
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+
+                  {showEmojiPicker && (
+                    <div className="absolute right-0 bottom-12 bg-surface border border-gray-800 rounded-2xl p-3 shadow-2xl z-50 grid grid-cols-6 gap-2 w-48">
+                      {['😊', '😂', '🤣', '😍', '🥰', '😘', '😜', '😎', '😉', '😢', '😭', '😡', '👍', '👎', '👋', '🔥', '👏', '🎉', '❤️', '✨', '🐶', '🐱', '🦊', '🍎', '🍕', '🍺'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            setPostText(prev => prev + emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          className="text-lg hover:bg-white/10 p-1 rounded transition-colors cursor-pointer text-center"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {/* Nút đăng bài */}
                 <button

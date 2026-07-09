@@ -17,7 +17,16 @@ const Navbar = () => {
         <div className="flex justify-between h-16">
           {/* Logo & Left Links */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary font-heading">
+            <Link
+              to="/"
+              onClick={(e) => {
+                if (window.location.pathname === '/') {
+                  e.preventDefault();
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-2 font-bold text-xl text-primary font-heading"
+            >
               <HomeIcon className="w-6 h-6" />
               <span>Axion</span>
             </Link>

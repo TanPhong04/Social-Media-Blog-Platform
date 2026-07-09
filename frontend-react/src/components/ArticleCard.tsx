@@ -1219,6 +1219,15 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
           {/* Footer: Hộp tương tác */}
           <div className="flex justify-between items-center max-w-md mt-3 text-text-secondary text-[13px] -ml-2">
+            {/* Like (Thả tim đầu tiên) */}
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-1.5 hover:text-red-500 group p-2 rounded-full hover:bg-red-500/10 transition-all cursor-pointer ${liked ? 'text-red-500' : ''}`}
+            >
+              <Heart className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
+              <span>{likeCount}</span>
+            </button>
+
             {/* Comment */}
             <button
               onClick={() => setShowComments(!showComments)}
@@ -1235,15 +1244,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             >
               <Repeat className={`w-4 h-4 group-hover:rotate-180 transition-transform duration-300 ${reposted ? 'scale-110' : ''}`} />
               <span>{repostCount}</span>
-            </button>
-
-            {/* Like */}
-            <button
-              onClick={handleLike}
-              className={`flex items-center gap-1.5 hover:text-red-500 group p-2 rounded-full hover:bg-red-500/10 transition-all cursor-pointer ${liked ? 'text-red-500' : ''}`}
-            >
-              <Heart className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
-              <span>{likeCount}</span>
             </button>
 
             {/* Bookmark */}
