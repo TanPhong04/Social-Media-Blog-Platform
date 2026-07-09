@@ -26,7 +26,21 @@ export const commentApi = {
   createComment: (data: CreateCommentRequest) => {
     return axiosClient.post<CommentResponse>('/comments', data);
   },
+  updateComment: (id: string, data: { content: string }) => {
+    return axiosClient.put<CommentResponse>(`/comments/${id}`, data);
+  },
   deleteComment: (id: string) => {
     return axiosClient.delete(`/comments/${id}`);
+  },
+  
+  // Tương tác thả tim bình luận (COMMENT) qua interaction-service
+  getCommentInteraction: (commentId: string) => {
+    return axiosClient.get<{ count: number; likedByCurrentUser: boolean }>(`/interactions/COMMENT/${commentId}`);
+  },
+  likeComment: (commentId: string) => {
+    return axiosClient.put(`/interactions/COMMENT/${commentId}/like`);
+  },
+  unlikeComment: (commentId: string) => {
+    return axiosClient.delete(`/interactions/COMMENT/${commentId}/like`);
   }
 };
