@@ -87,6 +87,46 @@ const Home: React.FC = () => {
     }
   };
 
+  // Helper: Nén ảnh dùng canvas trước khi chuyển sang Base64
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Nén JPEG chất lượng 0.6 (giúp giảm dung lượng mạnh từ vài MB xuống còn ~50KB-150KB)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(dataUrl);
+        };
+      };
+    });
+  };
+
   // Xử lý chọn hình ảnh hoặc video
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -117,7 +157,12 @@ const Home: React.FC = () => {
 
     try {
       setPostError(null);
-      const base64 = await fileToBase64(file);
+      let base64 = '';
+      if (isImage) {
+        base64 = await compressImage(file);
+      } else {
+        base64 = await fileToBase64(file);
+      }
       const url = URL.createObjectURL(file);
       setSelectedFile({
         name: file.name,
