@@ -45,11 +45,19 @@ export const articleApi = {
       params: { page, size }
     });
   },
+  getMine: (page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>('/articles/mine', {
+      params: { page, size }
+    });
+  },
   createArticle: (data: ArticleWriteRequest) => {
     return axiosClient.post<ArticleResponse>('/articles', data);
   },
   updateArticle: (id: string, data: ArticleWriteRequest) => {
     return axiosClient.put<ArticleResponse>(`/articles/${id}`, data);
+  },
+  deleteArticle: (id: string) => {
+    return axiosClient.delete(`/articles/${id}`);
   },
   publishArticle: (id: string) => {
     return axiosClient.post<ArticleResponse>(`/articles/${id}/publish`);
