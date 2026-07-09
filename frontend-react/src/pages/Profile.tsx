@@ -85,11 +85,19 @@ const Profile: React.FC = () => {
       setEditBanner(storedBanner);
 
       // 2. Tải số lượng follow/following
-      const followRes: any = await userApi.getFollowStatus(profileRes.id);
-      setFollowStats({
-        followerCount: followRes.followerCount,
-        followingCount: followRes.followingCount
-      });
+      try {
+        const followRes: any = await userApi.getFollowStatus(profileRes.id);
+        setFollowStats({
+          followerCount: followRes.followerCount,
+          followingCount: followRes.followingCount
+        });
+      } catch (followErr) {
+        console.warn('Follower service unavailable, falling back to 0', followErr);
+        setFollowStats({
+          followerCount: 0,
+          followingCount: 0
+        });
+      }
 
     } catch (err) {
       console.error('Failed to load profile details', err);
