@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ArticleResponse } from '../api/articleApi';
 import { articleApi } from '../api/articleApi';
 import { userApi } from '../api/userApi';
@@ -17,8 +18,8 @@ const authorCache: { [id: string]: any } = {};
 
 // Hàm helper upload tệp tin trực tiếp lên Cloudinary sử dụng Unsigned Preset
 const uploadToCloudinary = async (file: File): Promise<string> => {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'djy5p3y4g';
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dgn74bbvy';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'blog-platform';
   
   const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
   const formData = new FormData();
@@ -51,9 +52,13 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   
+  // Trạng thái theo dõi tác giả bài viết
+  const [isAuthorFollowing, setIsAuthorFollowing] = useState(false);
+
   // Trạng thái cho Dropdown Menu tác vụ
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -92,6 +97,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
   // Trạng thái tương tác bình luận nâng cao
   const [commentLikes, setCommentLikes] = useState<{ [id: string]: { count: number; liked: boolean } }>({});
+  const [commentsFollowStatus, setCommentsFollowStatus] = useState<{ [uid: string]: boolean }>({});
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -233,11 +239,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   }, [isEditing, article.content]);
 
-  // Đọc trạng thái like thực tế từ backend
+  // Đọc trạng thái like và follow của tác giả bài viết
   useEffect(() => {
-    const fetchLikeStatus = async () => {
+    const fetchLikeAndFollowStatus = async () => {
       if (!user) return;
       try {
+        // Tải trạng thái thích bài viết
         const res: any = await articleApi.getArticleInteraction(article.id);
         setLiked(res.likedByCurrentUser);
         setLikeCount(res.count);
@@ -245,9 +252,19 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         console.warn('Interaction service unavailable, falling back to mock likes', err);
         setLikeCount(Math.floor(Math.random() * 30) + 5);
       }
+
+      // Tải trạng thái follow của tác giả bài viết
+      if (user.id !== article.authorId) {
+        try {
+          const fRes: any = await userApi.getFollowStatus(article.authorId);
+          setIsAuthorFollowing(fRes.following);
+        } catch (fErr) {
+          console.warn('Follower service status query failed', fErr);
+        }
+      }
     };
-    fetchLikeStatus();
-  }, [article.id, user]);
+    fetchLikeAndFollowStatus();
+  }, [article.id, article.authorId, user]);
 
   // Đọc trạng thái bookmark khi mount
   useEffect(() => {
@@ -305,17 +322,32 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         }
       }
 
-      // Tải trạng thái thả tim bình luận
+      // Tải trạng thái thả tim bình luận & follow của tác giả bình luận
       const likesData: { [id: string]: { count: number; liked: boolean } } = {};
+      const followMap: { [uid: string]: boolean } = {};
+      
       await Promise.all(list.map(async (c: any) => {
+        // Thích bình luận
         try {
           const lRes: any = await commentApi.getCommentInteraction(c.id);
           likesData[c.id] = { count: lRes.count, liked: lRes.likedByCurrentUser };
         } catch (err) {
           likesData[c.id] = { count: 0, liked: false };
         }
+        
+        // Trạng thái follow của tác giả bình luận
+        if (user && c.authorId !== user.id && !followMap[c.authorId]) {
+          try {
+            const fRes: any = await userApi.getFollowStatus(c.authorId);
+            followMap[c.authorId] = fRes.following;
+          } catch (err) {
+            followMap[c.authorId] = false;
+          }
+        }
       }));
+      
       setCommentLikes(likesData);
+      setCommentsFollowStatus(prev => ({ ...prev, ...followMap }));
 
     } catch (err) {
       console.warn('Comments service unavailable (comment-service chưa chạy?)', err);
@@ -614,14 +646,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareUrl = `${window.location.origin}/article/${article.id}`;
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => {
-        showToastMessage('Đã sao chép liên kết bài viết vào clipboard!');
-      })
-      .catch((err) => {
-        console.error('Could not copy text: ', err);
-        showToastMessage('Không thể sao chép liên kết.', 'error');
-      });
+    navigate(shareUrl);
   };
 
   // Xóa bài viết
@@ -1007,11 +1032,15 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     const isCommentOwner = user && user.id === comment.authorId;
     const isEditingThis = editingCommentId === comment.id;
     const likesInfo = commentLikes[comment.id] || { count: 0, liked: false };
+    const isCommentAuthorFollowing = commentsFollowStatus[comment.authorId] || false;
 
     return (
       <div key={comment.id} className="flex gap-3 text-sm animate-fade-in group items-start">
-        {/* Avatar bình luận */}
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden shadow">
+        {/* Avatar bình luận - Click để xem Profile */}
+        <div 
+          onClick={() => navigate(`/profile?userId=${comment.authorId}`)}
+          className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden shadow cursor-pointer hover:opacity-90 transition-opacity"
+        >
           {cAvatar ? (
             <img src={cAvatar} alt="Avatar" className="w-full h-full object-cover" />
           ) : (
@@ -1023,8 +1052,40 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         <div className="flex-1 min-w-0 bg-white/[0.012] rounded-2xl px-4 py-2.5 border border-gray-800/40 relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-text-primary hover:underline text-xs cursor-pointer">{cName}</span>
+              {/* Tên bình luận - Click để xem Profile */}
+              <span 
+                onClick={() => navigate(`/profile?userId=${comment.authorId}`)}
+                className="font-bold text-text-primary hover:underline text-xs cursor-pointer"
+              >
+                {cName}
+              </span>
               <span className="text-text-secondary text-[11px]">{cHandle}</span>
+              
+              {/* Nút Follow nhanh cho tác giả bình luận */}
+              {user && comment.authorId !== user.id && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      let res: any;
+                      if (isCommentAuthorFollowing) {
+                        res = await userApi.unfollowUser(comment.authorId);
+                        showToastMessage(`Đã hủy theo dõi @${cProfile?.username || 'user'}`);
+                      } else {
+                        res = await userApi.followUser(comment.authorId);
+                        showToastMessage(`Đã theo dõi @${cProfile?.username || 'user'}!`);
+                      }
+                      setCommentsFollowStatus(prev => ({ ...prev, [comment.authorId]: res.following }));
+                    } catch (err) {
+                      showToastMessage('Thao tác thất bại.', 'error');
+                    }
+                  }}
+                  className="text-[11px] font-bold text-primary hover:underline ml-1 cursor-pointer"
+                >
+                  {isCommentAuthorFollowing ? '· Following' : '· Follow'}
+                </button>
+              )}
+
               <span className="text-text-secondary text-[10px]">·</span>
               <span className="text-text-secondary text-[11px]">{formatTime(comment.createdAt)}</span>
             </div>
@@ -1127,8 +1188,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     <div className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative">
       {/* Khung nội dung chính của Post */}
       <div className="flex gap-3">
-        {/* Cột bên trái: Avatar tròn */}
-        <div className="shrink-0">
+        {/* Cột bên trái: Avatar tròn - Click để xem Profile */}
+        <div 
+          onClick={() => navigate(`/profile?userId=${article.authorId}`)}
+          className="shrink-0"
+        >
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer hover:opacity-90 transition-opacity overflow-hidden">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
@@ -1140,10 +1204,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
         {/* Cột bên phải: Header & Body */}
         <div className="flex-1 min-w-0">
-          {/* Header: Tác giả và nút tác vụ */}
+          {/* Header: Tác giả, Follow nhanh và nút tác vụ */}
           <div className="flex items-center justify-between relative">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-text-primary hover:underline cursor-pointer">
+              {/* Tên hiển thị - Click để xem Profile */}
+              <span 
+                onClick={() => navigate(`/profile?userId=${article.authorId}`)}
+                className="font-bold text-text-primary hover:underline cursor-pointer"
+              >
                 {authorName}
               </span>
               <span className="text-text-secondary text-sm">
@@ -1155,55 +1223,83 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               </span>
             </div>
 
-            {/* Nút tác vụ ba chấm và Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDropdown(!showDropdown);
-                }}
-                className="text-text-secondary hover:text-primary p-1.5 rounded-full hover:bg-primary/10 transition-colors cursor-pointer"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-
-              {showDropdown && (
-                <div className="absolute right-0 mt-1 w-48 bg-surface border border-gray-800 rounded-lg shadow-xl py-1.5 z-30 animate-fade-in text-sm">
-                  {/* Hành động Bookmark */}
-                  <button
-                    onClick={handleBookmark}
-                    className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-white/5 text-text-primary transition-colors cursor-pointer"
-                  >
-                    <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-primary text-primary' : 'text-text-secondary'}`} />
-                    <span>{bookmarked ? 'Bỏ lưu bài viết' : 'Thêm vào đã lưu'}</span>
-                  </button>
-
-                  {/* Các hành động chỉ dành cho chủ bài viết (Chỉnh sửa / Xóa) */}
-                  {isOwner && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsEditing(true);
-                          setShowDropdown(false);
-                        }}
-                        className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-white/5 text-text-primary transition-colors cursor-pointer"
-                      >
-                        <Edit3 className="w-4 h-4 text-text-secondary" />
-                        <span>Chỉnh sửa bài đăng</span>
-                      </button>
-                      <div className="border-t border-gray-800/80 my-1" />
-                      <button
-                        onClick={handleDelete}
-                        className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-red-500/5 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Xóa bài đăng</span>
-                      </button>
-                    </>
-                  )}
-                </div>
+            {/* Cụm nút Follow nhanh & Thao tác ba chấm */}
+            <div className="flex items-center gap-1 relative">
+              {/* Nút Follow nhanh bên cạnh bài đăng của người khác */}
+              {!isOwner && user && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      let res: any;
+                      if (isAuthorFollowing) {
+                        res = await userApi.unfollowUser(article.authorId);
+                        showToastMessage(`Đã hủy theo dõi @${authorProfile?.username || 'user'}`);
+                      } else {
+                        res = await userApi.followUser(article.authorId);
+                        showToastMessage(`Đã theo dõi @${authorProfile?.username || 'user'}!`);
+                      }
+                      setIsAuthorFollowing(res.following);
+                    } catch (err) {
+                      console.error('Follow error', err);
+                      showToastMessage('Thao tác thất bại.', 'error');
+                    }
+                  }}
+                  className={`px-3 py-1 font-bold text-xs rounded-full transition-all cursor-pointer ${isAuthorFollowing ? 'border border-gray-700 text-text-primary hover:border-red-500 hover:text-red-500 hover:bg-red-500/10' : 'bg-primary text-white hover:bg-primary/95'}`}
+                >
+                  {isAuthorFollowing ? 'Following' : 'Follow'}
+                </button>
               )}
+
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDropdown(!showDropdown);
+                  }}
+                  className="text-text-secondary hover:text-primary p-1.5 rounded-full hover:bg-primary/10 transition-colors cursor-pointer"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+
+                {showDropdown && (
+                  <div className="absolute right-0 mt-1 w-48 bg-surface border border-gray-800 rounded-lg shadow-xl py-1.5 z-30 animate-fade-in text-sm">
+                    {/* Hành động Bookmark */}
+                    <button
+                      onClick={handleBookmark}
+                      className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-white/5 text-text-primary transition-colors cursor-pointer"
+                    >
+                      <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-primary text-primary' : 'text-text-secondary'}`} />
+                      <span>{bookmarked ? 'Bỏ lưu bài viết' : 'Thêm vào đã lưu'}</span>
+                    </button>
+
+                    {/* Các hành động chỉ dành cho chủ bài viết (Chỉnh sửa / Xóa) */}
+                    {isOwner && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsEditing(true);
+                            setShowDropdown(false);
+                          }}
+                          className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-white/5 text-text-primary transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-4 h-4 text-text-secondary" />
+                          <span>Chỉnh sửa bài đăng</span>
+                        </button>
+                        <div className="border-t border-gray-800/80 my-1" />
+                        <button
+                          onClick={handleDelete}
+                          className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-red-500/5 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Xóa bài đăng</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
