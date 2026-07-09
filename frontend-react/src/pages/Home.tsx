@@ -12,17 +12,29 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'djy5p3y4g';
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
   
+  const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', uploadPreset);
+  formData.append('resource_type', resourceType);
   
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+  const response = await fetch(url, {
     method: 'POST',
     body: formData
   });
   
   if (!response.ok) {
-    throw new Error('Đăng tải tệp tin lên Cloudinary thất bại.');
+    const errorText = await response.text();
+    console.error('Cloudinary upload error response:', errorText);
+    let errMsg = 'Đăng tải tệp tin lên Cloudinary thất bại.';
+    try {
+      const errJson = JSON.parse(errorText);
+      if (errJson.error && errJson.error.message) {
+        errMsg = `Cloudinary: ${errJson.error.message}`;
+      }
+    } catch (e) {}
+    throw new Error(errMsg);
   }
   
   const data = await response.json();
