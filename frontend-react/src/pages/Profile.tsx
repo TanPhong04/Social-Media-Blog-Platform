@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../api/userApi';
 import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
-import { ArrowLeft, Calendar, Edit3, X, Check, Globe, FileText, UserPlus, Users } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { ArrowLeft, Calendar, FileText, Heart, Globe, X, Check, Gift, Repeat } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -19,10 +19,11 @@ const Profile: React.FC = () => {
   // Trạng thái danh sách bài viết/likes
   const [posts, setPosts] = useState<ArticleResponse[]>([]);
   const [likedPosts, setLikedPosts] = useState<ArticleResponse[]>([]);
+  const [repostedPosts, setRepostedPosts] = useState<ArticleResponse[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
   // Trạng thái tab và loading
-  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'highlights' | 'articles' | 'media' | 'likes'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reposts' | 'highlights' | 'articles' | 'media' | 'likes'>('posts');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +33,8 @@ const Profile: React.FC = () => {
   const [editBio, setEditBio] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [editBanner, setEditBanner] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editDob, setEditDob] = useState('');
   const [updating, setUpdating] = useState(false);
 
   // Trạng thái Toast thông báo
@@ -78,6 +81,8 @@ const Profile: React.FC = () => {
       setEditName(profileRes.displayName);
       setEditBio(profileRes.bio || '');
       setEditAvatar(profileRes.avatarUrl || '');
+      setEditUsername(profileRes.username || '');
+      setEditDob(profileRes.dob || '');
 
       // Tải banner từ localStorage cục bộ
       const storedBanner = localStorage.getItem(`profile_banner_${profileRes.id}`) || '';
@@ -117,6 +122,9 @@ const Profile: React.FC = () => {
       } else if (activeTab === 'likes') {
         const liked = JSON.parse(localStorage.getItem(`liked_posts_${profile.id}`) || '[]');
         setLikedPosts([...liked].reverse());
+      } else if (activeTab === 'reposts') {
+        const reposted = JSON.parse(localStorage.getItem(`reposts_${profile.id}`) || '[]');
+        setRepostedPosts([...reposted].reverse());
       }
     } catch (err) {
       console.error('Error fetching tab data', err);
@@ -128,14 +136,30 @@ const Profile: React.FC = () => {
   // Cập nhật thông tin profile
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editName.trim()) return;
+    if (!editName.trim()) {
+      showToastMessage('Tên hiển thị không được để trống.', 'error');
+      return;
+    }
+    if (!editUsername.trim()) {
+      showToastMessage('Tên tài khoản (username) không được để trống.', 'error');
+      return;
+    }
+
+    // Kiểm tra định dạng username (chỉ cho phép chữ thường, số và dấu gạch dưới từ 3-30 ký tự)
+    const usernameRegex = /^[a-z0-9_]{3,30}$/;
+    if (!usernameRegex.test(editUsername.trim())) {
+      showToastMessage('Username chỉ được dùng chữ thường, số, dấu gạch dưới (từ 3-30 ký tự).', 'error');
+      return;
+    }
 
     setUpdating(true);
     try {
       const res: any = await userApi.updateProfile({
         displayName: editName.trim(),
         bio: editBio.trim(),
-        avatarUrl: editAvatar.trim()
+        avatarUrl: editAvatar.trim(),
+        username: editUsername.trim().toLowerCase(),
+        dob: editDob.trim()
       });
 
       // Lưu bannerUrl vào localStorage
@@ -150,34 +174,16 @@ const Profile: React.FC = () => {
       
       // Load lại dữ liệu follow và bài đăng để đồng bộ
       loadProfileData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update profile', err);
-      showToastMessage('Cập nhật hồ sơ thất bại.', 'error');
+      const serverMsg = err.response?.data?.message || 'Cập nhật hồ sơ thất bại.';
+      showToastMessage(serverMsg, 'error');
     } finally {
       setUpdating(false);
     }
   };
 
-  // Tương tác Follow giả lập trong mục gợi ý
-  const handleFollowSuggestion = (id: string) => {
-    setWhoToFollow(prev =>
-      prev.map(item => {
-        if (item.id === id) {
-          const nextFollowing = !item.following;
-          // Cập nhật realtime số lượng following của user hiện tại trên giao diện
-          setFollowStats(stats => ({
-            ...stats,
-            followingCount: stats.followingCount + (nextFollowing ? 1 : -1)
-          }));
-          showToastMessage(nextFollowing ? `Đã theo dõi ${item.displayName}` : `Đã bỏ theo dõi ${item.displayName}`);
-          return { ...item, following: nextFollowing };
-        }
-        return item;
-      })
-    );
-  };
-
-  // Format tháng năm gia nhập
+  // Helper format Joined Date
   const formatJoinedDate = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -187,15 +193,45 @@ const Profile: React.FC = () => {
     });
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background p-8 text-center flex flex-col items-center justify-center">
-        <AlertCircle className="w-12 h-12 text-primary mb-4" />
-        <h3 className="text-xl font-bold text-text-primary mb-2">Yêu cầu đăng nhập</h3>
-        <p className="text-text-secondary text-sm">Vui lòng đăng nhập để xem thông tin hồ sơ của bạn.</p>
-      </div>
-    );
-  }
+  // Helper format DOB
+  const formatDobDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('vi-VN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  // Tương tác follow gợi ý
+  const handleFollowSuggestion = async (id: string) => {
+    try {
+      const target = whoToFollow.find(item => item.id === id);
+      if (!target) return;
+
+      const nextFollowing = !target.following;
+
+      // Giả lập cập nhật trạng thái UI gợi ý
+      setWhoToFollow(prev => prev.map(item => {
+        if (item.id === id) {
+          return { ...item, following: nextFollowing };
+        }
+        return item;
+      }));
+
+      // Đồng thời tăng/giảm realtime số lượng Following của tài khoản hiện tại trên giao diện
+      setFollowStats(prev => ({
+        ...prev,
+        followingCount: nextFollowing ? prev.followingCount + 1 : prev.followingCount - 1
+      }));
+
+      showToastMessage(nextFollowing ? `Đã theo dõi ${target.displayName}` : `Đã bỏ theo dõi ${target.displayName}`);
+    } catch (e) {
+      console.error(e);
+      showToastMessage('Tác vụ thất bại.', 'error');
+    }
+  };
 
   if (loading) {
     return (
@@ -273,7 +309,7 @@ const Profile: React.FC = () => {
               <Check className="w-3 h-3" /> Get verified
             </span>
           </div>
-          <p className="text-text-secondary text-[15px]">@user_{profile.id.substring(0, 8)}</p>
+          <p className="text-text-secondary text-[15px]">@{profile.username || `user_${profile.id.substring(0, 8)}`}</p>
         </div>
 
         {/* Tiểu sử (Bio) */}
@@ -283,10 +319,19 @@ const Profile: React.FC = () => {
           <p className="text-[15px] text-text-secondary italic">Chưa cấu hình tiểu sử. Chọn Edit profile để thêm câu chuyện của bạn.</p>
         )}
 
-        {/* Ngày tham gia */}
-        <div className="flex items-center gap-1.5 text-text-secondary text-[14px]">
-          <Calendar className="w-4 h-4" />
-          <span>Đã tham gia {formatJoinedDate(profile.createdAt)}</span>
+        {/* Thông tin metadata (Ngày sinh, Ngày gia nhập) */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-text-secondary text-[14px]">
+          {profile.dob && (
+            <div className="flex items-center gap-1.5">
+              <Gift className="w-4 h-4 text-primary" />
+              <span>Sinh ngày {formatDobDate(profile.dob)}</span>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4" />
+            <span>Đã tham gia {formatJoinedDate(profile.createdAt)}</span>
+          </div>
         </div>
 
         {/* Thống kê Following / Followers */}
@@ -302,7 +347,7 @@ const Profile: React.FC = () => {
 
       {/* Hệ thống Tabs */}
       <div className="flex border-b border-gray-800 mt-4 overflow-x-auto">
-        {(['posts', 'replies', 'highlights', 'articles', 'media', 'likes'] as const).map((tab) => (
+        {(['posts', 'reposts', 'highlights', 'articles', 'media', 'likes'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -351,8 +396,21 @@ const Profile: React.FC = () => {
               ))}
             </div>
           )
+        ) : activeTab === 'reposts' ? (
+          repostedPosts.length === 0 ? (
+            <div className="p-12 text-center text-text-secondary">
+              <Repeat className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-semibold">Chưa đăng lại bài viết nào.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {repostedPosts.map((art) => (
+                <ArticleCard key={art.id} article={art} onRefresh={loadTabData} />
+              ))}
+            </div>
+          )
         ) : (
-          /* Các tab khác (Replies, Highlights, Media) */
+          /* Các tab khác (Highlights, Media) */
           <div className="p-12 text-center text-text-secondary flex flex-col items-center justify-center">
             <Globe className="w-10 h-10 mb-3 opacity-30" />
             <h4 className="text-sm font-bold text-text-primary capitalize mb-1">Chưa có {activeTab}</h4>
@@ -361,14 +419,13 @@ const Profile: React.FC = () => {
         )}
       </div>
 
-      {/* MỤC "WHO TO FOLLOW" GIẢ LẬP NHƯ TRÊN X */}
+      {/* MỤC "WHO TO FOLLOW" */}
       <div className="mt-4 border-t border-gray-800 p-4">
         <h3 className="text-lg font-bold mb-4 font-heading text-text-primary">Who to follow</h3>
         <div className="space-y-4">
           {whoToFollow.map(item => (
             <div key={item.id} className="flex justify-between items-start gap-3">
               <div className="flex gap-3">
-                {/* Avatar tròn suggestions */}
                 <div className="w-10 h-10 rounded-full bg-surface text-primary border border-white/10 flex items-center justify-center font-bold text-sm shrink-0">
                   {item.avatar}
                 </div>
@@ -404,7 +461,7 @@ const Profile: React.FC = () => {
       {/* POPUP MODAL CHỈNH SỬA HỒ SƠ (EDIT PROFILE MODAL) */}
       {isEditing && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-surface w-full max-w-lg rounded-app border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-surface w-full max-w-lg rounded-app border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
               <div className="flex items-center gap-3">
@@ -419,7 +476,7 @@ const Profile: React.FC = () => {
               </div>
               <button
                 onClick={handleUpdateProfile}
-                disabled={updating || !editName.trim()}
+                disabled={updating || !editName.trim() || !editUsername.trim()}
                 className="px-5 py-1.5 bg-text-primary text-background font-bold text-sm rounded-full transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {updating ? 'Đang lưu...' : 'Lưu'}
@@ -427,7 +484,7 @@ const Profile: React.FC = () => {
             </div>
 
             {/* Modal Content Form */}
-            <form onSubmit={handleUpdateProfile} className="p-6 space-y-6 overflow-y-auto flex-1">
+            <form onSubmit={handleUpdateProfile} className="p-6 space-y-5 overflow-y-auto flex-1 text-sm">
               {/* Tên hiển thị */}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
@@ -440,8 +497,40 @@ const Profile: React.FC = () => {
                   disabled={updating}
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium"
+                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium text-sm"
                   placeholder="Nhập tên hiển thị..."
+                />
+              </div>
+
+              {/* Tên tài khoản (username) */}
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
+                  Tên tài khoản (Username) <span className="text-error">*</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={50}
+                  required
+                  disabled={updating}
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium text-sm"
+                  placeholder="Nhập tên tài khoản (viết liền không dấu)..."
+                />
+                <p className="text-[11px] text-text-secondary mt-1">Viết liền không dấu, chỉ gồm chữ thường, số và dấu gạch dưới. Không được trùng với người khác.</p>
+              </div>
+
+              {/* Ngày sinh */}
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
+                  Ngày sinh (DOB)
+                </label>
+                <input
+                  type="date"
+                  disabled={updating}
+                  value={editDob}
+                  onChange={(e) => setEditDob(e.target.value)}
+                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium text-sm"
                 />
               </div>
 
@@ -455,8 +544,8 @@ const Profile: React.FC = () => {
                   disabled={updating}
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
-                  rows={4}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary text-[14px]"
+                  rows={3}
+                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary text-sm"
                   placeholder="Giới thiệu đôi chút về bản thân bạn..."
                 />
               </div>

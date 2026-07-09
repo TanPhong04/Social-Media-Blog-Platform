@@ -7,6 +7,8 @@ export interface ProfileResponse {
   bio: string | null;
   avatarUrl: string | null;
   role: string;
+  username: string;
+  dob: string | null;
   createdAt: string;
 }
 
@@ -21,11 +23,16 @@ export interface UpdateProfileRequest {
   displayName: string;
   bio: string;
   avatarUrl: string;
+  username: string;
+  dob: string;
 }
 
 export const userApi = {
   getProfile: () => {
     return axiosClient.get<ProfileResponse>('/users/me');
+  },
+  getUserById: (userId: string) => {
+    return axiosClient.get<ProfileResponse>(`/users/${userId}`);
   },
   updateProfile: (data: UpdateProfileRequest) => {
     return axiosClient.put<ProfileResponse>('/users/me', data);
