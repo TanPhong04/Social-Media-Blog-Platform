@@ -40,6 +40,11 @@ export const articleApi = {
       params: { page, size }
     });
   },
+  getFollowingFeed: (page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>('/articles/following', {
+      params: { page, size }
+    });
+  },
   createArticle: (data: ArticleWriteRequest) => {
     return axiosClient.post<ArticleResponse>('/articles', data);
   },
