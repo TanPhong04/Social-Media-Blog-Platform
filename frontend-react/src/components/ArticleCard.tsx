@@ -12,7 +12,7 @@ interface ArticleCardProps {
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(Math.floor(Math.random() * 50)); // Giả lập count
+  const [likeCount, setLikeCount] = useState(0);
   
   // Trạng thái cho Dropdown Menu tác vụ
   const [showDropdown, setShowDropdown] = useState(false);
@@ -36,12 +36,26 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }, 2500);
   };
 
+  // Đọc trạng thái like thực tế từ backend
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      if (!user) return;
+      try {
+        const res: any = await articleApi.getArticleInteraction(article.id);
+        setLiked(res.likedByCurrentUser);
+        setLikeCount(res.count);
+      } catch (err) {
+        console.error('Lỗi khi fetch status like', err);
+      }
+    };
+    fetchLikeStatus();
+  }, [article.id, user]);
+
   // Đọc trạng thái bookmark khi mount
   useEffect(() => {
     if (user) {
       try {
         const bookmarks = JSON.parse(localStorage.getItem(`bookmarks_${user.id}`) || '[]');
-        // Kiểm tra xem ID có tồn tại trong danh sách bookmarks dạng đối tượng không
         setBookmarked(bookmarks.some((b: any) => b.id === article.id));
       } catch (e) {
         setBookmarked(false);
@@ -97,10 +111,55 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     });
   };
 
-  const handleLike = (e: React.MouseEvent) => {
+  // Gọi API tương tác Like/Unlike và cập nhật local storage cho tab Likes
+  const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setLiked(!liked);
-    setLikeCount(prev => liked ? prev - 1 : prev + 1);
+    if (!user) {
+      showToastMessage('Vui lòng đăng nhập để thích bài viết.', 'error');
+      return;
+    }
+
+    const nextLiked = !liked;
+    // Optimistic UI Update
+    setLiked(nextLiked);
+    setLikeCount(prev => nextLiked ? prev + 1 : prev - 1);
+
+    try {
+      if (nextLiked) {
+        await articleApi.likeArticle(article.id);
+      } else {
+        await articleApi.unlikeArticle(article.id);
+      }
+
+      // Lưu trữ/Gỡ bỏ bài viết đã like ở localStorage của người dùng
+      const likedKey = `liked_posts_${user.id}`;
+      const likedList = JSON.parse(localStorage.getItem(likedKey) || '[]');
+      let newLikedList;
+
+      if (!nextLiked) {
+        newLikedList = likedList.filter((b: any) => b.id !== article.id);
+      } else {
+        if (!likedList.some((b: any) => b.id === article.id)) {
+          newLikedList = [...likedList, article];
+        } else {
+          newLikedList = likedList;
+        }
+      }
+      localStorage.setItem(likedKey, JSON.stringify(newLikedList));
+
+      // Refresh UI nếu đây là view đang hiển thị tab Likes
+      if (onRefresh && !nextLiked) {
+        setTimeout(() => {
+          onRefresh();
+        }, 400);
+      }
+    } catch (err) {
+      console.error('Error liking/unliking article', err);
+      // Revert UI state if error
+      setLiked(liked);
+      setLikeCount(prev => liked ? prev + 1 : prev - 1);
+      showToastMessage('Không thể thực hiện tương tác thích.', 'error');
+    }
   };
 
   // Xử lý lưu nguyên object bài viết vào localStorage
@@ -141,7 +200,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   };
 
-  // Xử lý xóa bài viết và cập nhật local bookmarks
+  // Xử lý xóa bài viết và cập nhật local bookmarks, liked_posts
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) return;
@@ -150,12 +209,18 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       await articleApi.deleteArticle(article.id);
       showToastMessage('Xóa bài đăng thành công!');
 
-      // Tự động xóa khỏi bookmarks trong localStorage nếu bài đăng bị xóa
+      // Xóa khỏi bookmarks trong localStorage nếu bài đăng bị xóa
       if (user) {
         const storageKey = `bookmarks_${user.id}`;
         const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
         const newBookmarks = bookmarks.filter((b: any) => b.id !== article.id);
         localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
+
+        // Xóa khỏi liked_posts trong localStorage nếu bài đăng bị xóa
+        const likedKey = `liked_posts_${user.id}`;
+        const likedList = JSON.parse(localStorage.getItem(likedKey) || '[]');
+        const newLikedList = likedList.filter((b: any) => b.id !== article.id);
+        localStorage.setItem(likedKey, JSON.stringify(newLikedList));
       }
 
       // Kích hoạt callback UI reload sau 500ms
@@ -170,7 +235,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   };
 
-  // Xử lý cập nhật bài viết và đồng bộ bookmarks
+  // Xử lý cập nhật bài viết và đồng bộ bookmarks, liked_posts
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editContent.trim()) return;
@@ -215,6 +280,24 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           return b;
         });
         localStorage.setItem(storageKey, JSON.stringify(updatedBookmarks));
+
+        // Đồng bộ nội dung mới vào danh sách liked_posts ở localStorage nếu có
+        const likedKey = `liked_posts_${user.id}`;
+        const likedList = JSON.parse(localStorage.getItem(likedKey) || '[]');
+        const updatedLiked = likedList.map((b: any) => {
+          if (b.id === article.id) {
+            return {
+              ...b,
+              title,
+              summary,
+              content: editContent.trim(),
+              tags,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return b;
+        });
+        localStorage.setItem(likedKey, JSON.stringify(updatedLiked));
       }
 
       showToastMessage('Cập nhật bài viết thành công!');

@@ -12,6 +12,7 @@ import UserManagement from './pages/admin/UserManagement';
 import ArticleManagement from './pages/admin/ArticleManagement';
 import MyArticles from './pages/MyArticles';
 import Bookmarks from './pages/Bookmarks';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -29,7 +30,7 @@ function App() {
         
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={<ComingSoon />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/following" element={<ComingSoon />} />
           <Route path="/my-articles" element={<MyArticles />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
