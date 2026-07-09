@@ -5,7 +5,7 @@ import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Calendar, FileText, Heart, Globe, X, Check, Gift, Repeat, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Heart, Globe, X, Check, Gift, Repeat, Image as ImageIcon, Users } from 'lucide-react';
 
 // Helper: Nén hình ảnh dùng Canvas
 const compressImage = (file: File): Promise<string> => {
@@ -50,6 +50,11 @@ const Profile: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  // Đọc userId từ query parameters (nếu có)
+  const searchParams = new URLSearchParams(window.location.search);
+  const targetUserId = searchParams.get('userId');
+  const isMe = !targetUserId || targetUserId === user?.id;
+
   // Refs chọn file ảnh
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +62,7 @@ const Profile: React.FC = () => {
   // Trạng thái hồ sơ
   const [profile, setProfile] = useState<any>(null);
   const [followStats, setFollowStats] = useState({ followerCount: 0, followingCount: 0 });
+  const [isFollowing, setIsFollowing] = useState(false);
   const [bannerUrl, setBannerUrl] = useState('');
   
   // Trạng thái danh sách bài viết/likes
@@ -79,6 +85,11 @@ const Profile: React.FC = () => {
   const [editUsername, setEditUsername] = useState('');
   const [editDob, setEditDob] = useState('');
   const [updating, setUpdating] = useState(false);
+
+  // Trạng thái Modal xem danh sách Followers/Following
+  const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
+  const [followModalUsers, setFollowModalUsers] = useState<any[]>([]);
+  const [loadingFollowModal, setLoadingFollowModal] = useState(false);
 
   // Trạng thái Toast thông báo
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -103,7 +114,7 @@ const Profile: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, window.location.search]);
 
   useEffect(() => {
     if (profile) {
@@ -116,8 +127,20 @@ const Profile: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // 1. Tải thông tin cá nhân
-      const profileRes: any = await userApi.getProfile();
+      const effectiveUserId = targetUserId || (user ? user.id : null);
+      if (!effectiveUserId) {
+        setError('Vui lòng đăng nhập để xem hồ sơ.');
+        setLoading(false);
+        return;
+      }
+
+      // 1. Tải thông tin hồ sơ
+      let profileRes: any;
+      if (isMe) {
+        profileRes = await userApi.getProfile();
+      } else {
+        profileRes = await userApi.getUserById(effectiveUserId);
+      }
       setProfile(profileRes);
 
       // Điền sẵn form chỉnh sửa
@@ -139,17 +162,19 @@ const Profile: React.FC = () => {
           followerCount: followRes.followerCount,
           followingCount: followRes.followingCount
         });
+        setIsFollowing(followRes.following);
       } catch (followErr) {
         console.warn('Follower service unavailable, falling back to 0', followErr);
         setFollowStats({
           followerCount: 0,
           followingCount: 0
         });
+        setIsFollowing(false);
       }
 
     } catch (err) {
       console.error('Failed to load profile details', err);
-      setError('Không thể tải thông tin hồ sơ của bạn.');
+      setError('Không thể tải thông tin hồ sơ của người dùng này.');
     } finally {
       setLoading(false);
     }
@@ -159,8 +184,14 @@ const Profile: React.FC = () => {
     if (!profile) return;
     setLoadingPosts(true);
     try {
+      const effectiveUserId = profile.id;
       if (activeTab === 'posts' || activeTab === 'media') {
-        const res: any = await articleApi.getMine(0, 50);
+        let res: any;
+        if (isMe) {
+          res = await articleApi.getMine(0, 50);
+        } else {
+          res = await articleApi.getByAuthor(effectiveUserId, 0, 50);
+        }
         setPosts(res.content || []);
       } else if (activeTab === 'likes') {
         const liked = JSON.parse(localStorage.getItem(`liked_posts_${profile.id}`) || '[]');
@@ -187,9 +218,10 @@ const Profile: React.FC = () => {
     try {
       const base64 = await compressImage(file);
       setEditAvatar(base64);
+      showToastMessage('Đã nạp ảnh đại diện mới.');
     } catch (err) {
       console.error(err);
-      showToastMessage('Lỗi đọc ảnh đại diện.', 'error');
+      showToastMessage('Không thể đọc file ảnh.', 'error');
     }
   };
 
@@ -203,63 +235,114 @@ const Profile: React.FC = () => {
     try {
       const base64 = await compressImage(file);
       setEditBanner(base64);
+      showToastMessage('Đã nạp ảnh bìa mới.');
     } catch (err) {
       console.error(err);
-      showToastMessage('Lỗi đọc ảnh nền.', 'error');
+      showToastMessage('Không thể đọc file ảnh.', 'error');
     }
   };
 
-  // Cập nhật thông tin profile
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  // Xử lý cập nhật thông tin hồ sơ
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim()) {
-      showToastMessage('Tên hiển thị không được để trống.', 'error');
+      showToastMessage('Tên hiển thị không được bỏ trống.', 'error');
       return;
     }
     if (!editUsername.trim()) {
-      showToastMessage('Tên tài khoản (username) không được để trống.', 'error');
-      return;
-    }
-
-    // Kiểm tra định dạng username
-    const usernameRegex = /^[a-z0-9_]{3,30}$/;
-    if (!usernameRegex.test(editUsername.trim())) {
-      showToastMessage('Username chỉ được dùng chữ thường, số, dấu gạch dưới (từ 3-30 ký tự).', 'error');
+      showToastMessage('Tên tài khoản không được bỏ trống.', 'error');
       return;
     }
 
     setUpdating(true);
     try {
-      const res: any = await userApi.updateProfile({
+      // Gọi API cập nhật lên user-service
+      const updateData = {
         displayName: editName.trim(),
         bio: editBio.trim(),
-        avatarUrl: editAvatar.trim(),
+        avatarUrl: editAvatar,
         username: editUsername.trim().toLowerCase(),
-        dob: editDob.trim()
-      });
+        dob: editDob
+      };
 
-      // Lưu bannerUrl vào localStorage
-      if (profile) {
-        localStorage.setItem(`profile_banner_${profile.id}`, editBanner.trim());
-        setBannerUrl(editBanner.trim());
+      const updatedProfile = await userApi.updateProfile(updateData);
+      setProfile(updatedProfile);
+
+      // Lưu banner vào localStorage
+      if (editBanner) {
+        localStorage.setItem(`profile_banner_${updatedProfile.id}`, editBanner);
+        setBannerUrl(editBanner);
+      } else {
+        localStorage.removeItem(`profile_banner_${updatedProfile.id}`);
+        setBannerUrl('');
       }
 
-      setProfile(res);
-      setIsEditing(false);
       showToastMessage('Cập nhật hồ sơ thành công!');
-      
-      // Load lại dữ liệu follow và bài đăng để đồng bộ
+      setIsEditing(false);
+
+      // Reload lại thông tin
       loadProfileData();
     } catch (err: any) {
-      console.error('Failed to update profile', err);
-      const serverMsg = err.response?.data?.message || 'Cập nhật hồ sơ thất bại.';
-      showToastMessage(serverMsg, 'error');
+      console.error('Update profile failed', err);
+      const serverErr = err.response?.data;
+      if (serverErr && serverErr.code === 'USERNAME_ALREADY_TAKEN') {
+        showToastMessage('Tên tài khoản đã tồn tại. Vui lòng chọn tên khác!', 'error');
+      } else {
+        showToastMessage(serverErr?.message || 'Cập nhật hồ sơ thất bại.', 'error');
+      }
     } finally {
       setUpdating(false);
     }
   };
 
-  // Helper format Joined Date
+  // Xử lý click nút Theo dõi (Follow / Unfollow)
+  const handleFollowClick = async () => {
+    if (!user) {
+      showToastMessage('Vui lòng đăng nhập để theo dõi.', 'error');
+      return;
+    }
+    try {
+      let res: any;
+      if (isFollowing) {
+        res = await userApi.unfollowUser(profile.id);
+        showToastMessage(`Đã hủy theo dõi @${profile.username || 'user'}`);
+      } else {
+        res = await userApi.followUser(profile.id);
+        showToastMessage(`Đã theo dõi @${profile.username || 'user'}!`);
+      }
+      setIsFollowing(res.following);
+      setFollowStats({
+        followerCount: res.followerCount,
+        followingCount: res.followingCount
+      });
+    } catch (err) {
+      console.error('Lỗi khi theo dõi', err);
+      showToastMessage('Tác vụ theo dõi thất bại.', 'error');
+    }
+  };
+
+  // Mở modal xem danh sách Followers/Following
+  const openFollowModal = async (type: 'followers' | 'following') => {
+    if (!profile) return;
+    setShowFollowModal(type);
+    setLoadingFollowModal(true);
+    try {
+      let res: any;
+      if (type === 'followers') {
+        res = await userApi.getFollowers(profile.id, 0, 100);
+      } else {
+        res = await userApi.getFollowing(profile.id, 0, 100);
+      }
+      setFollowModalUsers(res.content || []);
+    } catch (err) {
+      console.error('Lỗi lấy danh sách follow', err);
+      showToastMessage('Không thể tải danh sách.', 'error');
+    } finally {
+      setLoadingFollowModal(false);
+    }
+  };
+
+  // Helper hiển thị ngày tháng
   const formatJoinedDate = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -269,10 +352,9 @@ const Profile: React.FC = () => {
     });
   };
 
-  // Helper format DOB
-  const formatDobDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
+  const formatDobDate = (dobStr: string) => {
+    if (!dobStr) return '';
+    const date = new Date(dobStr);
     return date.toLocaleDateString('vi-VN', {
       day: 'numeric',
       month: 'long',
@@ -280,37 +362,11 @@ const Profile: React.FC = () => {
     });
   };
 
-  // Tương tác follow gợi ý
-  const handleFollowSuggestion = async (id: string) => {
-    try {
-      const target = whoToFollow.find(item => item.id === id);
-      if (!target) return;
-
-      const nextFollowing = !target.following;
-
-      setWhoToFollow(prev => prev.map(item => {
-        if (item.id === id) {
-          return { ...item, following: nextFollowing };
-        }
-        return item;
-      }));
-
-      setFollowStats(prev => ({
-        ...prev,
-        followingCount: nextFollowing ? prev.followingCount + 1 : prev.followingCount - 1
-      }));
-
-      showToastMessage(nextFollowing ? `Đã theo dõi ${target.displayName}` : `Đã bỏ theo dõi ${target.displayName}`);
-    } catch (e) {
-      console.error(e);
-      showToastMessage('Tác vụ thất bại.', 'error');
-    }
-  };
-
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
+      <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background flex flex-col items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-primary mb-3" />
+        <p className="text-text-secondary text-sm">Đang tải hồ sơ...</p>
       </div>
     );
   }
@@ -318,20 +374,18 @@ const Profile: React.FC = () => {
   if (error || !profile) {
     return (
       <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background p-8 text-center">
-        <p className="text-error mb-4">{error || 'Có lỗi xảy ra.'}</p>
-        <button
-          onClick={loadProfileData}
-          className="px-4 py-2 bg-primary/20 text-primary hover:bg-primary/30 rounded-full transition-colors font-medium cursor-pointer"
-        >
-          Tải lại trang
+        <ArrowLeft className="w-6 h-6 text-text-primary mb-6 cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(-1)} />
+        <p className="text-error font-semibold text-lg">{error || 'Hồ sơ không khả dụng.'}</p>
+        <button onClick={() => navigate('/')} className="mt-4 px-5 py-2 bg-primary text-white font-bold text-sm rounded-full transition-colors">
+          Quay lại trang chủ
         </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background relative text-text-primary">
-      {/* Header Profile kiểu X */}
+    <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background pb-12">
+      {/* Header bar */}
       <div className="px-4 py-2 border-b border-gray-800 sticky top-16 bg-background/85 backdrop-blur-md z-45 flex items-center gap-6">
         <button
           onClick={() => navigate(-1)}
@@ -354,7 +408,7 @@ const Profile: React.FC = () => {
         )}
       </div>
 
-      {/* Avatar và nút Chỉnh sửa */}
+      {/* Avatar và nút tác vụ (Edit hoặc Follow) */}
       <div className="px-4 relative flex justify-between items-end -mt-16 mb-4">
         {/* Avatar tròn đè banner */}
         <div className="w-32 h-32 rounded-full border-4 border-background bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white text-4xl font-bold shadow-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity overflow-hidden">
@@ -365,13 +419,22 @@ const Profile: React.FC = () => {
           )}
         </div>
 
-        {/* Nút Edit profile */}
-        <button
-          onClick={() => setIsEditing(true)}
-          className="px-4 py-2 border border-gray-700 hover:bg-white/5 text-text-primary font-bold text-[15px] rounded-full transition-all cursor-pointer mb-2"
-        >
-          Edit profile
-        </button>
+        {/* Nút Edit profile hoặc Follow */}
+        {isMe ? (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="px-4 py-2 border border-gray-700 hover:bg-white/5 text-text-primary font-bold text-[15px] rounded-full transition-all cursor-pointer mb-2"
+          >
+            Edit profile
+          </button>
+        ) : (
+          <button
+            onClick={handleFollowClick}
+            className={`px-5 py-2 font-bold text-[15px] rounded-full transition-all cursor-pointer mb-2 shadow-md ${isFollowing ? 'border border-gray-700 hover:border-red-500 hover:bg-red-500/10 hover:text-red-500 text-text-primary' : 'bg-primary hover:bg-primary/95 text-white'}`}
+          >
+            {isFollowing ? 'Following' : 'Follow'}
+          </button>
+        )}
       </div>
 
       {/* Thông tin văn bản của User */}
@@ -408,12 +471,12 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
-        {/* Thống kê Following / Followers */}
+        {/* Thống kê Following / Followers (Có thể click để mở Modal xem danh sách) */}
         <div className="flex items-center gap-5 text-[14px]">
-          <span className="hover:underline cursor-pointer text-text-secondary">
+          <span onClick={() => openFollowModal('following')} className="hover:underline cursor-pointer text-text-secondary">
             <strong className="text-text-primary font-bold">{followStats.followingCount}</strong> Following
           </span>
-          <span className="hover:underline cursor-pointer text-text-secondary">
+          <span onClick={() => openFollowModal('followers')} className="hover:underline cursor-pointer text-text-secondary">
             <strong className="text-text-primary font-bold">{followStats.followerCount}</strong> Followers
           </span>
         </div>
@@ -507,189 +570,236 @@ const Profile: React.FC = () => {
         <h3 className="text-lg font-bold mb-4 font-heading text-text-primary">Who to follow</h3>
         <div className="space-y-4">
           {whoToFollow.map(item => (
-            <div key={item.id} className="flex justify-between items-start gap-3">
-              <div className="flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-surface text-primary border border-white/10 flex items-center justify-center font-bold text-sm shrink-0">
-                  {item.avatar}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-bold text-sm text-text-primary hover:underline cursor-pointer">
-                      {item.displayName}
-                    </span>
-                    <span className="inline-flex items-center p-0.5 rounded-full bg-primary/10 text-primary">
-                      <Check className="w-3 h-3 fill-current" />
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-secondary">{item.handle}</p>
-                  <p className="text-xs text-text-primary mt-1 leading-normal">{item.bio}</p>
-                </div>
+            <div key={item.id} className="flex gap-3 text-[14px]">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-white font-semibold shadow-md">
+                {item.avatar}
               </div>
-
-              <button
-                onClick={() => handleFollowSuggestion(item.id)}
-                className={`px-4 py-1.5 font-bold text-xs rounded-full transition-all cursor-pointer shrink-0 ${
-                  item.following
-                    ? 'border border-gray-700 bg-transparent text-text-primary hover:border-red-500 hover:bg-red-500/10 hover:text-red-400'
-                    : 'bg-text-primary text-background hover:opacity-90'
-                }`}
-              >
-                {item.following ? 'Following' : 'Follow'}
-              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-text-primary truncate hover:underline cursor-pointer">{item.displayName}</h4>
+                    <p className="text-text-secondary text-xs">{item.handle}</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const updated = whoToFollow.map(u => u.id === item.id ? { ...u, following: !u.following } : u);
+                      setWhoToFollow(updated);
+                      showToastMessage(item.following ? `Đã bỏ theo dõi @${item.displayName}` : `Đã theo dõi @${item.displayName}!`);
+                    }}
+                    className={`px-4 py-1 font-bold text-xs rounded-full transition-all cursor-pointer border ${item.following ? 'border-gray-700 text-text-primary hover:text-red-500 hover:border-red-500 hover:bg-red-500/10' : 'bg-primary text-white hover:bg-primary/95'}`}
+                  >
+                    {item.following ? 'Following' : 'Follow'}
+                  </button>
+                </div>
+                <p className="text-text-secondary text-xs mt-1 leading-normal break-words">{item.bio}</p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* POPUP MODAL CHỈNH SỬA HỒ SƠ (EDIT PROFILE MODAL) */}
+      {/* MODAL CẬP NHẬT HỒ SƠ (EDIT PROFILE MODAL) */}
       {isEditing && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-surface w-full max-w-lg rounded-app border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
-            {/* Modal Header */}
+        <div className="fixed inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-surface w-full max-w-md rounded-app border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="text-text-secondary hover:text-text-primary p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                <h2 className="text-lg font-bold text-text-primary">Chỉnh sửa hồ sơ</h2>
-              </div>
+              <h2 className="text-lg font-bold text-text-primary">Edit profile</h2>
               <button
-                onClick={handleUpdateProfile}
-                disabled={updating || !editName.trim() || !editUsername.trim()}
-                className="px-5 py-1.5 bg-text-primary text-background font-bold text-sm rounded-full transition-colors disabled:opacity-50 cursor-pointer"
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="text-text-secondary hover:text-text-primary p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
               >
-                {updating ? 'Đang lưu...' : 'Lưu'}
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Content Form */}
-            <form onSubmit={handleUpdateProfile} className="p-6 space-y-5 overflow-y-auto flex-1 text-sm">
-              
-              {/* Chọn ảnh đại diện & ảnh nền trực quan (Twitter Style) */}
-              <div className="space-y-4">
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Ảnh đại diện & Ảnh bìa
-                </label>
-                
-                {/* Khu vực chọn ảnh bìa (Banner) */}
-                <div className="relative h-32 w-full bg-surface rounded-lg overflow-hidden border border-gray-800 group">
+            <form onSubmit={handleSaveProfile} className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Vùng chọn banner trong form */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-text-secondary uppercase">Ảnh bìa (Banner)</label>
+                <div 
+                  onClick={() => bannerInputRef.current?.click()}
+                  className="h-28 w-full rounded-xl border border-dashed border-gray-700 bg-background flex flex-col items-center justify-center text-text-secondary cursor-pointer hover:border-primary hover:bg-white/[0.02] transition-all overflow-hidden"
+                >
                   {editBanner ? (
-                    <img src={editBanner} alt="Banner Preview" className="w-full h-full object-cover opacity-80" />
+                    <img src={editBanner} alt="Banner Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-primary/40 to-purple-600/40" />
+                    <>
+                      <ImageIcon className="w-6 h-6 mb-1 text-primary" />
+                      <span className="text-xs">Nhấp để chọn ảnh bìa mới</span>
+                    </>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => bannerInputRef.current?.click()}
-                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold gap-1.5 cursor-pointer"
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    <span>Thay đổi ảnh bìa</span>
-                  </button>
                 </div>
+                <input
+                  type="file"
+                  ref={bannerInputRef}
+                  onChange={handleBannerChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </div>
 
-                {/* Khu vực chọn ảnh đại diện (Avatar) */}
-                <div className="relative w-20 h-20 rounded-full border-4 border-surface -mt-10 ml-4 overflow-hidden bg-gradient-to-tr from-primary to-purple-500 group shadow-lg flex items-center justify-center text-white font-bold text-lg">
-                  {editAvatar ? (
-                    <img src={editAvatar} alt="Avatar Preview" className="w-full h-full object-cover opacity-85" />
-                  ) : (
-                    editName.substring(0, 2).toUpperCase()
-                  )}
+              {/* Vùng chọn avatar trong form */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-text-secondary uppercase">Ảnh đại diện (Avatar)</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden shrink-0 border border-gray-800">
+                    {editAvatar ? (
+                      <img src={editAvatar} alt="Avatar Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      editName.substring(0, 2).toUpperCase()
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
-                    className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[11px] font-bold cursor-pointer text-center"
+                    className="px-4 py-1.5 border border-gray-700 hover:bg-white/5 text-text-primary text-xs font-semibold rounded-full transition-all cursor-pointer"
                   >
-                    Đổi ảnh
+                    Thay đổi hình ảnh
                   </button>
+                  <input
+                    type="file"
+                    ref={avatarInputRef}
+                    onChange={handleAvatarChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
                 </div>
               </div>
 
-              {/* Input file ẩn */}
-              <input
-                type="file"
-                ref={avatarInputRef}
-                onChange={handleAvatarChange}
-                accept="image/*"
-                className="hidden"
-              />
-              <input
-                type="file"
-                ref={bannerInputRef}
-                onChange={handleBannerChange}
-                accept="image/*"
-                className="hidden"
-              />
-
-              {/* Tên hiển thị */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Tên hiển thị <span className="text-error">*</span>
-                </label>
+              {/* Tên hiển thị (displayName) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-text-secondary uppercase">Tên hiển thị</label>
                 <input
                   type="text"
-                  maxLength={80}
-                  required
-                  disabled={updating}
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium text-sm"
-                  placeholder="Nhập tên hiển thị..."
-                />
-              </div>
-
-              {/* Tên tài khoản (username) */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Tên tài khoản (Username) <span className="text-error">*</span>
-                </label>
-                <input
-                  type="text"
-                  maxLength={50}
-                  required
                   disabled={updating}
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium text-sm"
-                  placeholder="Nhập tên tài khoản (viết liền không dấu)..."
+                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                  placeholder="Tên của bạn"
                 />
-                <p className="text-[11px] text-text-secondary mt-1">Viết liền không dấu, chỉ gồm chữ thường, số và dấu gạch dưới. Không được trùng với người khác.</p>
               </div>
 
-              {/* Ngày sinh */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Ngày sinh (DOB)
-                </label>
+              {/* Tên tài khoản (username - không trùng) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-text-secondary uppercase">Tên tài khoản (username)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2 text-text-secondary text-sm">@</span>
+                  <input
+                    type="text"
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    disabled={updating}
+                    className="w-full bg-background border border-gray-700 text-text-primary rounded-lg pl-8 pr-3.5 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                    placeholder="username"
+                  />
+                </div>
+                <p className="text-[10px] text-text-secondary">Tên tài khoản viết liền không dấu, là định danh duy nhất (không được trùng).</p>
+              </div>
+
+              {/* Ngày sinh (dob) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-text-secondary uppercase">Ngày sinh (DOB)</label>
                 <input
                   type="date"
-                  disabled={updating}
                   value={editDob}
                   onChange={(e) => setEditDob(e.target.value)}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-medium text-sm"
+                  disabled={updating}
+                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
 
-              {/* Tiểu sử */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Tiểu sử (Bio)
-                </label>
+              {/* Tiểu sử (bio) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-text-secondary uppercase">Tiểu sử (Bio)</label>
                 <textarea
-                  maxLength={500}
-                  disabled={updating}
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
+                  disabled={updating}
                   rows={3}
-                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary text-sm"
-                  placeholder="Giới thiệu đôi chút về bản thân bạn..."
+                  className="w-full bg-background border border-gray-700 text-text-primary rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:border-primary transition-colors resize-none"
+                  placeholder="Giới thiệu đôi nét về bản thân của bạn..."
                 />
               </div>
+
+              {/* Nút lưu */}
+              <div className="flex justify-end pt-2 border-t border-gray-800/80 gap-3">
+                <button
+                  type="button"
+                  disabled={updating}
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-text-primary text-sm font-semibold rounded-full transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white text-sm font-bold rounded-full transition-colors cursor-pointer"
+                >
+                  {updating ? 'Đang lưu...' : 'Lưu hồ sơ'}
+                </button>
+              </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XEM DANH SÁCH FOLLOWERS / FOLLOWING */}
+      {showFollowModal && (
+        <div className="fixed inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-surface w-full max-w-sm rounded-app border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[70vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
+                <Users className="w-4.5 h-4.5 text-primary" />
+                <span className="capitalize">{showFollowModal === 'followers' ? 'Người theo dõi' : 'Đang theo dõi'}</span>
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowFollowModal(null)}
+                className="text-text-secondary hover:text-text-primary p-1 rounded-full hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {loadingFollowModal ? (
+                <div className="text-center py-6 text-text-secondary text-sm animate-pulse">
+                  Đang tải danh sách...
+                </div>
+              ) : followModalUsers.length === 0 ? (
+                <div className="text-center py-6 text-text-secondary text-sm italic">
+                  Danh sách này hiện đang trống.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {followModalUsers.map((item) => {
+                    const initials = item.displayName.substring(0, 2).toUpperCase();
+                    return (
+                      <div
+                        key={item.userId}
+                        onClick={() => {
+                          setShowFollowModal(null);
+                          navigate(`/profile?userId=${item.userId}`);
+                        }}
+                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 cursor-pointer transition-colors border border-transparent hover:border-gray-800/40"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white text-xs font-semibold overflow-hidden shadow">
+                          {initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-text-primary text-sm truncate hover:underline">{item.displayName}</div>
+                          <div className="text-text-secondary text-[11px] truncate">Xem hồ sơ cá nhân</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

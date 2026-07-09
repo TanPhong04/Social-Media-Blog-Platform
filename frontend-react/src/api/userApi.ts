@@ -45,5 +45,11 @@ export const userApi = {
   },
   unfollowUser: (userId: string) => {
     return axiosClient.delete<RelationshipResponse>(`/follows/${userId}`);
+  },
+  getFollowers: (userId: string, page: number = 0, size: number = 20) => {
+    return axiosClient.get<any>(`/follows/users/${userId}/followers?page=${page}&size=${size}`);
+  },
+  getFollowing: (userId: string, page: number = 0, size: number = 20) => {
+    return axiosClient.get<any>(`/follows/users/${userId}/following?page=${page}&size=${size}`);
   }
 };

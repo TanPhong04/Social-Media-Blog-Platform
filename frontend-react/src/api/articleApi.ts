@@ -50,6 +50,11 @@ export const articleApi = {
       params: { page, size }
     });
   },
+  getByAuthor: (authorId: string, page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>(`/articles/users/${authorId}`, {
+      params: { page, size }
+    });
+  },
   createArticle: (data: ArticleWriteRequest) => {
     return axiosClient.post<ArticleResponse>('/articles', data);
   },

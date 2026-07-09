@@ -41,6 +41,34 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
   return data.secure_url;
 };
 
+const EMOJI_CATEGORIES = [
+  {
+    icon: '😀',
+    title: 'Mặt cười & Cảm xúc',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😓', '🤔']
+  },
+  {
+    icon: '👍',
+    title: 'Cử chỉ & Biểu tượng',
+    emojis: ['👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '🤌', '🤏', '✍️', '👋', '🤚', '🖐️', '✋', '🖖', '🙌', '👐', '🤲', '🤝', '🙏', '💅', '🤳', '💪', '🦾', '🧠', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '❤️‍🔥', '❤️‍🩹', '💔']
+  },
+  {
+    icon: '🐱',
+    title: 'Động vật & Thiên nhiên',
+    emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞']
+  },
+  {
+    icon: '🍎',
+    title: 'Đồ ăn & Thức uống',
+    emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🧅', '🥖', '🥨', '🧀', '🍕', '🌭', '🍔', '🍟', '🍺', '🍻', '🍷', '🥤', '🧋']
+  },
+  {
+    icon: '⚽',
+    title: 'Hoạt động & Thể thao',
+    emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🏆', '🥇', '🥈', '🥉', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎨', '🎭', '🎬', '🎤', '🎧', '🎼', '🥁']
+  }
+];
+
 const Home: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -61,6 +89,7 @@ const Home: React.FC = () => {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeEmojiTab, setActiveEmojiTab] = useState(0);
 
   // Trạng thái cho tệp đính kèm (Ảnh/Video)
   const [selectedFile, setSelectedFile] = useState<{
@@ -404,20 +433,37 @@ const Home: React.FC = () => {
                   </button>
 
                   {showEmojiPicker && (
-                    <div className="absolute right-0 bottom-12 bg-surface border border-gray-800 rounded-2xl p-3 shadow-2xl z-50 grid grid-cols-6 gap-2 w-48">
-                      {['😊', '😂', '🤣', '😍', '🥰', '😘', '😜', '😎', '😉', '😢', '😭', '😡', '👍', '👎', '👋', '🔥', '👏', '🎉', '❤️', '✨', '🐶', '🐱', '🦊', '🍎', '🍕', '🍺'].map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => {
-                            setPostText(prev => prev + emoji);
-                            setShowEmojiPicker(false);
-                          }}
-                          className="text-lg hover:bg-white/10 p-1 rounded transition-colors cursor-pointer text-center"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                    <div className="absolute right-0 bottom-12 bg-surface border border-gray-800 rounded-2xl p-3.5 shadow-2xl z-50 w-72 flex flex-col gap-2.5">
+                      {/* Emoji categories */}
+                      <div className="flex justify-between border-b border-gray-800 pb-2">
+                        {EMOJI_CATEGORIES.map((cat, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveEmojiTab(idx)}
+                            className={`text-lg p-1.5 rounded transition-all cursor-pointer ${activeEmojiTab === idx ? 'bg-primary/20 scale-110 font-bold' : 'hover:bg-white/5'}`}
+                            title={cat.title}
+                          >
+                            {cat.icon}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Emoji grid scrollable */}
+                      <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+                        {EMOJI_CATEGORIES[activeEmojiTab].emojis.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => {
+                              setPostText(prev => prev + emoji);
+                            }}
+                            className="text-xl hover:bg-white/10 p-1.5 rounded transition-colors cursor-pointer text-center"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
