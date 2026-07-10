@@ -6,7 +6,7 @@ import { userApi } from '../api/userApi';
 import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2 } from 'lucide-react';
+import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile } from 'lucide-react';
 
 interface ArticleCardProps {
   article: ArticleResponse;
@@ -16,7 +16,39 @@ interface ArticleCardProps {
 // Module-level cache để lưu thông tin người dùng, tránh gọi API trùng lặp
 const authorCache: { [id: string]: any } = {};
 
-import { mediaApi } from '../api/mediaApi';
+// Hàm helper upload tệp tin trực tiếp lên Cloudinary sử dụng Unsigned Preset
+const uploadToCloudinary = async (file: File): Promise<string> => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dgn74bbvy';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'blog-platform';
+  
+  const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  formData.append('resource_type', resourceType);
+  
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Cloudinary upload error response:', errorText);
+    let errMsg = 'Đăng tải tệp tin lên Cloudinary thất bại.';
+    try {
+      const errJson = JSON.parse(errorText);
+      if (errJson.error && errJson.error.message) {
+        errMsg = `Cloudinary: ${errJson.error.message}`;
+      }
+    } catch (e) {}
+    throw new Error(errMsg);
+  }
+  
+  const data = await response.json();
+  return data.secure_url;
+};
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
@@ -79,8 +111,83 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const commentImageInputRef = useRef<HTMLInputElement>(null);
   const replyImageInputRef = useRef<HTMLInputElement>(null);
 
+  // Refs emoji pickers bình luận
+  const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
+  const replyEmojiPickerRef = useRef<HTMLDivElement>(null);
+
+  // Trạng thái Emoji picker bình luận
+  const [showCommentEmojiPicker, setShowCommentEmojiPicker] = useState(false);
+  const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(false);
+
+  const [activeCommentEmojiTab, setActiveCommentEmojiTab] = useState(1);
+  const [activeReplyEmojiTab, setActiveReplyEmojiTab] = useState(1);
+  const [searchCommentEmoji, setSearchCommentEmoji] = useState('');
+  const [searchReplyEmoji, setSearchReplyEmoji] = useState('');
+  const [hoveredCommentEmoji, setHoveredCommentEmoji] = useState<string | null>(null);
+  const [hoveredReplyEmoji, setHoveredReplyEmoji] = useState<string | null>(null);
+
   // Trạng thái Toast thông báo thành công / lỗi
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const EMOJI_CATEGORIES = [
+    {
+      icon: '🕒',
+      title: 'Gần đây',
+      emojis: ['😊', '😂', '🤣', '👍', '❤️', '🔥', '🎉', '✨', '👏', '😍', '🥰', '😘']
+    },
+    {
+      icon: '😀',
+      title: 'Mặt cười & con người',
+      emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😓', '🤔']
+    },
+    {
+      icon: '🐱',
+      title: 'Động vật & thiên nhiên',
+      emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞']
+    },
+    {
+      icon: '🍎',
+      title: 'Đồ ăn & thức uống',
+      emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🧅', '🥖', '🥨', '🧀', '🍕', '🌭', '🍔', '🍟', '🍺', '🍻', '🍷', '🥤', '🧋']
+    },
+    {
+      icon: '⚽',
+      title: 'Hoạt động & thể thao',
+      emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🏆', '🥇', '🥈', '🥉', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎨', '🎭', '🎬', '🎤', '🎧', '🎼', '🥁']
+    },
+    {
+      icon: '🚗',
+      title: 'Du lịch & địa điểm',
+      emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🛺', '🚂', '🚆', '🚄', '🚅', '🚈', '🚇', '🚀', '🛸', '🚁', '🛶', '⛵', '🛥️', '🛳️', '🚢', '✈️', '🛫', '🛬', '🪂', '🪟', '🌋', '🗻', '🏠']
+    },
+    {
+      icon: '💡',
+      title: 'Đồ vật & bóng đèn',
+      emojis: ['💡', '🔦', '🕯️', '🔌', '🔋', '💻', '🖥️', '🖨️', '⌨️', '🖱️', '🎛️', '🎞️', '📷', '📸', '📹', '🎥', '📻', '🎙️', '🎚️', '🎛️', '📺', '⏰', '⌚', '🧭', '⌛', '⏳', '🪓', '🛡️', '🔑', '🗝️', '🔨', '🛠️', '⛏️', '🔩', '⚙️', '🧱', '⛓️', '🧲', '🔫', '💣']
+    },
+    {
+      icon: '🔣',
+      title: 'Ký hiệu & biểu tượng',
+      emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐']
+    }
+  ];
+
+  const EMOJI_KEYWORDS: { [key: string]: string } = {
+    '😊': 'cuoi vui ve mat cuoi smile happy',
+    '😂': 'cuoi ra nuoc mat haha cuoi to lol joy',
+    '🤣': 'cuoi lan lon haha rofl',
+    '😍': 'yeu thich love heart eyes',
+    '🥰': 'yeu thuong hanh phuc love hearts',
+    '😘': 'hon kiss blowing kiss',
+    '👍': 'like thich tot nhat ok good yes',
+    '👎': 'dislike khong thich bad no',
+    '❤️': 'tim do love heart red',
+    '🔥': 'lua hot fire trend',
+    '🎉': 'chuc mung party celebrate',
+    '✨': 'lap lanh lanh lay sparkle',
+    '👏': 'vo tay clap bravo',
+    '😭': 'khoc to cry sad'
+  };
 
   const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -154,14 +261,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         authorCache[authorId] = res;
         setAuthorProfile(res);
       } catch (err) {
-        console.warn('Lấy profile tác giả thất bại, sử dụng thông tin ẩn danh làm cache fallback', err);
-        const fallback = {
+        console.warn('Lấy profile tác giả thất bại', err);
+        setAuthorProfile({
           displayName: `Người dùng ${authorId.substring(0, 4)}`,
           username: `user_${authorId.substring(0, 8)}`,
           avatarUrl: null
-        };
-        authorCache[authorId] = fallback;
-        setAuthorProfile(fallback);
+        });
       }
     };
     fetchAuthorInfo();
@@ -324,11 +429,17 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   };
 
-  // Click ra ngoài đóng dropdown menu
+  // Click ra ngoài đóng dropdown menu & emoji pickers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+      }
+      if (commentEmojiPickerRef.current && !commentEmojiPickerRef.current.contains(event.target as Node)) {
+        setShowCommentEmojiPicker(false);
+      }
+      if (replyEmojiPickerRef.current && !replyEmojiPickerRef.current.contains(event.target as Node)) {
+        setShowReplyEmojiPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -876,9 +987,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       let mediaUrl = '';
       if (editFile) {
         if (editFile.file) {
-          // File được chọn mới -> Upload lên Backend
-          showToastMessage('Đang tải file mới lên hệ thống...');
-          mediaUrl = await mediaApi.uploadFile(editFile.file);
+          // File được chọn mới -> Upload lên Cloudinary
+          showToastMessage('Đang tải file mới lên Cloudinary...');
+          mediaUrl = await uploadToCloudinary(editFile.file);
         } else {
           // Giữ nguyên file cũ (đã là Base64 hoặc là link Cloudinary trước đó)
           mediaUrl = editFile.base64 || editFile.url;
@@ -975,6 +1086,100 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const renderEmojiPicker = (type: 'comment' | 'reply') => {
+    const activeTab = type === 'comment' ? activeCommentEmojiTab : activeReplyEmojiTab;
+    const setActiveTab = type === 'comment' ? setActiveCommentEmojiTab : setActiveReplyEmojiTab;
+    const searchVal = type === 'comment' ? searchCommentEmoji : searchReplyEmoji;
+    const setSearchVal = type === 'comment' ? setSearchCommentEmoji : setSearchReplyEmoji;
+    const hoveredEmoji = type === 'comment' ? hoveredCommentEmoji : hoveredReplyEmoji;
+    const setHoveredEmoji = type === 'comment' ? setHoveredCommentEmoji : setHoveredReplyEmoji;
+    const setTargetText = type === 'comment' ? setCommentText : setReplyText;
+    const setShowPicker = type === 'comment' ? setShowCommentEmojiPicker : setShowReplyEmojiPicker;
+
+    const allEmojis = EMOJI_CATEGORIES.flatMap(c => c.emojis);
+    const filteredEmojis = searchVal.trim()
+      ? allEmojis.filter(emoji => {
+          const keywords = EMOJI_KEYWORDS[emoji] || '';
+          return keywords.toLowerCase().includes(searchVal.toLowerCase()) || emoji === searchVal.trim();
+        })
+      : EMOJI_CATEGORIES[activeTab].emojis;
+
+    return (
+      <div className="absolute right-0 top-10 bg-[#15181c] border border-gray-800 rounded-2xl p-3.5 shadow-2xl z-50 w-72 flex flex-col gap-2">
+        {/* Search */}
+        <div className="relative">
+          <input
+            type="text"
+            value={searchVal}
+            onChange={(e) => setSearchVal(e.target.value)}
+            placeholder="Tìm kiếm biểu tượng cảm xúc"
+            className="w-full bg-[#202327] border-0 text-text-primary text-xs rounded-full pl-8 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary placeholder-text-secondary"
+          />
+          <span className="absolute left-3 top-2 text-text-secondary text-xs">🔍</span>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex justify-between border-b border-gray-800 pb-1.5 overflow-x-auto">
+          {EMOJI_CATEGORIES.map((cat, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                setActiveTab(idx);
+                setSearchVal('');
+              }}
+              className={`text-lg p-1.5 rounded transition-all cursor-pointer ${searchVal === '' && activeTab === idx ? 'bg-primary/20 scale-110 font-bold border-b-2 border-primary' : 'hover:bg-white/5 opacity-70 hover:opacity-100'}`}
+              title={cat.title}
+            >
+              {cat.icon}
+            </button>
+          ))}
+        </div>
+
+        {/* Title */}
+        <div className="text-xs font-bold text-text-secondary">
+          {searchVal.trim() ? 'Kết quả tìm kiếm' : EMOJI_CATEGORIES[activeTab].title}
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-6 gap-1.5 max-h-36 overflow-y-auto pr-1">
+          {filteredEmojis.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onMouseEnter={() => setHoveredEmoji(emoji)}
+              onClick={() => {
+                setTargetText(prev => prev + emoji);
+              }}
+              className="text-xl hover:bg-white/10 p-1.5 rounded transition-colors cursor-pointer text-center"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-gray-800 pt-2 mt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{hoveredEmoji || '😊'}</span>
+            <span className="text-[10px] text-text-secondary font-medium">Chèn</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPicker(false);
+              setSearchVal('');
+            }}
+            className="w-7 h-7 rounded-full bg-[#ffd43b] hover:bg-[#ffe066] text-[#1e1e1e] flex items-center justify-center font-bold text-xs shadow cursor-pointer transition-all hover:scale-105"
+            title="Hoàn tất"
+          >
+            ✓
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const isOwner = user && user.id === article.authorId;
@@ -1364,6 +1569,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   className="hidden"
                 />
 
+                {/* Nút chọn Emoji bình luận */}
+                <div className="relative" ref={commentEmojiPickerRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowCommentEmojiPicker(!showCommentEmojiPicker)}
+                    disabled={postingComment}
+                    className={`p-2 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${showCommentEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
+                    title="Biểu cảm"
+                  >
+                    <Smile className="w-4.5 h-4.5" />
+                  </button>
+                  {showCommentEmojiPicker && renderEmojiPicker('comment')}
+                </div>
+
                 <button
                   type="submit"
                   disabled={postingComment || (!commentText.trim() && !commentImage)}
@@ -1437,6 +1656,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                             accept="image/*"
                             className="hidden"
                           />
+
+                          {/* Nút chọn Emoji phản hồi */}
+                          <div className="relative" ref={replyEmojiPickerRef}>
+                            <button
+                              type="button"
+                              onClick={() => setShowReplyEmojiPicker(!showReplyEmojiPicker)}
+                              disabled={postingComment}
+                              className={`p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${showReplyEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
+                              title="Biểu cảm"
+                            >
+                              <Smile className="w-4 h-4" />
+                            </button>
+                            {showReplyEmojiPicker && renderEmojiPicker('reply')}
+                          </div>
 
                           <button
                             type="submit"

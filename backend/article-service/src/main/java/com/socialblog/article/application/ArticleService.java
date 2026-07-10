@@ -63,6 +63,11 @@ public class ArticleService {
     }
 
     @Transactional(readOnly = true)
+    public Response getById(UUID id) {
+        return map(articles.findById(id).orElseThrow(this::notFound));
+    }
+
+    @Transactional(readOnly = true)
     public Page<Response> feed(Pageable p) {
         return articles.findByStatusOrderByPublishedAtDesc(Article.Status.PUBLISHED, p).map(this::map);
     }

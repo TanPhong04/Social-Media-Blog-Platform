@@ -31,8 +31,14 @@ const ArticleDetail: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch article
-      const articleData = await articleApi.getBySlug(slug!);
+      // Fetch article (Supports both friendly slug and raw article UUID)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug || '');
+      let articleData: any;
+      if (isUuid) {
+        articleData = await articleApi.getById(slug!);
+      } else {
+        articleData = await articleApi.getBySlug(slug!);
+      }
       // Type assertion is needed because response object might directly be the data, check interceptor
       const art = articleData as unknown as ArticleResponse;
       setArticle(art);

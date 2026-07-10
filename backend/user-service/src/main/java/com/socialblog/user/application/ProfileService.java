@@ -20,6 +20,14 @@ public class ProfileService {
         u.updateProfile(req.displayName().trim(), req.bio(), req.avatarUrl(), username, req.dob());
         return map(u);
     }
+    @Transactional(readOnly=true)
+    public java.util.List<ProfileResponse> getSuggestions(UUID currentUserId) {
+        return users.findAll().stream()
+            .filter(u -> !u.getId().equals(currentUserId))
+            .limit(30)
+            .map(this::map)
+            .collect(java.util.stream.Collectors.toList());
+    }
     private UserAccount find(UUID id){return users.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"USER_NOT_FOUND","User not found"));}
     private ProfileResponse map(UserAccount u){return new ProfileResponse(u.getId(),u.getEmail(),u.getDisplayName(),u.getBio(),u.getAvatarUrl(),u.getRole().name(),u.getUsername(),u.getDob(),u.getCreatedAt());}
 }
