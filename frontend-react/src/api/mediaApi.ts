@@ -6,7 +6,7 @@ export const mediaApi = {
     formData.append('file', file);
     
     // We expect the backend to return { url: "http://..." }
-    const response = await axiosClient.post<any>('/articles/media/upload', formData, {
+    const response: any = await axiosClient.post('/articles/media/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
