@@ -54,5 +54,8 @@ export const userApi = {
   },
   getSuggestions: () => {
     return axiosClient.get<ProfileResponse[]>('/users/suggestions');
+  },
+  changePassword: (data: any) => {
+    return axiosClient.post('/users/me/password', data);
   }
 };

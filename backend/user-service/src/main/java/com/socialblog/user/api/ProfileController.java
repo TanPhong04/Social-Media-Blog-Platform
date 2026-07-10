@@ -15,4 +15,12 @@ public class ProfileController {
     public java.util.List<ProfileResponse> getSuggestions(@org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt) {
         return service.getSuggestions(UUID.fromString(jwt.getSubject()));
     }
+    @PostMapping("/me/password")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void changePassword(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody ChangePasswordRequest r
+    ) {
+        service.changePassword(UUID.fromString(jwt.getSubject()), r);
+    }
 }

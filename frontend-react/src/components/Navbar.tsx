@@ -1,15 +1,9 @@
-import { Home as HomeIcon, User, LogIn, LogOut, UserPlus } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Home as HomeIcon, User, LogIn, Settings as SettingsIcon, UserPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <nav className="bg-surface border-b border-gray-800 sticky top-0 z-50">
@@ -52,13 +46,13 @@ const Navbar = () => {
                     <User className="w-5 h-5" />
                   )}
                 </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-text-secondary hover:text-red-400 font-medium transition-colors ml-2"
+                <Link 
+                  to="/settings"
+                  className="flex items-center gap-2 text-text-secondary hover:text-primary font-medium transition-colors ml-2 cursor-pointer"
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span className="hidden sm:inline">Đăng xuất</span>
-                </button>
+                  <SettingsIcon className="w-5 h-5" />
+                  <span className="hidden sm:inline">Cài đặt</span>
+                </Link>
               </>
             ) : (
               <>

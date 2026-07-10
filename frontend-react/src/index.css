@@ -40,3 +40,70 @@ h1, h2, h3, h4, h5, h6 {
 .rounded-app {
   border-radius: 16px;
 }
+
+/* LIGHT THEME OVERRIDES */
+:root.light {
+  --color-background: #F9FAFB;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-primary: #6C5CE7;
+  --color-error: #FF7675;
+}
+
+.light body {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+
+.light .border-gray-800,
+.light .border-white\/5,
+.light .border-white\/10,
+.light .border-white\/20,
+.light .border-white\/30,
+.light .border-gray-700,
+.light .border-b-gray-800,
+.light .border-x-gray-800 {
+  border-color: #E5E7EB !important;
+}
+
+.light .bg-surface\/50 {
+  background-color: rgba(243, 244, 246, 0.4) !important;
+}
+
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.012\],
+.light .bg-white\/\[0\.01\] {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.light .bg-background\/80 {
+  background-color: rgba(249, 250, 251, 0.8) !important;
+}
+
+.light .text-text-primary {
+  color: #111827 !important;
+}
+
+.light .text-text-secondary {
+  color: #6B7280 !important;
+}
+
+.light .bg-background {
+  background-color: #F9FAFB !important;
+}
+
+.light .bg-surface {
+  background-color: #FFFFFF !important;
+}
+
+.light .hover\:bg-white\/\[0\.01\]:hover,
+.light .hover\:bg-white\/\[0\.02\]:hover,
+.light .hover\:bg-white\/5:hover,
+.light .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+.light .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}

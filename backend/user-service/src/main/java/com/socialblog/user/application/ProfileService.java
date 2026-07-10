@@ -9,8 +9,29 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 @Service
 public class ProfileService {
-    private final UserRepository users; public ProfileService(UserRepository users){this.users=users;}
+    private final UserRepository users;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwords;
+
+    public ProfileService(
+            UserRepository users,
+            org.springframework.security.crypto.password.PasswordEncoder passwords
+    ) {
+        this.users = users;
+        this.passwords = passwords;
+    }
+
     @Transactional(readOnly=true) public ProfileResponse get(UUID id){return map(find(id));}
+
+    @Transactional
+    public void changePassword(UUID id, ChangePasswordRequest req) {
+        UserAccount u = find(id);
+        if (!passwords.matches(req.oldPassword(), u.getPasswordHash())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PASSWORD", "Mật khẩu cũ không chính xác.");
+        }
+        u.changePassword(passwords.encode(req.newPassword()));
+        users.save(u);
+    }
+
     @Transactional public ProfileResponse update(UUID id,UpdateProfileRequest req){
         String username = req.username().trim().toLowerCase();
         if (users.existsByUsernameIgnoreCaseAndIdNot(username, id)) {
