@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Following from './pages/Following';
 import ArticleDetail from './pages/ArticleDetail';
+import Messages from './pages/Messages';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/following" element={<Following />} />
           <Route path="/my-articles" element={<MyArticles />} />
+          <Route path="/messages" element={<Messages />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/settings" element={<Settings />} />
