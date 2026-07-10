@@ -119,7 +119,7 @@ spring:
           uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
           order: 100
           predicates:
-            - Path=/api/v1/notifications/**
+            - Path=/api/v1/notifications/**,/api/v1/chats/**
 management:
   endpoints.web.exposure.include: health,info,prometheus
   endpoint.health.probes.enabled: true

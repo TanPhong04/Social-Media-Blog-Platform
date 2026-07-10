@@ -40,3 +40,18 @@ h1, h2, h3, h4, h5, h6 {
 .rounded-app {
   border-radius: 16px;
 }
+
+/* Chuyển thanh chỉnh âm lượng video từ chiều ngang sang chiều dọc */
+video::-webkit-media-controls-volume-slider {
+  -webkit-appearance: slider-vertical !important;
+  writing-mode: vertical-lr !important;
+  direction: rtl !important;
+  width: 10px !important;
+  height: 60px !important;
+  margin-bottom: 25px !important;
+  z-index: 9999 !important;
+}
+
+video::-webkit-media-controls-panel {
+  overflow: visible !important;
+}

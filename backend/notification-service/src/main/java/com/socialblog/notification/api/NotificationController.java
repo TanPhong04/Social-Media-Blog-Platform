@@ -84,6 +84,29 @@ public class NotificationController {
         }
     }
 
+    public static void sendRealtimeChatMessage(UUID userId, Object chatMessage) {
+        List<SseEmitter> list = emitters.get(userId);
+        if (list != null) {
+            List<SseEmitter> deadEmitters = new ArrayList<>();
+            for (SseEmitter emitter : list) {
+                try {
+                    emitter.send(SseEmitter.event().name("CHAT_MESSAGE").data(chatMessage));
+                } catch (Exception e) {
+                    deadEmitters.add(emitter);
+                }
+            }
+            list.removeAll(deadEmitters);
+            if (list.isEmpty()) {
+                emitters.remove(userId);
+            }
+        }
+    }
+
+    public static boolean isUserOnline(UUID userId) {
+        List<SseEmitter> list = emitters.get(userId);
+        return list != null && !list.isEmpty();
+    }
+
     @GetMapping 
     Page<Response> list(@AuthenticationPrincipal Jwt j, @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size) {
         return service.list(user(j), PageRequests.of(page, size, 100));

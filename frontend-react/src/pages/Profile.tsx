@@ -436,22 +436,32 @@ const Profile: React.FC = () => {
           )}
         </div>
 
-        {/* Nút Edit profile hoặc Follow */}
-        {isMe ? (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-2 border border-gray-700 hover:bg-white/5 text-text-primary font-bold text-[15px] rounded-full transition-all cursor-pointer mb-2"
-          >
-            Edit profile
-          </button>
-        ) : (
-          <button
-            onClick={handleFollowClick}
-            className={`px-5 py-2 font-bold text-[15px] rounded-full transition-all cursor-pointer mb-2 shadow-md ${isFollowing ? 'border border-gray-700 hover:border-red-500 hover:bg-red-500/10 hover:text-red-500 text-text-primary' : 'bg-primary hover:bg-primary/95 text-white'}`}
-          >
-            {isFollowing ? 'Following' : 'Follow'}
-          </button>
-        )}
+        {/* Nút Edit profile hoặc Follow & Nhắn tin */}
+        <div className="flex gap-2 items-center mb-2">
+          {isMe ? (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2 border border-gray-700 hover:bg-white/5 text-text-primary font-bold text-[15px] rounded-full transition-all cursor-pointer"
+            >
+              Edit profile
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate(`/messages?contactId=${profile.id}`)}
+                className="px-4 py-2 border border-gray-700 hover:bg-white/5 text-text-primary font-bold text-[15px] rounded-full transition-all cursor-pointer"
+              >
+                Nhắn tin
+              </button>
+              <button
+                onClick={handleFollowClick}
+                className={`px-5 py-2 font-bold text-[15px] rounded-full transition-all cursor-pointer shadow-md ${isFollowing ? 'border border-gray-700 hover:border-red-500 hover:bg-red-500/10 hover:text-red-500 text-text-primary' : 'bg-primary hover:bg-primary/95 text-white'}`}
+              >
+                {isFollowing ? 'Following' : 'Follow'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Thông tin văn bản của User */}

@@ -7,7 +7,6 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile } from 'lucide-react';
-
 interface ArticleCardProps {
   article: ArticleResponse;
   onRefresh?: () => void;
@@ -1392,7 +1391,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       <div className="flex gap-3">
         {/* Cột bên trái: Avatar tròn - Click để xem Profile */}
         <div 
-          onClick={() => navigate(`/profile?userId=${article.authorId}`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/profile?userId=${article.authorId}`);
+          }}
           className="shrink-0"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer hover:opacity-90 transition-opacity overflow-hidden">
@@ -1411,7 +1413,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Tên hiển thị - Click để xem Profile */}
               <span 
-                onClick={() => navigate(`/profile?userId=${article.authorId}`)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/profile?userId=${article.authorId}`);
+                }}
                 className="font-bold text-text-primary hover:underline cursor-pointer"
               >
                 {authorName}

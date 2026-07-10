@@ -5,10 +5,10 @@ import Sidebar from './Sidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { userApi } from '../../api/userApi';
 import { notificationApi } from '../../api/notificationApi';
-import { Bell, Heart, MessageCircle, UserPlus, Repeat, X } from 'lucide-react';
+import { Bell, Heart, MessageCircle, UserPlus, Repeat, X, MessageSquare } from 'lucide-react';
 
 const MainLayout = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [realtimeToast, setRealtimeToast] = useState<any>(null);
 
@@ -98,9 +98,51 @@ const MainLayout = () => {
       }
     });
 
+    eventSource.addEventListener('CHAT_MESSAGE', async (event: MessageEvent) => {
+      try {
+        const msg = JSON.parse(event.data);
+        
+        window.dispatchEvent(new CustomEvent('new-chat-message-received', { detail: msg }));
+        window.dispatchEvent(new CustomEvent('chat-unread-count-changed'));
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeContactId = urlParams.get('contactId');
+        const isAtMessagesPage = window.location.pathname === '/messages';
+
+        if (msg.senderId !== user?.id && !(isAtMessagesPage && activeContactId === msg.senderId)) {
+          let senderName = 'Người dùng';
+          let avatarUrl = '';
+          try {
+            const profileRes = await userApi.getUserById(msg.senderId);
+            const profile = (profileRes as any).data || profileRes;
+            senderName = profile.displayName || `Người dùng ${msg.senderId.substring(0, 4)}`;
+            avatarUrl = profile.avatarUrl || '';
+          } catch (e) {
+            senderName = `Người dùng ${msg.senderId.substring(0, 4)}`;
+          }
+
+          let textContent = msg.content;
+          if (textContent.startsWith('![chat_image]')) {
+            textContent = '[Hình ảnh]';
+          }
+
+          setRealtimeToast({
+            id: msg.id,
+            message: `${senderName}: ${textContent}`,
+            iconType: 'chat',
+            avatarUrl,
+            actorName: senderName,
+            isChat: true,
+            senderId: msg.senderId
+          });
+        }
+      } catch (err) {
+        console.error('Error parsing realtime chat message', err);
+      }
+    });
+
     eventSource.addEventListener('error', (e) => {
-      console.warn('SSE stream connection warning, closing...', e);
-      eventSource.close();
+      console.warn('SSE stream connection warning. Browser will attempt auto-reconnect.', e);
     });
 
     return () => {
@@ -119,6 +161,14 @@ const MainLayout = () => {
 
   const handleToastClick = async () => {
     if (!realtimeToast) return;
+    
+    if (realtimeToast.isChat) {
+      const senderId = realtimeToast.senderId;
+      setRealtimeToast(null);
+      navigate(`/messages?contactId=${senderId}`);
+      return;
+    }
+
     const { notification } = realtimeToast;
     setRealtimeToast(null);
 
@@ -231,10 +281,13 @@ const MainLayout = () => {
               {realtimeToast.iconType === 'bell' && (
                 <div className="p-1 bg-primary text-white rounded-full"><Bell className="w-3 h-3" /></div>
               )}
+              {realtimeToast.iconType === 'chat' && (
+                <div className="p-1 bg-green-500 text-white rounded-full"><MessageSquare className="w-3 h-3" /></div>
+              )}
             </div>
           </div>
           <div className="flex-1 min-w-0 pr-2">
-            <h4 className="text-xs font-bold text-primary">Thông báo mới</h4>
+            <h4 className="text-xs font-bold text-primary">{realtimeToast.isChat ? 'Tin nhắn mới' : 'Thông báo mới'}</h4>
             <p className="text-xs text-text-secondary mt-0.5 font-medium leading-relaxed truncate">{realtimeToast.message}</p>
           </div>
           <button 
