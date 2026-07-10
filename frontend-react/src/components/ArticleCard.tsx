@@ -1569,7 +1569,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       {/* KHUNG BÌNH LUẬN NÂNG CAO (COMMENTS SECTION MULTI-LEVEL) */}
       {showComments && (
-        <div className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4"
+        >
           
           {/* Ô nhập bình luận gốc */}
           {user && (
