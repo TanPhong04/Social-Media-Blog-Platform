@@ -76,7 +76,7 @@ jobs:
             JWT_ISSUER=http://${{ secrets.VPS_HOST }}:8080
             JWT_KEY_ID=managed-rsa
             MINIO_ENDPOINT=http://minio:9000
-            MINIO_PUBLIC_URL=http://${{ secrets.VPS_HOST }}:9000
+            MINIO_PUBLIC_URL=https://axion.id.vn
             MINIO_ROOT_USER=minio
             MINIO_ROOT_PASSWORD=minio12345
             ENVEOF
