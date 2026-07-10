@@ -1,11 +1,46 @@
-
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, User, Users, FileText, Bell, Bookmark, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { notificationApi } from '../../api/notificationApi';
 import clsx from 'clsx';
 
 const Sidebar = () => {
   const { isAuthenticated } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res: any = await notificationApi.getUnreadCount();
+      const countObj = res.data || res;
+      setUnreadCount(countObj.count || 0);
+    } catch (e) {
+      console.warn('Error fetching unread count', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    const handleNewNotif = () => {
+      setUnreadCount(prev => prev + 1);
+    };
+
+    const handleReadNotif = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener('new-notification-received', handleNewNotif);
+    window.addEventListener('notification-marked-read', handleReadNotif);
+    window.addEventListener('unread-count-changed', handleReadNotif);
+
+    return () => {
+      window.removeEventListener('new-notification-received', handleNewNotif);
+      window.removeEventListener('notification-marked-read', handleReadNotif);
+      window.removeEventListener('unread-count-changed', handleReadNotif);
+    };
+  }, [isAuthenticated]);
 
   const navItems = [
     { name: 'Bảng tin', path: '/', icon: Home },
@@ -41,11 +76,16 @@ const Sidebar = () => {
                 <>
                   <Icon
                     className={clsx(
-                      'w-5 h-5 transition-transform duration-300',
-                      isActive ? 'scale-110' : 'group-hover:scale-110'
+                       'w-5 h-5 transition-transform duration-300',
+                       isActive ? 'scale-110' : 'group-hover:scale-110'
                     )}
                   />
                   <span>{item.name}</span>
+                  {item.path === '/notifications' && unreadCount > 0 && (
+                    <span className="ml-auto bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>

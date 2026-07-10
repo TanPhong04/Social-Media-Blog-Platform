@@ -64,7 +64,8 @@ const ArticleDetail: React.FC = () => {
       // Fetch comments
       try {
         const commentsData = await commentApi.getComments(art.id);
-        setComments((commentsData as any).content || []);
+        const list = (commentsData as any).content || commentsData || [];
+        setComments(list.filter((c: any) => !c.content.includes('[repost]')));
       } catch(e) { console.error("Could not fetch comments", e); }
 
       // Fetch interaction
@@ -133,7 +134,8 @@ const ArticleDetail: React.FC = () => {
       setNewComment('');
       // Reload comments
       const commentsData = await commentApi.getComments(article.id);
-      setComments((commentsData as any).content || []);
+      const list = (commentsData as any).content || commentsData || [];
+      setComments(list.filter((c: any) => !c.content.includes('[repost]')));
     } catch (err) {
       console.error('Error posting comment', err);
     } finally {

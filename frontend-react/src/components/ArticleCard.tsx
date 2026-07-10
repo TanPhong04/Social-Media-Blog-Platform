@@ -647,7 +647,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   };
 
   // Đăng lại bài viết (Repost)
-  const handleRepost = (e: React.MouseEvent) => {
+  const handleRepost = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       showToastMessage('Vui lòng đăng nhập để đăng lại bài viết.', 'error');
@@ -663,9 +663,29 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       if (reposted) {
         newReposts = reposts.filter((b: any) => b.id !== article.id);
+        // Tìm comment repost đó và xóa (nếu tìm thấy trong database)
+        try {
+          const fetchedComments = await commentApi.getComments(article.id);
+          const commentsList = (fetchedComments as any).content || fetchedComments || [];
+          const repostComment = commentsList.find((c: any) => c.authorId === user.id && c.content.includes('[repost]'));
+          if (repostComment) {
+            await commentApi.deleteComment(repostComment.id);
+          }
+        } catch (commentErr) {
+          console.warn('Could not delete repost comment tracking', commentErr);
+        }
         showToastMessage('Đã hủy đăng lại!');
       } else {
         newReposts = [...reposts, article];
+        // Tạo comment đặc biệt làm repost ở backend để sinh thông báo và lưu vết
+        try {
+          await commentApi.createComment({
+            articleId: article.id,
+            content: "[repost] đã đăng lại bài viết này"
+          });
+        } catch (commentErr) {
+          console.warn('Could not create repost comment tracking', commentErr);
+        }
         showToastMessage('Đã đăng lại bài viết thành công!');
       }
 
