@@ -154,14 +154,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         authorCache[authorId] = res;
         setAuthorProfile(res);
       } catch (err) {
-        console.warn('Lấy profile tác giả thất bại, sử dụng thông tin ẩn danh làm cache fallback', err);
-        const fallback = {
+        console.warn('Lấy profile tác giả thất bại', err);
+        setAuthorProfile({
           displayName: `Người dùng ${authorId.substring(0, 4)}`,
           username: `user_${authorId.substring(0, 8)}`,
           avatarUrl: null
-        };
-        authorCache[authorId] = fallback;
-        setAuthorProfile(fallback);
+        });
       }
     };
     fetchAuthorInfo();
