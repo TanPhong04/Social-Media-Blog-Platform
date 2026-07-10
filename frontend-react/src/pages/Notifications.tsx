@@ -107,7 +107,7 @@ const Notifications: React.FC = () => {
       }
       
       if (articleId) {
-        navigate(`/article/${articleId}`);
+        navigate(`/?articleId=${articleId}`);
       } else {
         navigate('/');
       }

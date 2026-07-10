@@ -5,10 +5,77 @@ import { commentApi, type CommentResponse } from '../api/commentApi';
 import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat } from 'lucide-react';
 
-const ArticleDetail: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
+const CommentItem: React.FC<{ comment: CommentResponse }> = ({ comment }) => {
+  const [author, setAuthor] = useState<any>(null);
+  const isRepost = comment.content.includes('[repost]');
+
+  useEffect(() => {
+    const fetchAuthor = async () => {
+      try {
+        const res = await userApi.getUserById(comment.authorId);
+        const data = (res as any).data || res;
+        setAuthor(data);
+      } catch (e) {
+        console.warn(e);
+      }
+    };
+    fetchAuthor();
+  }, [comment.authorId]);
+
+  const displayName = author ? author.displayName : `Người dùng ${comment.authorId.substring(0, 4)}`;
+  const avatarUrl = author ? author.avatarUrl : null;
+  const initials = author ? author.displayName.substring(0, 2).toUpperCase() : 'U';
+
+  if (isRepost) {
+    return (
+      <div className="flex gap-4 items-center bg-green-500/5 border border-green-500/10 rounded-xl p-4 my-2">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-500 to-emerald-600 overflow-hidden flex items-center justify-center text-white font-bold text-xs shrink-0 shadow">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+          ) : (
+            initials
+          )}
+        </div>
+        <div className="flex-1 flex items-center gap-2">
+          <span className="font-semibold text-green-400 text-sm">{displayName}</span>
+          <span className="text-xs text-text-secondary">đã đăng lại bài viết này</span>
+          <Repeat className="w-3.5 h-3.5 text-green-500 ml-1 shrink-0 animate-pulse" />
+        </div>
+        <span className="text-xs text-text-secondary/50">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-4">
+      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden shrink-0 flex items-center justify-center font-bold text-white shadow">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+        ) : (
+          initials
+        )}
+      </div>
+      <div className="flex-1 bg-surface border border-white/5 rounded-2xl rounded-tl-none p-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="font-semibold text-text-primary text-sm">{displayName}</span>
+          <span className="text-xs text-text-secondary">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
+        </div>
+        <p className="text-text-secondary text-sm leading-relaxed">{comment.content}</p>
+      </div>
+    </div>
+  );
+};
+
+interface ArticleDetailProps {
+  articleId?: string;
+  onClose?: () => void;
+}
+
+const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => {
+  const { slug: paramSlug } = useParams<{ slug: string }>();
+  const slug = articleId || paramSlug;
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -64,8 +131,8 @@ const ArticleDetail: React.FC = () => {
       // Fetch comments
       try {
         const commentsData = await commentApi.getComments(art.id);
-        const list = (commentsData as any).content || commentsData || [];
-        setComments(list.filter((c: any) => !c.content.includes('[repost]')));
+        const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
+        setComments(list);
       } catch(e) { console.error("Could not fetch comments", e); }
 
       // Fetch interaction
@@ -134,8 +201,8 @@ const ArticleDetail: React.FC = () => {
       setNewComment('');
       // Reload comments
       const commentsData = await commentApi.getComments(article.id);
-      const list = (commentsData as any).content || commentsData || [];
-      setComments(list.filter((c: any) => !c.content.includes('[repost]')));
+      const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
+      setComments(list);
     } catch (err) {
       console.error('Error posting comment', err);
     } finally {
@@ -168,7 +235,7 @@ const ArticleDetail: React.FC = () => {
     <div className="max-w-3xl mx-auto border-x border-gray-800 min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 bg-background/80 backdrop-blur-md border-b border-gray-800 p-4 z-40 flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+        <button onClick={onClose || (() => navigate(-1))} className="p-2 hover:bg-white/5 rounded-full transition-colors">
            <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="font-heading font-bold truncate">Bài viết</h1>
@@ -265,9 +332,13 @@ const ArticleDetail: React.FC = () => {
             {/* Comment Input */}
             {user ? (
               <div className="flex gap-4 mb-8">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 shrink-0 flex items-center justify-center text-white font-bold">
-                   {user.displayName?.charAt(0).toUpperCase()}
-                </div>
+                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 shrink-0 flex items-center justify-center text-white font-bold overflow-hidden shadow">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      user.displayName?.charAt(0).toUpperCase() || 'U'
+                    )}
+                 </div>
                 <div className="flex-1 space-y-3">
                   <textarea
                     value={newComment}
@@ -296,18 +367,7 @@ const ArticleDetail: React.FC = () => {
             {/* Comment List */}
             <div className="space-y-6">
                {comments.map((comment) => (
-                 <div key={comment.id} className="flex gap-4">
-                   <div className="w-10 h-10 rounded-full bg-surface border border-white/10 shrink-0 flex items-center justify-center font-bold text-sm">
-                      U
-                   </div>
-                   <div className="flex-1 bg-surface border border-white/5 rounded-2xl rounded-tl-none p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-text-primary">User</span>
-                        <span className="text-xs text-text-secondary">• {new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
-                      </div>
-                      <p className="text-text-secondary text-sm">{comment.content}</p>
-                   </div>
-                 </div>
+                 <CommentItem key={comment.id} comment={comment} />
                ))}
             </div>
          </div>

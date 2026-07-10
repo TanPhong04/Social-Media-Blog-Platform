@@ -150,7 +150,7 @@ const MainLayout = () => {
       } catch (e) {}
 
       if (articleId) {
-        navigate(`/article/${articleId}`);
+        navigate(`/?articleId=${articleId}`);
       }
     }
   };
