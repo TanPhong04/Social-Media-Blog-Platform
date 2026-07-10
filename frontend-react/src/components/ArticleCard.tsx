@@ -358,7 +358,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         const reposts = JSON.parse(localStorage.getItem(`reposts_${user.id}`) || '[]');
         const isReposted = reposts.some((b: any) => b.id === article.id);
         setReposted(isReposted);
-        setRepostCount(isReposted ? 1 : 0);
       } catch (e) {
         setReposted(false);
       }
@@ -374,8 +373,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     setLoadingComments(true);
     try {
       const res: any = await commentApi.getComments(article.id);
-      const list = res.content || [];
+      const list = res.content || res || [];
       setComments(list);
+      
+      const count = list.filter((c: any) => c.content.includes('[repost]')).length;
+      setRepostCount(count);
 
       // Tải tên thật của người viết bình luận
       const uids = Array.from(new Set(list.map((c: any) => c.authorId))) as string[];
@@ -1211,7 +1213,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const avatarUrl = authorProfile ? authorProfile.avatarUrl : null;
 
   // Lọc phân cấp comments
-  const rootComments = comments.filter(c => c.parentId === null);
+  const rootComments = comments.filter(c => c.parentId === null && !c.content.includes('[repost]'));
   const getRepliesFor = (parentId: string) => comments.filter(c => c.parentId === parentId);
 
   // Render một phần tử bình luận
@@ -1523,7 +1525,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>{comments.length}</span>
+              <span>{comments.filter(c => !c.content.includes('[repost]')).length}</span>
             </button>
 
             {/* Repost */}
