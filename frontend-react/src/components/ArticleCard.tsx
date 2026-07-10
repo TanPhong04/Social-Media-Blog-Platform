@@ -1379,8 +1379,15 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     );
   };
 
+  const handleCardClick = () => {
+    navigate(`/?articleId=${article.id}`);
+  };
+
   return (
-    <div className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative">
+    <div 
+      onClick={handleCardClick}
+      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative cursor-pointer"
+    >
       {/* Khung nội dung chính của Post */}
       <div className="flex gap-3">
         {/* Cột bên trái: Avatar tròn - Click để xem Profile */}

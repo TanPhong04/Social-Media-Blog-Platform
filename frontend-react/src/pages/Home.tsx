@@ -61,6 +61,17 @@ const Home: React.FC = () => {
   const handleCloseModal = () => {
     setSearchParams({});
   };
+
+  useEffect(() => {
+    if (activeArticleId) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeArticleId]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);

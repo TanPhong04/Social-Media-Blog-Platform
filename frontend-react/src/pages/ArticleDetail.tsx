@@ -131,7 +131,8 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
       // Fetch comments
       try {
         const commentsData = await commentApi.getComments(art.id);
-        setComments((commentsData as any).content || commentsData || []);
+        const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
+        setComments(list);
       } catch(e) { console.error("Could not fetch comments", e); }
 
       // Fetch interaction
@@ -200,7 +201,8 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
       setNewComment('');
       // Reload comments
       const commentsData = await commentApi.getComments(article.id);
-      setComments((commentsData as any).content || commentsData || []);
+      const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
+      setComments(list);
     } catch (err) {
       console.error('Error posting comment', err);
     } finally {
@@ -330,9 +332,13 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
             {/* Comment Input */}
             {user ? (
               <div className="flex gap-4 mb-8">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 shrink-0 flex items-center justify-center text-white font-bold">
-                   {user.displayName?.charAt(0).toUpperCase()}
-                </div>
+                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 shrink-0 flex items-center justify-center text-white font-bold overflow-hidden shadow">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      user.displayName?.charAt(0).toUpperCase() || 'U'
+                    )}
+                 </div>
                 <div className="flex-1 space-y-3">
                   <textarea
                     value={newComment}
