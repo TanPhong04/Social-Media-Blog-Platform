@@ -39,6 +39,9 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
+      MINIO_URL: ${MINIO_URL}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
     depends_on:
       - user-service
