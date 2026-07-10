@@ -10,6 +10,11 @@ axion.id.vn, www.axion.id.vn {
         reverse_proxy http://206.189.156.230:8080
     }
 
+    # Chuyển hướng các request media tới MinIO để tránh lỗi Mixed Content
+    handle /media/* {
+        reverse_proxy http://206.189.156.230:9000
+    }
+
     # Phục vụ file web
     handle {
         try_files {path} /index.html
