@@ -5,7 +5,6 @@ import { userApi } from '../api/userApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import { CustomVideoPlayer } from '../components/CustomVideoPlayer';
 import ArticleDetail from './ArticleDetail';
 import { Image, Smile, Globe, AlertCircle, X } from 'lucide-react';
 
@@ -372,8 +371,9 @@ const Home: React.FC = () => {
                     className="max-h-80 max-w-full object-contain rounded-app"
                   />
                 ) : (
-                  <CustomVideoPlayer
+                  <video
                     src={selectedFile.url}
+                    controls
                     className="max-h-80 max-w-full object-contain rounded-app"
                   />
                 )}
