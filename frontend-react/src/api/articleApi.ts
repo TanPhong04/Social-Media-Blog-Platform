@@ -45,6 +45,9 @@ export const articleApi = {
       params: { page, size }
     });
   },
+  getBySlug: (slug: string) => {
+    return axiosClient.get<ArticleResponse>(`/articles/by-slug/${slug}`);
+  },
   getMine: (page: number = 0, size: number = 20) => {
     return axiosClient.get<Page<ArticleResponse>>('/articles/mine', {
       params: { page, size }

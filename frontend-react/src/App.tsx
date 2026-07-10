@@ -3,7 +3,6 @@ import MainLayout from './components/layout/MainLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ComingSoon from './pages/ComingSoon';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminLayout from './components/layout/AdminLayout';
@@ -13,6 +12,10 @@ import ArticleManagement from './pages/admin/ArticleManagement';
 import MyArticles from './pages/MyArticles';
 import Bookmarks from './pages/Bookmarks';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import Notifications from './pages/Notifications';
+import Following from './pages/Following';
+import ArticleDetail from './pages/ArticleDetail';
 
 function App() {
   return (
@@ -26,16 +29,16 @@ function App() {
         <Route path="/" element={<Home />} />
         
         {/* Placeholder Routes */}
-        <Route path="/article/:slug" element={<ComingSoon />} />
+        <Route path="/article/:slug" element={<ArticleDetail />} />
         
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<Profile />} />
-          <Route path="/following" element={<ComingSoon />} />
+          <Route path="/following" element={<Following />} />
           <Route path="/my-articles" element={<MyArticles />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
-          <Route path="/notifications" element={<ComingSoon />} />
-          <Route path="/settings" element={<ComingSoon />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>
 
