@@ -94,12 +94,8 @@ const Profile: React.FC = () => {
   // Trạng thái Toast thông báo
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Gợi ý theo dõi "Who to follow" giả lập tương tác
-  const [whoToFollow, setWhoToFollow] = useState([
-    { id: '1', displayName: 'Prodigy', handle: '@Prodigyftn', bio: 'Professional Fortnite Player Business inquiries @DillMgmt', following: false, avatar: 'P' },
-    { id: '2', displayName: 'tphageru', handle: '@tphageru', bio: 'Designer & Artist. No reuploading & No AI training', following: false, avatar: 'T' },
-    { id: '3', displayName: '木毎 🍉', handle: '@melvinfeat', bio: 'mel/葉 | 20↑ | OC/FFXIV *NO AI*', following: false, avatar: 'M' }
-  ]);
+  // Gợi ý theo dõi "Who to follow" người dùng thật
+  const [whoToFollow, setWhoToFollow] = useState<any[]>([]);
 
   const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -170,6 +166,30 @@ const Profile: React.FC = () => {
           followingCount: 0
         });
         setIsFollowing(false);
+      }
+
+      // 3. Tải danh sách gợi ý "Who to follow" người dùng thật
+      try {
+        const suggestionsRes: any = await userApi.getSuggestions();
+        const suggestions = suggestionsRes.data || suggestionsRes || [];
+        if (user) {
+          const followingRes: any = await userApi.getFollowing(user.id, 0, 100);
+          const followingList = followingRes.content || followingRes || [];
+          const followingIds = new Set(followingList.map((f: any) => f.id || f.userId || f.targetId));
+
+          const filtered = suggestions.filter((u: any) => u.id !== user.id && !followingIds.has(u.id));
+          const mapped = filtered.slice(0, 3).map((u: any) => ({
+            id: u.id,
+            displayName: u.displayName,
+            username: u.username,
+            bio: u.bio || 'Chưa có tiểu sử',
+            avatarUrl: u.avatarUrl,
+            following: false
+          }));
+          setWhoToFollow(mapped);
+        }
+      } catch (suggestErr) {
+        console.warn('Failed to load real users suggestions', suggestErr);
       }
 
     } catch (err) {
@@ -600,37 +620,72 @@ const Profile: React.FC = () => {
       </div>
 
       {/* MỤC "WHO TO FOLLOW" */}
-      <div className="mt-4 border-t border-gray-800 p-4">
-        <h3 className="text-lg font-bold mb-4 font-heading text-text-primary">Who to follow</h3>
-        <div className="space-y-4">
-          {whoToFollow.map(item => (
-            <div key={item.id} className="flex gap-3 text-[14px]">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-white font-semibold shadow-md">
-                {item.avatar}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-text-primary truncate hover:underline cursor-pointer">{item.displayName}</h4>
-                    <p className="text-text-secondary text-xs">{item.handle}</p>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      const updated = whoToFollow.map(u => u.id === item.id ? { ...u, following: !u.following } : u);
-                      setWhoToFollow(updated);
-                      showToastMessage(item.following ? `Đã bỏ theo dõi @${item.displayName}` : `Đã theo dõi @${item.displayName}!`);
-                    }}
-                    className={`px-4 py-1 font-bold text-xs rounded-full transition-all cursor-pointer border ${item.following ? 'border-gray-700 text-text-primary hover:text-red-500 hover:border-red-500 hover:bg-red-500/10' : 'bg-primary text-white hover:bg-primary/95'}`}
+      {whoToFollow.length > 0 && (
+        <div className="mt-4 border-t border-gray-800 p-4">
+          <h3 className="text-lg font-bold mb-4 font-heading text-text-primary">Who to follow</h3>
+          <div className="space-y-4">
+            {whoToFollow.map(item => {
+              const initials = item.displayName.substring(0, 2).toUpperCase();
+              return (
+                <div key={item.id} className="flex gap-3 text-[14px]">
+                  {/* Avatar gợi ý - Click để xem Profile */}
+                  <div 
+                    onClick={() => navigate(`/profile?userId=${item.id}`)}
+                    className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden flex items-center justify-center text-white font-bold shadow-md cursor-pointer hover:opacity-90 transition-opacity shrink-0"
                   >
-                    {item.following ? 'Following' : 'Follow'}
-                  </button>
+                    {item.avatarUrl ? (
+                      <img src={item.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0">
+                        <h4 
+                          onClick={() => navigate(`/profile?userId=${item.id}`)}
+                          className="font-bold text-text-primary truncate hover:underline cursor-pointer"
+                        >
+                          {item.displayName}
+                        </h4>
+                        <p className="text-text-secondary text-xs truncate">@{item.username}</p>
+                      </div>
+                      <button 
+                        onClick={async () => {
+                          try {
+                            if (item.following) {
+                              await userApi.unfollowUser(item.id);
+                              showToastMessage(`Đã bỏ theo dõi @${item.username}`);
+                            } else {
+                              await userApi.followUser(item.id);
+                              showToastMessage(`Đã theo dõi @${item.username}!`);
+                            }
+                            setWhoToFollow(prev => prev.map(u => u.id === item.id ? { ...u, following: !u.following } : u));
+                            if (isMe) {
+                              // Tải lại follower/following stats
+                              const followRes: any = await userApi.getFollowStatus(profile.id);
+                              setFollowStats({
+                                followerCount: followRes.followerCount,
+                                followingCount: followRes.followingCount
+                              });
+                            }
+                          } catch (err) {
+                            showToastMessage('Thao tác thất bại.', 'error');
+                          }
+                        }}
+                        className={`px-4 py-1 font-bold text-xs rounded-full transition-all cursor-pointer border ${item.following ? 'border-gray-700 text-text-primary hover:text-red-500 hover:border-red-500 hover:bg-red-500/10' : 'bg-primary text-white hover:bg-primary/95'}`}
+                      >
+                        {item.following ? 'Following' : 'Follow'}
+                      </button>
+                    </div>
+                    <p className="text-text-secondary text-xs mt-1 leading-normal break-words">{item.bio}</p>
+                  </div>
                 </div>
-                <p className="text-text-secondary text-xs mt-1 leading-normal break-words">{item.bio}</p>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* MODAL CẬP NHẬT HỒ SƠ (EDIT PROFILE MODAL) */}
       {isEditing && (

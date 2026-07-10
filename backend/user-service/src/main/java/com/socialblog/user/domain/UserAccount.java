@@ -36,6 +36,10 @@ public class UserAccount {
     public void suspend() { this.status = Status.SUSPENDED; this.updatedAt = Instant.now(); }
     public void activate() { this.status = Status.ACTIVE; this.updatedAt = Instant.now(); }
     public void delete() { this.status = Status.DELETED; this.updatedAt = Instant.now(); }
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+        this.updatedAt = Instant.now();
+    }
     public UUID getId(){return id;} public String getEmail(){return email;} public String getPasswordHash(){return passwordHash;}
     public String getDisplayName(){return displayName;} public String getBio(){return bio;} public String getAvatarUrl(){return avatarUrl;}
     public Role getRole(){return role;} public Status getStatus(){return status;} public Instant getCreatedAt(){return createdAt;}
