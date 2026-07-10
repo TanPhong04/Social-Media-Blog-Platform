@@ -8,7 +8,7 @@ import { notificationApi } from '../../api/notificationApi';
 import { Bell, Heart, MessageCircle, UserPlus, Repeat, X, MessageSquare } from 'lucide-react';
 
 const MainLayout = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [realtimeToast, setRealtimeToast] = useState<any>(null);
 
@@ -109,10 +109,7 @@ const MainLayout = () => {
         const activeContactId = urlParams.get('contactId');
         const isAtMessagesPage = window.location.pathname === '/messages';
 
-        const storedUser = localStorage.getItem('user');
-        const currentUser = storedUser ? JSON.parse(storedUser) : null;
-
-        if (msg.senderId !== currentUser?.id && !(isAtMessagesPage && activeContactId === msg.senderId)) {
+        if (msg.senderId !== user?.id && !(isAtMessagesPage && activeContactId === msg.senderId)) {
           let senderName = 'Người dùng';
           let avatarUrl = '';
           try {
@@ -145,8 +142,7 @@ const MainLayout = () => {
     });
 
     eventSource.addEventListener('error', (e) => {
-      console.warn('SSE stream connection warning, closing...', e);
-      eventSource.close();
+      console.warn('SSE stream connection warning. Browser will attempt auto-reconnect.', e);
     });
 
     return () => {

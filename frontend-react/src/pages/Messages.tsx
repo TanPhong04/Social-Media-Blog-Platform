@@ -214,7 +214,14 @@ const Messages = () => {
         finalContent += `\n\n![chat_image](${chatImage})`;
       }
 
-      await chatApi.sendMessage(activeContactId, finalContent);
+      const res: any = await chatApi.sendMessage(activeContactId, finalContent);
+      const sentMsg = res.data || res;
+
+      setMessages(prev => {
+        if (prev.some(m => m.id === sentMsg.id)) return prev;
+        return [...prev, sentMsg];
+      });
+
       setInputText('');
       setCommentImage(null);
       if (imageInputRef.current) imageInputRef.current.value = '';
