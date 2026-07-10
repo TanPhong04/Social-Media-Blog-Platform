@@ -1528,7 +1528,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
             {/* Comment */}
             <button
-              onClick={() => setShowComments(!showComments)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(!showComments);
+              }}
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -1566,7 +1569,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       {/* KHUNG BÌNH LUẬN NÂNG CAO (COMMENTS SECTION MULTI-LEVEL) */}
       {showComments && (
-        <div className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4"
+        >
           
           {/* Ô nhập bình luận gốc */}
           {user && (
