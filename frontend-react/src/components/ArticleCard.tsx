@@ -1528,7 +1528,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
             {/* Comment */}
             <button
-              onClick={() => setShowComments(!showComments)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(!showComments);
+              }}
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />

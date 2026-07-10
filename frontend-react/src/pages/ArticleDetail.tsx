@@ -1,14 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { commentApi, type CommentResponse } from '../api/commentApi';
 import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat } from 'lucide-react';
+import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile } from 'lucide-react';
 
-const CommentItem: React.FC<{ comment: CommentResponse }> = ({ comment }) => {
+const CommentItem: React.FC<{
+  comment: CommentResponse;
+  replies: CommentResponse[];
+  user: any;
+  onReplySuccess: () => void;
+}> = ({ comment, replies, user, onReplySuccess }) => {
   const [author, setAuthor] = useState<any>(null);
+  const [showReplyBox, setShowReplyBox] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const isRepost = comment.content.includes('[repost]');
 
   useEffect(() => {
@@ -23,6 +33,36 @@ const CommentItem: React.FC<{ comment: CommentResponse }> = ({ comment }) => {
     };
     fetchAuthor();
   }, [comment.authorId]);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const handlePostReply = async () => {
+    if (!user) return;
+    if (!replyText.trim()) return;
+    setSubmittingReply(true);
+    try {
+      await commentApi.createComment({
+        articleId: comment.articleId,
+        parentId: comment.id,
+        content: replyText
+      });
+      setReplyText('');
+      setShowReplyBox(false);
+      onReplySuccess();
+    } catch (err) {
+      console.error('Error posting reply', err);
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
 
   const displayName = author ? author.displayName : `Người dùng ${comment.authorId.substring(0, 4)}`;
   const avatarUrl = author ? author.avatarUrl : null;
@@ -49,21 +89,117 @@ const CommentItem: React.FC<{ comment: CommentResponse }> = ({ comment }) => {
   }
 
   return (
-    <div className="flex gap-4">
-      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden shrink-0 flex items-center justify-center font-bold text-white shadow">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-        ) : (
-          initials
-        )}
-      </div>
-      <div className="flex-1 bg-surface border border-white/5 rounded-2xl rounded-tl-none p-4">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="font-semibold text-text-primary text-sm">{displayName}</span>
-          <span className="text-xs text-text-secondary">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
+    <div className="space-y-4">
+      {/* Bình luận */}
+      <div className="flex gap-4">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden shrink-0 flex items-center justify-center font-bold text-white shadow">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+          ) : (
+            initials
+          )}
         </div>
-        <p className="text-text-secondary text-sm leading-relaxed">{comment.content}</p>
+        <div className="flex-1 bg-surface border border-white/5 rounded-2xl rounded-tl-none p-4">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="font-semibold text-text-primary text-sm">{displayName}</span>
+            <span className="text-xs text-text-secondary">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
+          </div>
+          <p className="text-text-secondary text-sm leading-relaxed">{comment.content}</p>
+          
+          {user && (
+            <div className="flex items-center gap-4 mt-3 pt-2 border-t border-white/5">
+              <button 
+                onClick={() => setShowReplyBox(!showReplyBox)}
+                className="text-xs text-text-secondary hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>Phản hồi</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Ô phản hồi */}
+      {showReplyBox && (
+        <div className="ml-12 flex gap-3 bg-surface/30 p-3 rounded-xl border border-white/5 relative">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden shrink-0 flex items-center justify-center text-white font-bold text-xs">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              user?.displayName?.charAt(0).toUpperCase() || 'U'
+            )}
+          </div>
+          <div className="flex-1 space-y-2 relative">
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={`Phản hồi @${displayName}...`}
+              className="w-full bg-surface border border-white/10 rounded-lg p-2 text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary/50 resize-none min-h-[60px]"
+            />
+            <div className="flex justify-between items-center relative">
+              {/* Emoji trigger */}
+              <div className="relative" ref={emojiPickerRef}>
+                <button 
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="p-1.5 hover:bg-white/5 rounded-full text-text-secondary hover:text-primary transition-colors cursor-pointer"
+                >
+                  <Smile className="w-4 h-4" />
+                </button>
+                {showEmojiPicker && (
+                  <div className="absolute left-0 top-8 z-50 bg-surface border border-white/10 rounded-xl shadow-2xl p-3 w-72">
+                    <div className="grid grid-cols-6 gap-1 max-h-40 overflow-y-auto">
+                      {['😊', '😂', '🤣', '👍', '❤️', '🔥', '🎉', '✨', '👏', '😍', '🥰', '😘', '😃', '😄', '😁', '😆', '😅', '😉', '😌', '😎', '😢', '😭', '😡', '👍', '🙌', '🙏'].map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            setReplyText(prev => prev + emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          className="text-lg p-1 hover:bg-white/10 rounded text-center cursor-pointer"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowReplyBox(false)}
+                  className="px-3 py-1 bg-white/5 hover:bg-white/10 text-text-primary text-xs font-semibold rounded-full transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={handlePostReply}
+                  disabled={!replyText.trim() || submittingReply}
+                  className="px-3 py-1 bg-primary text-white text-xs font-semibold rounded-full hover:bg-primary-hover disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {submittingReply ? 'Đang gửi...' : 'Gửi'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bình luận phản hồi con */}
+      {replies.length > 0 && (
+        <div className="ml-12 pl-4 border-l border-white/5 space-y-4">
+          {replies.map((reply) => (
+            <CommentItem 
+              key={reply.id} 
+              comment={reply} 
+              replies={[]} 
+              user={user} 
+              onReplySuccess={onReplySuccess} 
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -88,6 +224,18 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
   const [likeCount, setLikeCount] = useState(0);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const mainEmojiPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (mainEmojiPickerRef.current && !mainEmojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   useEffect(() => {
     if (slug) {
@@ -132,7 +280,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
       try {
         const commentsData = await commentApi.getComments(art.id);
         const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
-        setComments(list);
+        setComments(list.filter((c: any) => !c.content.includes('[repost]')));
       } catch(e) { console.error("Could not fetch comments", e); }
 
       // Fetch interaction
@@ -199,10 +347,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
         content: newComment
       });
       setNewComment('');
-      // Reload comments
       const commentsData = await commentApi.getComments(article.id);
       const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
-      setComments(list);
+      setComments(list.filter((c: any) => !c.content.includes('[repost]')));
     } catch (err) {
       console.error('Error posting comment', err);
     } finally {
@@ -346,7 +493,35 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
                     placeholder="Viết bình luận của bạn..."
                     className="w-full bg-surface border border-white/10 rounded-xl p-3 text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary/50 resize-none min-h-[100px]"
                   />
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center mt-2 relative">
+                    {/* Emoji trigger */}
+                    <div className="relative" ref={mainEmojiPickerRef}>
+                      <button 
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="p-1.5 hover:bg-white/5 rounded-full text-text-secondary hover:text-primary transition-colors cursor-pointer"
+                      >
+                        <Smile className="w-5 h-5" />
+                      </button>
+                      {showEmojiPicker && (
+                        <div className="absolute left-0 top-10 z-50 bg-surface border border-white/10 rounded-xl shadow-2xl p-3 w-72">
+                          <div className="grid grid-cols-6 gap-1 max-h-40 overflow-y-auto">
+                            {['😊', '😂', '🤣', '👍', '❤️', '🔥', '🎉', '✨', '👏', '😍', '🥰', '😘', '😃', '😄', '😁', '😆', '😅', '😉', '😌', '😎', '😢', '😭', '😡', '👍', '🙌', '🙏'].map(emoji => (
+                              <button
+                                key={emoji}
+                                onClick={() => {
+                                  setNewComment(prev => prev + emoji);
+                                  setShowEmojiPicker(false);
+                                }}
+                                className="text-lg p-1 hover:bg-white/10 rounded text-center cursor-pointer"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <button
                       onClick={handlePostComment}
                       disabled={!newComment.trim() || submittingComment}
@@ -366,9 +541,18 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
 
             {/* Comment List */}
             <div className="space-y-6">
-               {comments.map((comment) => (
-                 <CommentItem key={comment.id} comment={comment} />
-               ))}
+               {comments.filter(c => c.parentId === null).map((comment) => {
+                 const replies = comments.filter(c => c.parentId === comment.id);
+                 return (
+                   <CommentItem 
+                     key={comment.id} 
+                     comment={comment} 
+                     replies={replies} 
+                     user={user} 
+                     onReplySuccess={fetchData} 
+                   />
+                 );
+               })}
             </div>
          </div>
       </div>
