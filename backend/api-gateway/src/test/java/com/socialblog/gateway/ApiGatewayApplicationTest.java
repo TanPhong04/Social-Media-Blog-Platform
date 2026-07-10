@@ -59,7 +59,7 @@ class ApiGatewayApplicationTest {
                 "comment-service", Set.of("/api/v1/comments/**", "/api/v1/admin/comments/**"),
                 "interaction-service", Set.of("/api/v1/interactions/**"),
                 "follower-service", Set.of("/api/v1/follows/**"),
-                "notification-service", Set.of("/api/v1/notifications/**")
+                "notification-service", Set.of("/api/v1/notifications/**", "/api/v1/chats/**")
         );
 
         Map<String, RouteDefinition> routesById = routeDefinitions.getRouteDefinitions()
