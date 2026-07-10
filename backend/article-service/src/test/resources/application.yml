@@ -11,3 +11,8 @@ app:
       issuer: https://social-blog-platform.test
   kafka.consumer-enabled: false
   outbox.publisher-enabled: false
+  minio:
+    url: http://localhost:9000
+    access-key: minio
+    secret-key: minio12345
+    bucket-name: media

@@ -17,7 +17,16 @@ const Navbar = () => {
         <div className="flex justify-between h-16">
           {/* Logo & Left Links */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary font-heading">
+            <Link
+              to="/"
+              onClick={(e) => {
+                if (window.location.pathname === '/') {
+                  e.preventDefault();
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-2 font-bold text-xl text-primary font-heading"
+            >
               <HomeIcon className="w-6 h-6" />
               <span>Axion</span>
             </Link>
@@ -31,6 +40,8 @@ const Navbar = () => {
                   <span>Xin chào,</span>
                   <span className="font-medium text-text-primary">{user?.displayName}</span>
                 </div>
+
+
                 <Link 
                   to="/profile" 
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-background border border-gray-800 text-primary hover:bg-gray-800 transition-colors"

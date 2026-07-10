@@ -14,6 +14,13 @@ export interface ArticleResponse {
   publishedAt: string;
 }
 
+export interface ArticleWriteRequest {
+  title: string;
+  summary: string;
+  content: string;
+  tags: string[];
+}
+
 export interface Page<T> {
   content: T[];
   pageable: {
@@ -32,5 +39,45 @@ export const articleApi = {
     return axiosClient.get<Page<ArticleResponse>>('/articles', {
       params: { page, size }
     });
+  },
+  getFollowingFeed: (page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>('/articles/following', {
+      params: { page, size }
+    });
+  },
+  getMine: (page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>('/articles/mine', {
+      params: { page, size }
+    });
+  },
+  getByAuthor: (authorId: string, page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>(`/articles/users/${authorId}`, {
+      params: { page, size }
+    });
+  },
+  createArticle: (data: ArticleWriteRequest) => {
+    return axiosClient.post<ArticleResponse>('/articles', data);
+  },
+  updateArticle: (id: string, data: ArticleWriteRequest) => {
+    return axiosClient.put<ArticleResponse>(`/articles/${id}`, data);
+  },
+  deleteArticle: (id: string) => {
+    return axiosClient.delete(`/articles/${id}`);
+  },
+  publishArticle: (id: string) => {
+    return axiosClient.post<ArticleResponse>(`/articles/${id}/publish`);
+  },
+  unpublishArticle: (id: string) => {
+    return axiosClient.post<ArticleResponse>(`/articles/${id}/unpublish`);
+  },
+  likeArticle: (id: string) => {
+    return axiosClient.put(`/interactions/ARTICLE/${id}/like`);
+  },
+  unlikeArticle: (id: string) => {
+    return axiosClient.delete(`/interactions/ARTICLE/${id}/like`);
+  },
+  getArticleInteraction: (id: string) => {
+    return axiosClient.get(`/interactions/ARTICLE/${id}`);
   }
 };
+

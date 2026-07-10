@@ -40,6 +40,11 @@ public class ArticleController {
         return service.mine(user(jwt), PageRequests.of(page, size, 50));
     }
 
+    @GetMapping("/users/{authorId}")
+    Page<Response> byAuthor(@PathVariable UUID authorId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return service.mine(authorId, PageRequests.of(page, size, 50));
+    }
+
     @PostMapping
     ResponseEntity<Response> create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody WriteRequest r) {
         return ResponseEntity.status(201).body(service.create(user(jwt), r));

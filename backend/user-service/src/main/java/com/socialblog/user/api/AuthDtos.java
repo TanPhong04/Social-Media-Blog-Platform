@@ -15,6 +15,6 @@ public final class AuthDtos {
     public record LoginRequest(@NotBlank @Email @Size(max=320) String email, @NotBlank @Size(max=72) String password) {}
     public record RefreshRequest(@NotBlank @Size(max=512) String refreshToken) {}
     public record TokenResponse(String accessToken, String refreshToken, String tokenType, long expiresIn) {}
-    public record ProfileResponse(UUID id, String email, String displayName, String bio, String avatarUrl, String role, Instant createdAt) {}
-    public record UpdateProfileRequest(@NotBlank @Size(max=80) String displayName, @Size(max=500) String bio, @Size(max=500) String avatarUrl) {}
+    public record ProfileResponse(UUID id, String email, String displayName, String bio, String avatarUrl, String role, String username, String dob, Instant createdAt) {}
+    public record UpdateProfileRequest(@NotBlank @Size(max=80) String displayName, @Size(max=500) String bio, @Size(max=10000000) String avatarUrl, @NotBlank @Size(max=50) String username, String dob) {}
 }
