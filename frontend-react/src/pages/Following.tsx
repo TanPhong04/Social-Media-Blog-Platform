@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../api/userApi';
-import { Users, AlertCircle, Check, X, Search, Sparkles } from 'lucide-react';
+import { Users, AlertCircle, Check, X, Sparkles } from 'lucide-react';
 
 const Following: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
