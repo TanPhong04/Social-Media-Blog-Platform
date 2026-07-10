@@ -16,7 +16,7 @@ public class MediaService {
     @Value("${app.minio.bucket-name}")
     private String bucketName;
     
-    @Value("${app.minio.url}")
+    @Value("${app.minio.public-url}")
     private String minioUrl;
 
     public MediaService(MinioClient minioClient) {
