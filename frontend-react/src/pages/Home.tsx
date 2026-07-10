@@ -5,42 +5,9 @@ import { userApi } from '../api/userApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import { Image, Smile, Calendar, MapPin, BarChart2, Globe, AlertCircle, X } from 'lucide-react';
+import { Image, Smile, Globe, AlertCircle, X } from 'lucide-react';
 
-// Hàm helper upload tệp tin trực tiếp lên Cloudinary sử dụng Unsigned Preset
-const uploadToCloudinary = async (file: File): Promise<string> => {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'djy5p3y4g';
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
-  
-  const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', uploadPreset);
-  formData.append('resource_type', resourceType);
-  
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Cloudinary upload error response:', errorText);
-    let errMsg = 'Đăng tải tệp tin lên Cloudinary thất bại.';
-    try {
-      const errJson = JSON.parse(errorText);
-      if (errJson.error && errJson.error.message) {
-        errMsg = `Cloudinary: ${errJson.error.message}`;
-      }
-    } catch (e) {}
-    throw new Error(errMsg);
-  }
-  
-  const data = await response.json();
-  return data.secure_url;
-};
-
+import { mediaApi } from '../api/mediaApi';
 const EMOJI_CATEGORIES = [
   {
     icon: '😀',
@@ -239,9 +206,9 @@ const Home: React.FC = () => {
     try {
       let mediaUrl = '';
       if (selectedFile) {
-        // Tải tệp lên Cloudinary trước khi gửi bài viết
-        setPostError('Đang tải tệp tin lên Cloudinary...');
-        mediaUrl = await uploadToCloudinary(selectedFile.file);
+        // Tải tệp qua Backend (MinIO)
+        setPostError('Đang tải tệp tin lên hệ thống...');
+        mediaUrl = await mediaApi.uploadFile(selectedFile.file);
         setPostError(null);
       }
 

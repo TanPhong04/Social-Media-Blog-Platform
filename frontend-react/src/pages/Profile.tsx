@@ -5,7 +5,7 @@ import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Calendar, FileText, Heart, Globe, X, Check, Gift, Repeat, Image as ImageIcon, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Heart, X, Check, Gift, Repeat, Image as ImageIcon, Users } from 'lucide-react';
 
 // Helper: Nén hình ảnh dùng Canvas
 const compressImage = (file: File): Promise<string> => {
@@ -265,7 +265,7 @@ const Profile: React.FC = () => {
         dob: editDob
       };
 
-      const updatedProfile = await userApi.updateProfile(updateData);
+      const updatedProfile: any = await userApi.updateProfile(updateData);
       setProfile(updatedProfile);
 
       // Lưu banner vào localStorage

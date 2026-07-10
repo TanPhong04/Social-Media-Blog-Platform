@@ -3,7 +3,7 @@ import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, AlertCircle, Globe } from 'lucide-react';
+import { FileText, AlertCircle } from 'lucide-react';
 
 const MyArticles: React.FC = () => {
   const { isAuthenticated } = useAuth();
