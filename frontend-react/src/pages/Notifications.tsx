@@ -1,19 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { notificationApi, type NotificationResponse } from '../api/notificationApi';
+import { userApi } from '../api/userApi';
+import { notificationApi } from '../api/notificationApi';
 import { Bell, Heart, MessageCircle, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Notifications: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actorProfiles, setActorProfiles] = useState<{ [id: string]: any }>({});
 
   const fetchNotifications = async () => {
     try {
-      const data = await notificationApi.getNotifications(0, 50);
-      setNotifications((data as any).content || []);
+      setLoading(true);
+      const data: any = await notificationApi.getNotifications(0, 50);
+      const list = data.content || [];
+      
+      // Nạp thông tin thật (Tên & Avatar) của tất cả actors song song
+      const actorIds = Array.from(new Set(list.map((n: any) => n.actorId))) as string[];
+      const profileMap: { [id: string]: any } = {};
+      
+      await Promise.all(actorIds.map(async (id) => {
+        try {
+          const uProfile = await userApi.getUserById(id);
+          profileMap[id] = uProfile;
+        } catch (err) {
+          profileMap[id] = {
+            displayName: `Người dùng ${id.substring(0, 4)}`,
+            avatarUrl: null
+          };
+        }
+      }));
+
+      setActorProfiles(profileMap);
+      setNotifications(list);
     } catch (err) {
       console.error('Error fetching notifications', err);
     } finally {
@@ -38,7 +60,7 @@ const Notifications: React.FC = () => {
     }
   };
 
-  const handleNotificationClick = async (notification: NotificationResponse) => {
+  const handleNotificationClick = async (notification: any) => {
     if (!notification.isRead) {
       try {
         await notificationApi.markAsRead(notification.id);
@@ -48,37 +70,67 @@ const Notifications: React.FC = () => {
       }
     }
 
-    // Navigate to the relevant content
-    if (notification.type === 'FOLLOW') {
-       navigate('/profile'); // or navigate to their profile
-    } else if (notification.type === 'ARTICLE_LIKE' || notification.type === 'COMMENT' || notification.type === 'NEW_ARTICLE') {
-       navigate(`/`); // since we might not have the slug here, navigate to home for now, or fetch article slug if needed
+    // Điều hướng thông minh dựa trên Event Type
+    if (notification.type === 'NEW_FOLLOWER') {
+      navigate(`/profile?userId=${notification.actorId}`);
+    } else if (
+      notification.type === 'NEW_LIKE' ||
+      notification.type === 'NEW_COMMENT' ||
+      notification.type === 'NEW_REPLY' ||
+      notification.type === 'NEW_ARTICLE'
+    ) {
+      // Tìm articleId từ payload lưu trong metadata
+      let articleId = notification.entityId;
+      try {
+        const meta = JSON.parse(notification.metadata);
+        if (meta.articleId) {
+          articleId = meta.articleId;
+        } else if (meta.targetId && notification.entityType === 'ARTICLE') {
+          articleId = meta.targetId;
+        }
+      } catch (e) {
+        console.warn('Error parsing notification metadata', e);
+      }
+      
+      if (articleId) {
+        navigate(`/article/${articleId}`);
+      } else {
+        navigate('/');
+      }
     }
   };
 
   const renderIcon = (type: string) => {
     switch (type) {
-      case 'ARTICLE_LIKE':
-      case 'COMMENT_LIKE':
-        return <div className="p-2 bg-red-500/10 text-red-500 rounded-full"><Heart className="w-5 h-5 fill-current" /></div>;
-      case 'COMMENT':
-        return <div className="p-2 bg-blue-500/10 text-blue-500 rounded-full"><MessageCircle className="w-5 h-5" /></div>;
-      case 'FOLLOW':
-        return <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full"><UserPlus className="w-5 h-5" /></div>;
+      case 'NEW_LIKE':
+        return <div className="p-2 bg-red-500/10 text-red-500 rounded-full"><Heart className="w-4 h-4 fill-current" /></div>;
+      case 'NEW_COMMENT':
+      case 'NEW_REPLY':
+        return <div className="p-2 bg-blue-500/10 text-blue-500 rounded-full"><MessageCircle className="w-4 h-4" /></div>;
+      case 'NEW_FOLLOWER':
+        return <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full"><UserPlus className="w-4 h-4" /></div>;
       default:
-        return <div className="p-2 bg-primary/10 text-primary rounded-full"><Bell className="w-5 h-5" /></div>;
+        return <div className="p-2 bg-primary/10 text-primary rounded-full"><Bell className="w-4 h-4" /></div>;
     }
   };
 
-  const renderMessage = (notification: NotificationResponse) => {
-    const actor = <span className="font-semibold text-text-primary">{notification.actorName}</span>;
+  const renderMessage = (notification: any) => {
+    const profile = actorProfiles[notification.actorId];
+    const actorName = profile ? profile.displayName : `Người dùng ${notification.actorId.substring(0, 4)}`;
+    const actor = <span className="font-semibold text-text-primary">{actorName}</span>;
     switch (notification.type) {
-      case 'ARTICLE_LIKE': return <>{actor} đã thích bài viết của bạn</>;
-      case 'COMMENT': return <>{actor} đã bình luận về bài viết của bạn</>;
-      case 'COMMENT_LIKE': return <>{actor} đã thích bình luận của bạn</>;
-      case 'FOLLOW': return <>{actor} đã bắt đầu theo dõi bạn</>;
-      case 'NEW_ARTICLE': return <>{actor} vừa đăng một bài viết mới</>;
-      default: return <>{actor} đã tương tác với bạn</>;
+      case 'NEW_LIKE': 
+        return <>{actor} đã thích bài viết của bạn</>;
+      case 'NEW_COMMENT': 
+        return <>{actor} đã bình luận về bài viết của bạn</>;
+      case 'NEW_REPLY': 
+        return <>{actor} đã phản hồi bình luận của bạn</>;
+      case 'NEW_FOLLOWER': 
+        return <>{actor} đã bắt đầu theo dõi bạn</>;
+      case 'NEW_ARTICLE': 
+        return <>{actor} vừa đăng một bài viết mới</>;
+      default: 
+        return <>{actor} đã tương tác với bạn</>;
     }
   };
 
@@ -93,7 +145,7 @@ const Notifications: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background">
+    <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="p-4 border-b border-gray-800 sticky top-16 bg-background/80 backdrop-blur-md z-40 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -113,7 +165,7 @@ const Notifications: React.FC = () => {
         {notifications.some(n => !n.isRead) && (
           <button
             onClick={handleMarkAllRead}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-primary/20 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary text-xs font-semibold rounded-full transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-primary/20 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary text-xs font-semibold rounded-full transition-all cursor-pointer shadow-sm"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Đánh dấu đã đọc</span>
@@ -145,40 +197,46 @@ const Notifications: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-800 pb-20">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              onClick={() => handleNotificationClick(notification)}
-              className={`flex gap-4 p-4 cursor-pointer transition-colors duration-200 ${
-                notification.isRead ? 'hover:bg-white/[0.02] opacity-80' : 'bg-primary/5 hover:bg-primary/10'
-              }`}
-            >
-              <div className="shrink-0 relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden flex items-center justify-center text-white font-bold">
-                  {notification.actorAvatarUrl ? (
-                     <img src={notification.actorAvatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                  ) : (
-                     notification.actorName?.charAt(0).toUpperCase() || 'U'
-                  )}
+        <div className="divide-y divide-gray-800">
+          {notifications.map((notification) => {
+            const profile = actorProfiles[notification.actorId];
+            const hasAvatar = !!(profile && profile.avatarUrl);
+            const initials = profile ? profile.displayName.substring(0, 2).toUpperCase() : 'U';
+
+            return (
+              <div
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
+                className={`flex gap-4 p-4 cursor-pointer transition-colors duration-200 ${
+                  notification.isRead ? 'hover:bg-white/[0.02] opacity-80' : 'bg-primary/5 hover:bg-primary/10'
+                }`}
+              >
+                <div className="shrink-0 relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden flex items-center justify-center text-white font-bold shadow">
+                    {hasAvatar ? (
+                       <img src={profile.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                       initials
+                    )}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1">
+                     {renderIcon(notification.type)}
+                  </div>
                 </div>
-                <div className="absolute -bottom-1 -right-1">
-                   {renderIcon(notification.type)}
+                <div className="flex-1 pt-1">
+                  <p className="text-text-secondary text-sm">
+                    {renderMessage(notification)}
+                  </p>
+                  <p className="text-xs text-text-secondary/50 mt-1">
+                    {new Date(notification.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
                 </div>
+                {!notification.isRead && (
+                   <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0"></div>
+                )}
               </div>
-              <div className="flex-1 pt-1">
-                <p className="text-text-secondary text-sm">
-                  {renderMessage(notification)}
-                </p>
-                <p className="text-xs text-text-secondary/50 mt-1">
-                  {new Date(notification.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-              {!notification.isRead && (
-                 <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0"></div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

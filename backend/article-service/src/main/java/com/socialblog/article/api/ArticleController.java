@@ -35,6 +35,11 @@ public class ArticleController {
         return service.publicBySlug(slug);
     }
 
+    @GetMapping("/{id}")
+    Response getById(@PathVariable UUID id) {
+        return service.getById(id);
+    }
+
     @GetMapping("/mine")
     Page<Response> mine(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return service.mine(user(jwt), PageRequests.of(page, size, 50));
