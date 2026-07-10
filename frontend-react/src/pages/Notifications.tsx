@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../api/userApi';
 import { notificationApi } from '../api/notificationApi';
-import { Bell, Heart, MessageCircle, UserPlus, CheckCircle2, Repeat } from 'lucide-react';
+import { Bell, Heart, MessageCircle, UserPlus, CheckCircle2, Repeat, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Notifications: React.FC = () => {
@@ -87,6 +87,8 @@ const Notifications: React.FC = () => {
     // Điều hướng thông minh dựa trên Event Type
     if (notification.type === 'NEW_FOLLOWER') {
       navigate(`/profile?userId=${notification.actorId}`);
+    } else if (notification.type === 'NEW_MESSAGE') {
+      navigate(`/messages?contactId=${notification.actorId}`);
     } else if (
       notification.type === 'NEW_LIKE' ||
       notification.type === 'NEW_COMMENT' ||
@@ -134,6 +136,8 @@ const Notifications: React.FC = () => {
         return <div className="p-2 bg-blue-500/10 text-blue-500 rounded-full"><MessageCircle className="w-4 h-4" /></div>;
       case 'NEW_FOLLOWER':
         return <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full"><UserPlus className="w-4 h-4" /></div>;
+      case 'NEW_MESSAGE':
+        return <div className="p-2 bg-green-500/10 text-green-500 rounded-full"><MessageSquare className="w-4 h-4" /></div>;
       default:
         return <div className="p-2 bg-primary/10 text-primary rounded-full"><Bell className="w-4 h-4" /></div>;
     }
@@ -166,6 +170,8 @@ const Notifications: React.FC = () => {
         return <>{actor} đã bắt đầu theo dõi bạn</>;
       case 'NEW_ARTICLE': 
         return <>{actor} vừa đăng một bài viết mới</>;
+      case 'NEW_MESSAGE':
+        return <>{actor} đã gửi cho bạn một tin nhắn</>;
       default: 
         return <>{actor} đã tương tác với bạn</>;
     }

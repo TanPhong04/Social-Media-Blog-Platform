@@ -35,9 +35,14 @@ public class ChatService {
     ) {}
 
     private final ChatMessageRepository chatMessageRepository;
+    private final com.socialblog.notification.repository.NotificationRepository notificationRepository;
 
-    public ChatService(ChatMessageRepository chatMessageRepository) {
+    public ChatService(
+            ChatMessageRepository chatMessageRepository,
+            com.socialblog.notification.repository.NotificationRepository notificationRepository
+    ) {
         this.chatMessageRepository = chatMessageRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     @Transactional
@@ -50,6 +55,33 @@ public class ChatService {
         ChatMessage saved = chatMessageRepository.save(message);
 
         ChatMessageResponse response = map(saved);
+
+        try {
+            com.socialblog.notification.domain.Notification notification = new com.socialblog.notification.domain.Notification(
+                saved.getId(),
+                recipientId,
+                senderId,
+                com.socialblog.notification.domain.Notification.Type.NEW_MESSAGE,
+                "CHAT_MESSAGE",
+                saved.getId(),
+                "{\"messageId\":\"" + saved.getId() + "\",\"content\":\"" + saved.getContent().replaceAll("\"", "\\\"") + "\"}",
+                saved.getCreatedAt()
+            );
+            notificationRepository.save(notification);
+
+            NotificationController.sendRealtimeNotification(recipientId, new NotificationService.Response(
+                notification.getId(),
+                notification.getActorId(),
+                notification.getType().name(),
+                notification.getEntityType(),
+                notification.getEntityId(),
+                notification.getMetadata(),
+                notification.getCreatedAt(),
+                notification.getReadAt()
+            ));
+        } catch (Exception e) {
+            System.err.println("Failed to save chat message notification: " + e.getMessage());
+        }
 
         NotificationController.sendRealtimeChatMessage(recipientId, response);
         NotificationController.sendRealtimeChatMessage(senderId, response);
