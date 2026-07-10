@@ -7,6 +7,7 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile } from 'lucide-react';
+import { CustomVideoPlayer } from './CustomVideoPlayer';
 
 interface ArticleCardProps {
   article: ArticleResponse;
@@ -527,13 +528,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         )}
 
         {videoSrc && (
-          <div className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center mt-2" onClick={(e) => e.stopPropagation()}>
-            <video
-              src={videoSrc}
-              controls
-              className="max-h-[450px] max-w-full object-contain rounded-app"
-            />
-          </div>
+          <CustomVideoPlayer
+            src={videoSrc}
+            className="rounded-app border border-gray-800 bg-black/20 w-full max-h-[450px] mt-2"
+          />
         )}
       </div>
     );
