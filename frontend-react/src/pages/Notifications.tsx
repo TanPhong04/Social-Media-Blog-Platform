@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../api/userApi';
 import { notificationApi } from '../api/notificationApi';
-import { Bell, Heart, MessageCircle, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Bell, Heart, MessageCircle, UserPlus, CheckCircle2, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Notifications: React.FC = () => {
@@ -51,10 +51,22 @@ const Notifications: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    const handleNewNotif = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('new-notification-received', handleNewNotif);
+    return () => {
+      window.removeEventListener('new-notification-received', handleNewNotif);
+    };
+  }, [isAuthenticated]);
+
   const handleMarkAllRead = async () => {
     try {
       await notificationApi.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      // Phát sự kiện cập nhật lại Badge ở Sidebar
+      window.dispatchEvent(new CustomEvent('unread-count-changed'));
     } catch (err) {
       console.error('Error marking all as read', err);
     }
@@ -65,6 +77,8 @@ const Notifications: React.FC = () => {
       try {
         await notificationApi.markAsRead(notification.id);
         setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+        // Phát sự kiện cập nhật lại Badge ở Sidebar
+        window.dispatchEvent(new CustomEvent('unread-count-changed'));
       } catch (err) {
         console.error('Error marking read', err);
       }
@@ -100,12 +114,23 @@ const Notifications: React.FC = () => {
     }
   };
 
-  const renderIcon = (type: string) => {
-    switch (type) {
+  const renderIcon = (notification: any) => {
+    let isRepost = false;
+    try {
+      const meta = JSON.parse(notification.metadata);
+      if (meta.content && meta.content.includes('[repost]')) {
+        isRepost = true;
+      }
+    } catch (e) {}
+
+    switch (notification.type) {
       case 'NEW_LIKE':
         return <div className="p-2 bg-red-500/10 text-red-500 rounded-full"><Heart className="w-4 h-4 fill-current" /></div>;
       case 'NEW_COMMENT':
       case 'NEW_REPLY':
+        if (isRepost) {
+          return <div className="p-2 bg-green-500/10 text-green-500 rounded-full"><Repeat className="w-4 h-4" /></div>;
+        }
         return <div className="p-2 bg-blue-500/10 text-blue-500 rounded-full"><MessageCircle className="w-4 h-4" /></div>;
       case 'NEW_FOLLOWER':
         return <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full"><UserPlus className="w-4 h-4" /></div>;
@@ -118,10 +143,22 @@ const Notifications: React.FC = () => {
     const profile = actorProfiles[notification.actorId];
     const actorName = profile ? profile.displayName : `Người dùng ${notification.actorId.substring(0, 4)}`;
     const actor = <span className="font-semibold text-text-primary">{actorName}</span>;
+    
+    let isRepost = false;
+    try {
+      const meta = JSON.parse(notification.metadata);
+      if (meta.content && meta.content.includes('[repost]')) {
+        isRepost = true;
+      }
+    } catch (e) {}
+
     switch (notification.type) {
       case 'NEW_LIKE': 
         return <>{actor} đã thích bài viết của bạn</>;
       case 'NEW_COMMENT': 
+        if (isRepost) {
+          return <>{actor} đã đăng lại bài viết của bạn</>;
+        }
         return <>{actor} đã bình luận về bài viết của bạn</>;
       case 'NEW_REPLY': 
         return <>{actor} đã phản hồi bình luận của bạn</>;
@@ -212,7 +249,7 @@ const Notifications: React.FC = () => {
                 }`}
               >
                 <div className="shrink-0 relative">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden flex items-center justify-center text-white font-bold shadow">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden flex items-center justify-center text-white font-bold shadow shadow-primary/20">
                     {hasAvatar ? (
                        <img src={profile.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                     ) : (
@@ -220,7 +257,7 @@ const Notifications: React.FC = () => {
                     )}
                   </div>
                   <div className="absolute -bottom-1 -right-1">
-                     {renderIcon(notification.type)}
+                     {renderIcon(notification)}
                   </div>
                 </div>
                 <div className="flex-1 pt-1">
