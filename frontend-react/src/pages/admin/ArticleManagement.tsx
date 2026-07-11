@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { AdminArticle, PageResponse } from '../../api/adminApi';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
   PUBLISHED: { label: 'Đã đăng', color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle },
@@ -30,6 +31,7 @@ export default function ArticleManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -60,18 +62,24 @@ export default function ArticleManagement() {
   };
 
   const handleDelete = async (articleId: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa bài viết này không?')) return;
-    setActionLoading(articleId);
-    try {
-      await adminApi.deleteArticle(articleId);
-      setArticles(prev => prev.filter(a => a.id !== articleId));
-    } catch (err) {
-      console.error(err);
-      alert('Lỗi xóa bài viết');
-    } finally {
-      setActionLoading(null);
-      setActionMenuId(null);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xóa bài viết',
+      message: 'Bạn có chắc muốn xóa bài viết này không?',
+      onConfirm: async () => {
+        setActionLoading(articleId);
+        try {
+          await adminApi.deleteArticle(articleId);
+          setArticles(prev => prev.filter(a => a.id !== articleId));
+        } catch (err) {
+          console.error(err);
+          alert('Lỗi xóa bài viết');
+        } finally {
+          setActionLoading(null);
+          setActionMenuId(null);
+        }
+      }
+    });
   };
 
   const filteredArticles = searchQuery
@@ -248,6 +256,19 @@ export default function ArticleManagement() {
           </div>
         )}
       </div>
+
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={() => {
+            confirmModal.onConfirm();
+            setConfirmModal(null);
+          }}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
     </div>
   );
 }

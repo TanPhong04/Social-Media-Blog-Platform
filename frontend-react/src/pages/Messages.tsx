@@ -23,7 +23,8 @@ const Messages = () => {
   const [suggestions, setSuggestions] = useState<ProfileResponse[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const [inputText, setInputText] = useState('');
+  const initialText = searchParams.get('text') || '';
+  const [inputText, setInputText] = useState(initialText);
   const [chatImage, setCommentImage] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sending, setSending] = useState(false);

@@ -7,7 +7,10 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile } from 'lucide-react';
+import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
+import ShareModal from './ShareModal';
+
 interface ArticleCardProps {
   article: ArticleResponse;
   onRefresh?: () => void;
@@ -51,7 +54,14 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
 };
 
 // Sub-component hiển thị từng hình ảnh/video kèm tính năng thả tim độc lập
-const MediaItem: React.FC<{ url: string; articleId: string; isVideo?: boolean }> = ({ url, articleId, isVideo }) => {
+const MediaItem: React.FC<{ 
+  url: string; 
+  articleId: string; 
+  isVideo?: boolean;
+  className?: string;
+  onClick?: (e: React.MouseEvent) => void;
+  hideLikeButton?: boolean;
+}> = ({ url, articleId, isVideo, className, onClick, hideLikeButton }) => {
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -86,30 +96,147 @@ const MediaItem: React.FC<{ url: string; articleId: string; isVideo?: boolean }>
   };
 
   return (
-    <div className="relative group/media rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center">
+    <div 
+      className={`relative group/media overflow-hidden flex items-center justify-center ${className || 'rounded-app border border-gray-800 bg-black/20 max-h-[450px]'}`}
+      onClick={onClick}
+    >
       {isVideo ? (
-        <video src={url} controls className="max-h-[450px] w-full object-cover rounded-app" onClick={(e) => e.stopPropagation()} />
+        <video src={url} controls className="w-full h-full object-cover" onClick={(e) => e.stopPropagation()} />
       ) : (
         <img 
           src={url} 
           alt="Attachment" 
-          className="max-h-[450px] w-full object-cover rounded-app hover:opacity-95 transition-opacity cursor-pointer" 
-          onClick={(e) => { e.stopPropagation(); window.open(url, '_blank'); }} 
+          className="w-full h-full object-cover hover:opacity-95 transition-opacity" 
         />
       )}
       
-      {/* Nút thả tim ảnh nổi lên khi hover */}
-      <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-full transition-opacity duration-300 ${liked || likeCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/media:opacity-100'}`}>
-        <button 
-          onClick={handleLike} 
-          className={`p-1 rounded-full hover:bg-white/10 transition-colors ${liked ? 'text-red-500' : 'text-white'}`}
-          title="Thích ảnh này"
-        >
-          <Heart className={`w-4 h-4 hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
-        </button>
-        {likeCount > 0 && <span className="text-[13px] text-white font-medium pr-1 cursor-default">{likeCount}</span>}
-      </div>
+      {!hideLikeButton && (
+        <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-full transition-opacity duration-300 ${liked || likeCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/media:opacity-100'}`}>
+          <button 
+            onClick={handleLike} 
+            className={`p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer ${liked ? 'text-red-500' : 'text-white'}`}
+            title="Thích ảnh này"
+          >
+            <Heart className={`w-4 h-4 hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
+          </button>
+          {likeCount > 0 && <span className="text-[13px] text-white font-medium pr-1 cursor-default">{likeCount}</span>}
+        </div>
+      )}
     </div>
+  );
+};
+
+const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], articleId: string }> = ({ items, articleId }) => {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  if (!items || items.length === 0) return null;
+
+  const count = items.length;
+
+  const handleImageClick = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setSelectedIndex(index);
+  };
+
+  const renderGrid = () => {
+    if (count === 1) {
+      return <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full max-h-[500px] border border-gray-800 rounded-app cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />;
+    }
+    if (count === 2) {
+      return (
+        <div className="grid grid-cols-2 gap-1 mt-2">
+          {items.map((item, idx) => (
+            <MediaItem key={idx} url={item.url} isVideo={item.isVideo} articleId={articleId} className={`w-full aspect-[4/5] border border-gray-800 cursor-pointer ${idx === 0 ? 'rounded-l-app rounded-r-none' : 'rounded-r-app rounded-l-none'}`} onClick={(e) => handleImageClick(e, idx)} />
+          ))}
+        </div>
+      );
+    }
+    if (count === 3) {
+      return (
+        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
+          <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-l-app rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+          <div className="grid grid-rows-2 gap-1 h-full">
+            <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-none rounded-tr-app cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-none rounded-br-app cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+          </div>
+        </div>
+      );
+    }
+    if (count === 4) {
+      return (
+        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
+          <div className="grid grid-rows-2 gap-1 h-full">
+             <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+             <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+          </div>
+          <div className="grid grid-rows-2 gap-1 h-full">
+             <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tr-app rounded-br-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+             <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-br-app rounded-tr-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+          </div>
+        </div>
+      );
+    }
+    // count >= 5
+    return (
+      <div className="grid grid-cols-2 gap-1 mt-2 h-[450px]">
+        <div className="grid grid-rows-2 gap-1 h-full">
+           <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+           <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+        </div>
+        <div className="grid grid-rows-3 gap-1 h-full">
+           <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tr-app rounded-b-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+           <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+           <div className="relative w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 4)}>
+             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-br-app rounded-t-none rounded-l-none" hideLikeButton />
+             {count > 5 && (
+               <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-br-app text-white text-2xl font-bold">
+                 +{count - 5}
+               </div>
+             )}
+           </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {renderGrid()}
+      {/* Lightbox Modal */}
+      {selectedIndex !== null && (
+        <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center animate-fade-in" onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}>
+          <button className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 z-[10000] cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}>
+             <X className="w-8 h-8" />
+          </button>
+          
+          {count > 1 && (
+            <button 
+               className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-white hover:text-gray-300 bg-white/10 rounded-full z-[10000] cursor-pointer"
+               onClick={(e) => { e.stopPropagation(); setSelectedIndex(prev => prev! > 0 ? prev! - 1 : count - 1); }}
+            >
+               <ChevronLeft className="w-8 h-8" />
+            </button>
+          )}
+
+          <div className="w-full h-full flex items-center justify-center p-8" onClick={(e) => e.stopPropagation()}>
+             {items[selectedIndex].isVideo ? (
+               <video src={items[selectedIndex].url} controls className="max-w-full max-h-full object-contain" />
+             ) : (
+               <img src={items[selectedIndex].url} alt="Gallery view" className="max-w-full max-h-[90vh] object-contain animate-[scaleIn_0.2s_ease-out]" />
+             )}
+          </div>
+
+          {count > 1 && (
+            <button 
+               className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white hover:text-gray-300 bg-white/10 rounded-full z-[10000] cursor-pointer"
+               onClick={(e) => { e.stopPropagation(); setSelectedIndex(prev => prev! < count - 1 ? prev! + 1 : 0); }}
+            >
+               <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
+        </div>
+      )}
+    </>
   );
 };
 
@@ -121,6 +248,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   
   // Trạng thái theo dõi tác giả bài viết
   const [isAuthorFollowing, setIsAuthorFollowing] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Trạng thái cho Dropdown Menu tác vụ
   const [showDropdown, setShowDropdown] = useState(false);
@@ -172,6 +300,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [loadingLikers, setLoadingLikers] = useState(false);
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   useEffect(() => {
     if (showLikersModal) {
@@ -226,9 +358,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [searchReplyEmoji, setSearchReplyEmoji] = useState('');
   const [hoveredCommentEmoji, setHoveredCommentEmoji] = useState<string | null>(null);
   const [hoveredReplyEmoji, setHoveredReplyEmoji] = useState<string | null>(null);
-
-  // Trạng thái Toast thông báo thành công / lỗi
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const EMOJI_CATEGORIES = [
     {
@@ -572,6 +701,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
     textToShow = textToShow.replace(/<video src="([^"]+)"[^>]*><\/video>/g, '');
 
+    const mediaItems: {url: string, isVideo: boolean}[] = [
+      ...images.map(url => ({ url, isVideo: false })),
+      ...videos.map(url => ({ url, isVideo: true }))
+    ];
+
     return (
       <div className="space-y-2.5">
         {textToShow.trim() && (
@@ -580,21 +714,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           </p>
         )}
 
-        {images.length > 0 && (
-          <div className={`mt-2 grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            {images.map((src, i) => (
-              <MediaItem key={i} url={src} articleId={article.id} isVideo={false} />
-            ))}
-          </div>
-        )}
-
-        {videos.length > 0 && (
-          <div className={`mt-2 grid gap-2 ${videos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            {videos.map((src, i) => (
-              <MediaItem key={i} url={src} articleId={article.id} isVideo={true} />
-            ))}
-          </div>
-        )}
+        <MediaGallery items={mediaItems} articleId={article.id} />
       </div>
     );
   };
@@ -814,47 +934,37 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   };
 
   // Chia sẻ liên kết (Share)
-  const handleShare = (e: React.MouseEvent) => {
+  const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}/article/${article.id}`;
-    navigate(shareUrl);
+    setShowShareModal(true);
   };
 
   // Xóa bài viết
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) return;
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xóa bài viết',
+      message: 'Bạn có chắc chắn muốn xóa bài viết này không?',
+      onConfirm: async () => {
+        try {
+          await articleApi.deleteArticle(article.id);
+          showToastMessage('Xóa bài đăng thành công!');
 
-    try {
-      await articleApi.deleteArticle(article.id);
-      showToastMessage('Xóa bài đăng thành công!');
+          if (user) {
+            const storageKey = `bookmarks_${user.id}`;
+            const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const newBookmarks = bookmarks.filter((b: any) => b.id !== article.id);
+            localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
+          }
 
-      if (user) {
-        const storageKey = `bookmarks_${user.id}`;
-        const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        const newBookmarks = bookmarks.filter((b: any) => b.id !== article.id);
-        localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
-
-        const likedKey = `liked_posts_${user.id}`;
-        const likedList = JSON.parse(localStorage.getItem(likedKey) || '[]');
-        const newLikedList = likedList.filter((b: any) => b.id !== article.id);
-        localStorage.setItem(likedKey, JSON.stringify(newLikedList));
-
-        const repostKey = `reposts_${user.id}`;
-        const repostList = JSON.parse(localStorage.getItem(repostKey) || '[]');
-        const newRepostList = repostList.filter((b: any) => b.id !== article.id);
-        localStorage.setItem(repostKey, JSON.stringify(newRepostList));
+          if (onRefresh) onRefresh();
+        } catch (err: any) {
+          console.error(err);
+          showToastMessage(err.response?.data?.message || 'Không thể xóa bài đăng.', 'error');
+        }
       }
-
-      setTimeout(() => {
-        if (onRefresh) onRefresh();
-      }, 500);
-    } catch (err) {
-      console.error('Error deleting article', err);
-      showToastMessage('Xóa bài đăng thất bại.', 'error');
-    } finally {
-      setShowDropdown(false);
-    }
+    });
   };
 
   // Xử lý chọn hình ảnh khi bình luận
@@ -991,15 +1101,21 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
   // Xóa bình luận
   const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa bình luận này không?')) return;
-    try {
-      await commentApi.deleteComment(commentId);
-      showToastMessage('Đã xóa bình luận.');
-      fetchComments();
-    } catch (err) {
-      console.error(err);
-      showToastMessage('Không thể xóa bình luận lúc này.', 'error');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xóa bình luận',
+      message: 'Bạn có chắc muốn xóa bình luận này không?',
+      onConfirm: async () => {
+        try {
+          await commentApi.deleteComment(commentId);
+          showToastMessage('Xóa bình luận thành công!');
+          fetchComments();
+        } catch (err: any) {
+          console.error(err);
+          showToastMessage(err.response?.data?.message || 'Không thể xóa bình luận.', 'error');
+        }
+      }
+    });
   };
 
   // Xử lý khi chọn file trong Modal chỉnh sửa bài đăng
@@ -1601,7 +1717,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             >
               {/* Bảng chọn cảm xúc (Reaction Picker) */}
               {showReactionPicker && (
-                <div className="absolute bottom-full left-0 mb-2 bg-background border border-gray-800 rounded-full px-3 py-2 flex items-center gap-3 shadow-xl z-50 animate-[slideIn_0.2s_ease-out]">
+                <div className="absolute bottom-full left-0 mb-2 bg-background border border-gray-800 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out] after:content-[''] after:absolute after:w-full after:h-4 after:top-full after:left-0">
                   {[
                     { type: 'LIKE', icon: '👍' },
                     { type: 'LOVE', icon: '❤️' },
@@ -1704,7 +1820,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   disabled={postingComment}
-                  placeholder="Post your reply"
+                  placeholder="Viết phản hồi..."
                   className="flex-1 bg-background border border-gray-700 text-text-primary text-sm rounded-full px-4 py-2 focus:outline-none focus:border-primary transition-colors"
                 />
                 
@@ -1792,7 +1908,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             disabled={postingComment}
-                            placeholder={`Trả lời @${commentProfiles[comment.authorId]?.username || 'user'}...`}
+                            placeholder="Viết phản hồi..."
                             className="flex-1 bg-background border border-gray-700 text-text-primary text-xs rounded-full px-3.5 py-1.5 focus:outline-none focus:border-primary"
                           />
                           
@@ -1977,6 +2093,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         </div>
       )}
 
+      {/* Confirm Modal */}
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={() => {
+            confirmModal.onConfirm();
+            setConfirmModal(null);
+          }}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
       {/* Modal Danh sách người Thích */}
       {showLikersModal && (
         <div 
@@ -2031,6 +2161,41 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           </div>
         </div>
       )}
+      {/* Fullscreen Map Modal */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-fade-in">
+          <div className="p-4 flex justify-between items-center bg-black/50 absolute top-0 left-0 right-0 z-[101]">
+            <h3 className="text-white font-semibold">Vị trí Check-in</h3>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowMapModal(false); }}
+              className="text-white p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          <div className="flex-1 w-full h-full pt-16">
+            <iframe
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              style={{ border: 0 }}
+              src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}&q=${encodeURIComponent((article as any).location || '')}`}
+              allowFullScreen
+            ></iframe>
+          </div>
+        </div>
+      )}
+      
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareUrl={`${window.location.origin}/article/${article.id}`}
+        title={article.title || 'Bài viết từ Axion'}
+        onRepost={() => {
+          handleRepost({ stopPropagation: () => {} } as any);
+        }}
+        reposted={reposted}
+      />
     </div>
   );
 };

@@ -88,6 +88,7 @@ const Home: React.FC = () => {
   const [postText, setPostText] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const [uploadingText, setUploadingText] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiTab, setActiveEmojiTab] = useState(1); // Mặc định chọn nhóm Mặt cười (idx = 1)
   const [searchEmoji, setSearchEmoji] = useState('');
@@ -247,7 +248,7 @@ const Home: React.FC = () => {
       let mediaEmbed = '';
       if (selectedFiles.length > 0) {
         // Tải nhiều tệp song song
-        setPostError(`Đang tải lên ${selectedFiles.length} tệp tin...`);
+        setUploadingText(`Đang tải lên ${selectedFiles.length} tệp tin...`);
         const uploadPromises = selectedFiles.map(f => mediaApi.uploadFile(f.file).then(url => ({ url, type: f.type })));
         const uploadedMedias = await Promise.all(uploadPromises);
         
@@ -258,7 +259,7 @@ const Home: React.FC = () => {
             mediaEmbed += `\n\n<video src="${media.url}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
           }
         });
-        setPostError(null);
+        setUploadingText(null);
       }
 
       const finalContent = postText.trim() + mediaEmbed;
@@ -283,7 +284,8 @@ const Home: React.FC = () => {
       if (fileInputRef.current) fileInputRef.current.value = '';
       fetchArticles();
     } catch (err: any) {
-      console.error('Lỗi khi đăng bài viết', err);
+      console.error('Error creating post', err);
+      setUploadingText(null);
       const serverError = err.response?.data;
       if (serverError && serverError.code === 'VALIDATION_FAILED' && serverError.fields) {
         const fieldErrors = Object.entries(serverError.fields)
@@ -400,6 +402,13 @@ const Home: React.FC = () => {
               <div className="text-error text-xs flex items-center gap-1.5 mt-2 bg-error/5 p-2 rounded-md border border-error/10">
                 <AlertCircle className="w-3.5 h-3.5" />
                 <span>{postError}</span>
+              </div>
+            )}
+
+            {uploadingText && (
+              <div className="text-primary text-xs flex items-center gap-1.5 mt-2 bg-primary/5 p-2 rounded-md border border-primary/10">
+                <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span>{uploadingText}</span>
               </div>
             )}
 
