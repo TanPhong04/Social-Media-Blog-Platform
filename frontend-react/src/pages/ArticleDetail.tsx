@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { commentApi, type CommentResponse } from '../api/commentApi';
-import { reportApi } from '../api/reportApi';
 import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { mediaApi } from '../api/mediaApi';

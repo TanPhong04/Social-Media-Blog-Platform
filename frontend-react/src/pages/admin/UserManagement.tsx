@@ -149,11 +149,10 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredUsers.map((user, index) => {
+                {filteredUsers.map((user) => {
                   const status = statusConfig[user.status] || statusConfig.ACTIVE;
                   const StatusIcon = status.icon;
                   const date = new Date(user.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short', year: 'numeric' });
-                  const isNearBottom = index >= filteredUsers.length - 2 && filteredUsers.length > 3;
 
                   return (
                     <tr key={user.id} className="hover:bg-white/[0.02] transition-colors duration-200 group">

@@ -134,11 +134,10 @@ export default function ArticleManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredArticles.map((article, index) => {
+                {filteredArticles.map((article) => {
                   const status = statusConfig[article.status] || statusConfig.DRAFT;
                   const StatusIcon = status.icon;
                   const date = new Date(article.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short', year: 'numeric' });
-                  const isNearBottom = index >= filteredArticles.length - 2 && filteredArticles.length > 3;
 
                   return (
                     <tr key={article.id} className="hover:bg-white/[0.02] transition-colors duration-200 group">
