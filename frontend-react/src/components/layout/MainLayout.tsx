@@ -19,7 +19,7 @@ const MainLayout = () => {
     if (!token) return;
 
     // Thiết lập stream SSE nhận thông báo realtime
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+    const baseUrl = import.meta.env.VITE_API_URL || '/api/v1';
     const sseUrl = `${baseUrl}/notifications/stream?token=${token}`;
     const eventSource = new EventSource(sseUrl);
 
