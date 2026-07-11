@@ -44,10 +44,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminApi.getStats().then((data) => {
-      setStats(data);
-      setLoading(false);
-    });
+    adminApi.getStats()
+      .then((data) => {
+        setStats(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load stats:', err);
+        setLoading(false);
+      });
   }, []);
 
   return (

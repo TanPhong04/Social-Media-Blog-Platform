@@ -47,18 +47,31 @@ export default function ArticleManagement() {
 
   const handleArchive = async (articleId: string) => {
     setActionLoading(articleId);
-    await adminApi.archiveArticle(articleId);
-    setArticles(prev => prev.map(a => a.id === articleId ? { ...a, status: 'ARCHIVED' } : a));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.archiveArticle(articleId);
+      setArticles(prev => prev.map(a => a.id === articleId ? { ...a, status: 'ARCHIVED' } : a));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi lưu trữ bài viết');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const handleDelete = async (articleId: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa bài viết này không?')) return;
     setActionLoading(articleId);
-    await adminApi.deleteArticle(articleId);
-    setArticles(prev => prev.filter(a => a.id !== articleId));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.deleteArticle(articleId);
+      setArticles(prev => prev.filter(a => a.id !== articleId));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi xóa bài viết');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const filteredArticles = searchQuery
