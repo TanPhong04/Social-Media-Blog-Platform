@@ -51,5 +51,11 @@ export const userApi = {
   },
   getFollowing: (userId: string, page: number = 0, size: number = 20) => {
     return axiosClient.get<any>(`/follows/users/${userId}/following?page=${page}&size=${size}`);
+  },
+  getSuggestions: () => {
+    return axiosClient.get<ProfileResponse[]>('/users/suggestions');
+  },
+  changePassword: (data: any) => {
+    return axiosClient.post('/users/me/password', data);
   }
 };

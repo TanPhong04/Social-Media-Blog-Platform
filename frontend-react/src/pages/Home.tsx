@@ -1,44 +1,77 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { articleApi } from '../api/articleApi';
 import { userApi } from '../api/userApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
+import ArticleDetail from './ArticleDetail';
 import { Image, Smile, Globe, AlertCircle, X } from 'lucide-react';
 
 import { mediaApi } from '../api/mediaApi';
 const EMOJI_CATEGORIES = [
   {
+    icon: '🕒',
+    title: 'Gần đây',
+    emojis: ['😊', '😂', '🤣', '👍', '❤️', '🔥', '🎉', '✨', '👏', '😍', '🥰', '😘']
+  },
+  {
     icon: '😀',
-    title: 'Mặt cười & Cảm xúc',
+    title: 'Mặt cười & con người',
     emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😓', '🤔']
   },
   {
-    icon: '👍',
-    title: 'Cử chỉ & Biểu tượng',
-    emojis: ['👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '🤌', '🤏', '✍️', '👋', '🤚', '🖐️', '✋', '🖖', '🙌', '👐', '🤲', '🤝', '🙏', '💅', '🤳', '💪', '🦾', '🧠', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '❤️‍🔥', '❤️‍🩹', '💔']
-  },
-  {
     icon: '🐱',
-    title: 'Động vật & Thiên nhiên',
+    title: 'Động vật & thiên nhiên',
     emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞']
   },
   {
     icon: '🍎',
-    title: 'Đồ ăn & Thức uống',
+    title: 'Đồ ăn & thức uống',
     emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🧅', '🥖', '🥨', '🧀', '🍕', '🌭', '🍔', '🍟', '🍺', '🍻', '🍷', '🥤', '🧋']
   },
   {
     icon: '⚽',
-    title: 'Hoạt động & Thể thao',
+    title: 'Hoạt động & thể thao',
     emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🏆', '🥇', '🥈', '🥉', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎨', '🎭', '🎬', '🎤', '🎧', '🎼', '🥁']
+  },
+  {
+    icon: '🚗',
+    title: 'Du lịch & địa điểm',
+    emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🛺', '🚂', '🚆', '🚄', '🚅', '🚈', '🚇', '🚀', '🛸', '🚁', '🛶', '⛵', '🛥️', '🛳️', '🚢', '✈️', '🛫', '🛬', '🪂', '🪟', '🌋', '🗻', '🏠']
+  },
+  {
+    icon: '💡',
+    title: 'Đồ vật & bóng đèn',
+    emojis: ['💡', '🔦', '🕯️', '🔌', '🔋', '💻', '🖥️', '🖨️', '⌨️', '🖱️', '🎛️', '🎞️', '📷', '📸', '📹', '🎥', '📻', '🎙️', '🎚️', '🎛️', '📺', '⏰', '⌚', '🧭', '⌛', '⏳', '🪓', '🛡️', '🔑', '🗝️', '🔨', '🛠️', '⛏️', '🔩', '⚙️', '🧱', '⛓️', '🧲', '🔫', '💣']
+  },
+  {
+    icon: '🔣',
+    title: 'Ký hiệu & biểu tượng',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐']
   }
 ];
 
 const Home: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeArticleId = searchParams.get('articleId');
+
+  const handleCloseModal = () => {
+    setSearchParams({});
+  };
+
+  useEffect(() => {
+    if (activeArticleId) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeArticleId]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -56,7 +89,9 @@ const Home: React.FC = () => {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [activeEmojiTab, setActiveEmojiTab] = useState(0);
+  const [activeEmojiTab, setActiveEmojiTab] = useState(1); // Mặc định chọn nhóm Mặt cười (idx = 1)
+  const [searchEmoji, setSearchEmoji] = useState('');
+  const [hoveredEmoji, setHoveredEmoji] = useState<string | null>(null);
 
   // Trạng thái cho tệp đính kèm (Ảnh/Video)
   const [selectedFile, setSelectedFile] = useState<{
@@ -400,28 +435,71 @@ const Home: React.FC = () => {
                   </button>
 
                   {showEmojiPicker && (
-                    <div className="absolute right-0 bottom-12 bg-surface border border-gray-800 rounded-2xl p-3.5 shadow-2xl z-50 w-72 flex flex-col gap-2.5">
-                      {/* Emoji categories */}
-                      <div className="flex justify-between border-b border-gray-800 pb-2">
+                    <div className="absolute right-0 top-10 bg-[#15181c] border border-gray-800 rounded-2xl p-3.5 shadow-2xl z-50 w-72 flex flex-col gap-2.5">
+                      {/* Search box */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchEmoji}
+                          onChange={(e) => setSearchEmoji(e.target.value)}
+                          placeholder="Tìm kiếm biểu tượng cảm xúc"
+                          className="w-full bg-[#202327] border-0 text-text-primary text-xs rounded-full pl-8 pr-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary placeholder-text-secondary"
+                        />
+                        <span className="absolute left-3 top-2.5 text-text-secondary text-xs">🔍</span>
+                      </div>
+
+                      {/* Category tabs */}
+                      <div className="flex justify-between border-b border-gray-800 pb-1.5 overflow-x-auto">
                         {EMOJI_CATEGORIES.map((cat, idx) => (
                           <button
                             key={idx}
                             type="button"
-                            onClick={() => setActiveEmojiTab(idx)}
-                            className={`text-lg p-1.5 rounded transition-all cursor-pointer ${activeEmojiTab === idx ? 'bg-primary/20 scale-110 font-bold' : 'hover:bg-white/5'}`}
+                            onClick={() => {
+                              setActiveEmojiTab(idx);
+                              setSearchEmoji(''); // Xóa kết quả tìm kiếm khi chuyển tab
+                            }}
+                            className={`text-lg p-1.5 rounded transition-all cursor-pointer ${searchEmoji === '' && activeEmojiTab === idx ? 'bg-primary/20 scale-110 font-bold border-b-2 border-primary' : 'hover:bg-white/5 opacity-70 hover:opacity-100'}`}
                             title={cat.title}
                           >
                             {cat.icon}
                           </button>
                         ))}
                       </div>
+
+                      {/* Category title */}
+                      <div className="text-xs font-bold text-text-secondary">
+                        {searchEmoji.trim() ? 'Kết quả tìm kiếm' : EMOJI_CATEGORIES[activeEmojiTab].title}
+                      </div>
                       
                       {/* Emoji grid scrollable */}
                       <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
-                        {EMOJI_CATEGORIES[activeEmojiTab].emojis.map((emoji) => (
+                        {(searchEmoji.trim()
+                          ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(emoji => {
+                              const EMOJI_KEYWORDS: { [key: string]: string } = {
+                                '😊': 'cuoi vui ve mat cuoi smile happy',
+                                '😂': 'cuoi ra nuoc mat haha cuoi to lol joy',
+                                '🤣': 'cuoi lan lon haha rofl',
+                                '😍': 'yeu thich love heart eyes',
+                                '🥰': 'yeu thuong hanh phuc love hearts',
+                                '😘': 'hon kiss blowing kiss',
+                                '👍': 'like thich tot nhat ok good yes',
+                                '👎': 'dislike khong thich bad no',
+                                '❤️': 'tim do love heart red',
+                                '🔥': 'lua hot fire trend',
+                                '🎉': 'chuc mung party celebrate',
+                                '✨': 'lap lanh lanh lay sparkle',
+                                '👏': 'vo tay clap bravo',
+                                '😭': 'khoc to cry sad'
+                              };
+                              const keywords = EMOJI_KEYWORDS[emoji] || '';
+                              return keywords.toLowerCase().includes(searchEmoji.toLowerCase()) || emoji === searchEmoji.trim();
+                            })
+                          : EMOJI_CATEGORIES[activeEmojiTab].emojis
+                        ).map((emoji) => (
                           <button
                             key={emoji}
                             type="button"
+                            onMouseEnter={() => setHoveredEmoji(emoji)}
                             onClick={() => {
                               setPostText(prev => prev + emoji);
                             }}
@@ -430,6 +508,28 @@ const Home: React.FC = () => {
                             {emoji}
                           </button>
                         ))}
+                      </div>
+
+                      {/* Footer: Preview and check close button */}
+                      <div className="flex items-center justify-between border-t border-gray-800 pt-2 mt-1">
+                        {/* Hover preview */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{hoveredEmoji || '😊'}</span>
+                          <span className="text-[10px] text-text-secondary font-medium">Nhấp để chèn</span>
+                        </div>
+
+                        {/* Nút check tròn màu vàng */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowEmojiPicker(false);
+                            setSearchEmoji('');
+                          }}
+                          className="w-7 h-7 rounded-full bg-[#ffd43b] hover:bg-[#ffe066] text-[#1e1e1e] flex items-center justify-center font-bold text-xs shadow cursor-pointer transition-all hover:scale-105"
+                          title="Hoàn tất"
+                        >
+                          ✓
+                        </button>
                       </div>
                     </div>
                   )}
@@ -477,6 +577,27 @@ const Home: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* Modal chi tiết bài viết (Popup kiểu X / Twitter / Facebook) */}
+      {activeArticleId && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          onClick={handleCloseModal}
+        >
+          <div 
+            className="bg-background border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative shadow-2xl animate-[slideIn_0.2s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors z-50 cursor-pointer border border-white/5 animate-pulse"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <ArticleDetail articleId={activeArticleId} onClose={handleCloseModal} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

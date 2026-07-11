@@ -6,8 +6,7 @@ import { userApi } from '../api/userApi';
 import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2 } from 'lucide-react';
-
+import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile } from 'lucide-react';
 interface ArticleCardProps {
   article: ArticleResponse;
   onRefresh?: () => void;
@@ -16,7 +15,39 @@ interface ArticleCardProps {
 // Module-level cache để lưu thông tin người dùng, tránh gọi API trùng lặp
 const authorCache: { [id: string]: any } = {};
 
-import { mediaApi } from '../api/mediaApi';
+// Hàm helper upload tệp tin trực tiếp lên Cloudinary sử dụng Unsigned Preset
+const uploadToCloudinary = async (file: File): Promise<string> => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dgn74bbvy';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'blog-platform';
+  
+  const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  formData.append('resource_type', resourceType);
+  
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Cloudinary upload error response:', errorText);
+    let errMsg = 'Đăng tải tệp tin lên Cloudinary thất bại.';
+    try {
+      const errJson = JSON.parse(errorText);
+      if (errJson.error && errJson.error.message) {
+        errMsg = `Cloudinary: ${errJson.error.message}`;
+      }
+    } catch (e) {}
+    throw new Error(errMsg);
+  }
+  
+  const data = await response.json();
+  return data.secure_url;
+};
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
@@ -79,8 +110,83 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const commentImageInputRef = useRef<HTMLInputElement>(null);
   const replyImageInputRef = useRef<HTMLInputElement>(null);
 
+  // Refs emoji pickers bình luận
+  const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
+  const replyEmojiPickerRef = useRef<HTMLDivElement>(null);
+
+  // Trạng thái Emoji picker bình luận
+  const [showCommentEmojiPicker, setShowCommentEmojiPicker] = useState(false);
+  const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(false);
+
+  const [activeCommentEmojiTab, setActiveCommentEmojiTab] = useState(1);
+  const [activeReplyEmojiTab, setActiveReplyEmojiTab] = useState(1);
+  const [searchCommentEmoji, setSearchCommentEmoji] = useState('');
+  const [searchReplyEmoji, setSearchReplyEmoji] = useState('');
+  const [hoveredCommentEmoji, setHoveredCommentEmoji] = useState<string | null>(null);
+  const [hoveredReplyEmoji, setHoveredReplyEmoji] = useState<string | null>(null);
+
   // Trạng thái Toast thông báo thành công / lỗi
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const EMOJI_CATEGORIES = [
+    {
+      icon: '🕒',
+      title: 'Gần đây',
+      emojis: ['😊', '😂', '🤣', '👍', '❤️', '🔥', '🎉', '✨', '👏', '😍', '🥰', '😘']
+    },
+    {
+      icon: '😀',
+      title: 'Mặt cười & con người',
+      emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😓', '🤔']
+    },
+    {
+      icon: '🐱',
+      title: 'Động vật & thiên nhiên',
+      emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞']
+    },
+    {
+      icon: '🍎',
+      title: 'Đồ ăn & thức uống',
+      emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🧅', '🥖', '🥨', '🧀', '🍕', '🌭', '🍔', '🍟', '🍺', '🍻', '🍷', '🥤', '🧋']
+    },
+    {
+      icon: '⚽',
+      title: 'Hoạt động & thể thao',
+      emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🏆', '🥇', '🥈', '🥉', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎨', '🎭', '🎬', '🎤', '🎧', '🎼', '🥁']
+    },
+    {
+      icon: '🚗',
+      title: 'Du lịch & địa điểm',
+      emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🛺', '🚂', '🚆', '🚄', '🚅', '🚈', '🚇', '🚀', '🛸', '🚁', '🛶', '⛵', '🛥️', '🛳️', '🚢', '✈️', '🛫', '🛬', '🪂', '🪟', '🌋', '🗻', '🏠']
+    },
+    {
+      icon: '💡',
+      title: 'Đồ vật & bóng đèn',
+      emojis: ['💡', '🔦', '🕯️', '🔌', '🔋', '💻', '🖥️', '🖨️', '⌨️', '🖱️', '🎛️', '🎞️', '📷', '📸', '📹', '🎥', '📻', '🎙️', '🎚️', '🎛️', '📺', '⏰', '⌚', '🧭', '⌛', '⏳', '🪓', '🛡️', '🔑', '🗝️', '🔨', '🛠️', '⛏️', '🔩', '⚙️', '🧱', '⛓️', '🧲', '🔫', '💣']
+    },
+    {
+      icon: '🔣',
+      title: 'Ký hiệu & biểu tượng',
+      emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐']
+    }
+  ];
+
+  const EMOJI_KEYWORDS: { [key: string]: string } = {
+    '😊': 'cuoi vui ve mat cuoi smile happy',
+    '😂': 'cuoi ra nuoc mat haha cuoi to lol joy',
+    '🤣': 'cuoi lan lon haha rofl',
+    '😍': 'yeu thich love heart eyes',
+    '🥰': 'yeu thuong hanh phuc love hearts',
+    '😘': 'hon kiss blowing kiss',
+    '👍': 'like thich tot nhat ok good yes',
+    '👎': 'dislike khong thich bad no',
+    '❤️': 'tim do love heart red',
+    '🔥': 'lua hot fire trend',
+    '🎉': 'chuc mung party celebrate',
+    '✨': 'lap lanh lanh lay sparkle',
+    '👏': 'vo tay clap bravo',
+    '😭': 'khoc to cry sad'
+  };
 
   const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -154,14 +260,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         authorCache[authorId] = res;
         setAuthorProfile(res);
       } catch (err) {
-        console.warn('Lấy profile tác giả thất bại, sử dụng thông tin ẩn danh làm cache fallback', err);
-        const fallback = {
+        console.warn('Lấy profile tác giả thất bại', err);
+        setAuthorProfile({
           displayName: `Người dùng ${authorId.substring(0, 4)}`,
           username: `user_${authorId.substring(0, 8)}`,
           avatarUrl: null
-        };
-        authorCache[authorId] = fallback;
-        setAuthorProfile(fallback);
+        });
       }
     };
     fetchAuthorInfo();
@@ -253,7 +357,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         const reposts = JSON.parse(localStorage.getItem(`reposts_${user.id}`) || '[]');
         const isReposted = reposts.some((b: any) => b.id === article.id);
         setReposted(isReposted);
-        setRepostCount(isReposted ? 1 : 0);
       } catch (e) {
         setReposted(false);
       }
@@ -269,8 +372,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     setLoadingComments(true);
     try {
       const res: any = await commentApi.getComments(article.id);
-      const list = res.content || [];
+      const list = res.content || res || [];
       setComments(list);
+      
+      const count = list.filter((c: any) => c.content.includes('[repost]')).length;
+      setRepostCount(count);
 
       // Tải tên thật của người viết bình luận
       const uids = Array.from(new Set(list.map((c: any) => c.authorId))) as string[];
@@ -324,11 +430,17 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   };
 
-  // Click ra ngoài đóng dropdown menu
+  // Click ra ngoài đóng dropdown menu & emoji pickers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+      }
+      if (commentEmojiPickerRef.current && !commentEmojiPickerRef.current.contains(event.target as Node)) {
+        setShowCommentEmojiPicker(false);
+      }
+      if (replyEmojiPickerRef.current && !replyEmojiPickerRef.current.contains(event.target as Node)) {
+        setShowReplyEmojiPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -536,7 +648,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   };
 
   // Đăng lại bài viết (Repost)
-  const handleRepost = (e: React.MouseEvent) => {
+  const handleRepost = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       showToastMessage('Vui lòng đăng nhập để đăng lại bài viết.', 'error');
@@ -552,9 +664,29 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       if (reposted) {
         newReposts = reposts.filter((b: any) => b.id !== article.id);
+        // Tìm comment repost đó và xóa (nếu tìm thấy trong database)
+        try {
+          const fetchedComments = await commentApi.getComments(article.id);
+          const commentsList = (fetchedComments as any).content || fetchedComments || [];
+          const repostComment = commentsList.find((c: any) => c.authorId === user.id && c.content.includes('[repost]'));
+          if (repostComment) {
+            await commentApi.deleteComment(repostComment.id);
+          }
+        } catch (commentErr) {
+          console.warn('Could not delete repost comment tracking', commentErr);
+        }
         showToastMessage('Đã hủy đăng lại!');
       } else {
         newReposts = [...reposts, article];
+        // Tạo comment đặc biệt làm repost ở backend để sinh thông báo và lưu vết
+        try {
+          await commentApi.createComment({
+            articleId: article.id,
+            content: "[repost] đã đăng lại bài viết này"
+          });
+        } catch (commentErr) {
+          console.warn('Could not create repost comment tracking', commentErr);
+        }
         showToastMessage('Đã đăng lại bài viết thành công!');
       }
 
@@ -876,9 +1008,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       let mediaUrl = '';
       if (editFile) {
         if (editFile.file) {
-          // File được chọn mới -> Upload lên Backend
-          showToastMessage('Đang tải file mới lên hệ thống...');
-          mediaUrl = await mediaApi.uploadFile(editFile.file);
+          // File được chọn mới -> Upload lên Cloudinary
+          showToastMessage('Đang tải file mới lên Cloudinary...');
+          mediaUrl = await uploadToCloudinary(editFile.file);
         } else {
           // Giữ nguyên file cũ (đã là Base64 hoặc là link Cloudinary trước đó)
           mediaUrl = editFile.base64 || editFile.url;
@@ -977,6 +1109,100 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   };
 
+  const renderEmojiPicker = (type: 'comment' | 'reply') => {
+    const activeTab = type === 'comment' ? activeCommentEmojiTab : activeReplyEmojiTab;
+    const setActiveTab = type === 'comment' ? setActiveCommentEmojiTab : setActiveReplyEmojiTab;
+    const searchVal = type === 'comment' ? searchCommentEmoji : searchReplyEmoji;
+    const setSearchVal = type === 'comment' ? setSearchCommentEmoji : setSearchReplyEmoji;
+    const hoveredEmoji = type === 'comment' ? hoveredCommentEmoji : hoveredReplyEmoji;
+    const setHoveredEmoji = type === 'comment' ? setHoveredCommentEmoji : setHoveredReplyEmoji;
+    const setTargetText = type === 'comment' ? setCommentText : setReplyText;
+    const setShowPicker = type === 'comment' ? setShowCommentEmojiPicker : setShowReplyEmojiPicker;
+
+    const allEmojis = EMOJI_CATEGORIES.flatMap(c => c.emojis);
+    const filteredEmojis = searchVal.trim()
+      ? allEmojis.filter(emoji => {
+          const keywords = EMOJI_KEYWORDS[emoji] || '';
+          return keywords.toLowerCase().includes(searchVal.toLowerCase()) || emoji === searchVal.trim();
+        })
+      : EMOJI_CATEGORIES[activeTab].emojis;
+
+    return (
+      <div className="absolute right-0 top-10 bg-[#15181c] border border-gray-800 rounded-2xl p-3.5 shadow-2xl z-50 w-72 flex flex-col gap-2">
+        {/* Search */}
+        <div className="relative">
+          <input
+            type="text"
+            value={searchVal}
+            onChange={(e) => setSearchVal(e.target.value)}
+            placeholder="Tìm kiếm biểu tượng cảm xúc"
+            className="w-full bg-[#202327] border-0 text-text-primary text-xs rounded-full pl-8 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary placeholder-text-secondary"
+          />
+          <span className="absolute left-3 top-2 text-text-secondary text-xs">🔍</span>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex justify-between border-b border-gray-800 pb-1.5 overflow-x-auto">
+          {EMOJI_CATEGORIES.map((cat, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                setActiveTab(idx);
+                setSearchVal('');
+              }}
+              className={`text-lg p-1.5 rounded transition-all cursor-pointer ${searchVal === '' && activeTab === idx ? 'bg-primary/20 scale-110 font-bold border-b-2 border-primary' : 'hover:bg-white/5 opacity-70 hover:opacity-100'}`}
+              title={cat.title}
+            >
+              {cat.icon}
+            </button>
+          ))}
+        </div>
+
+        {/* Title */}
+        <div className="text-xs font-bold text-text-secondary">
+          {searchVal.trim() ? 'Kết quả tìm kiếm' : EMOJI_CATEGORIES[activeTab].title}
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-6 gap-1.5 max-h-36 overflow-y-auto pr-1">
+          {filteredEmojis.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onMouseEnter={() => setHoveredEmoji(emoji)}
+              onClick={() => {
+                setTargetText(prev => prev + emoji);
+              }}
+              className="text-xl hover:bg-white/10 p-1.5 rounded transition-colors cursor-pointer text-center"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-gray-800 pt-2 mt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{hoveredEmoji || '😊'}</span>
+            <span className="text-[10px] text-text-secondary font-medium">Chèn</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPicker(false);
+              setSearchVal('');
+            }}
+            className="w-7 h-7 rounded-full bg-[#ffd43b] hover:bg-[#ffe066] text-[#1e1e1e] flex items-center justify-center font-bold text-xs shadow cursor-pointer transition-all hover:scale-105"
+            title="Hoàn tất"
+          >
+            ✓
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const isOwner = user && user.id === article.authorId;
   
   // Thông tin hiển thị (tên thật nếu fetch được, fallback ảo nếu lỗi)
@@ -986,7 +1212,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const avatarUrl = authorProfile ? authorProfile.avatarUrl : null;
 
   // Lọc phân cấp comments
-  const rootComments = comments.filter(c => c.parentId === null);
+  const rootComments = comments.filter(c => c.parentId === null && !c.content.includes('[repost]'));
   const getRepliesFor = (parentId: string) => comments.filter(c => c.parentId === parentId);
 
   // Render một phần tử bình luận
@@ -1152,13 +1378,23 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     );
   };
 
+  const handleCardClick = () => {
+    navigate(`/?articleId=${article.id}`);
+  };
+
   return (
-    <div className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative">
+    <div 
+      onClick={handleCardClick}
+      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative cursor-pointer"
+    >
       {/* Khung nội dung chính của Post */}
       <div className="flex gap-3">
         {/* Cột bên trái: Avatar tròn - Click để xem Profile */}
         <div 
-          onClick={() => navigate(`/profile?userId=${article.authorId}`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/profile?userId=${article.authorId}`);
+          }}
           className="shrink-0"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer hover:opacity-90 transition-opacity overflow-hidden">
@@ -1177,7 +1413,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Tên hiển thị - Click để xem Profile */}
               <span 
-                onClick={() => navigate(`/profile?userId=${article.authorId}`)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/profile?userId=${article.authorId}`);
+                }}
                 className="font-bold text-text-primary hover:underline cursor-pointer"
               >
                 {authorName}
@@ -1294,11 +1533,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
             {/* Comment */}
             <button
-              onClick={() => setShowComments(!showComments)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(!showComments);
+              }}
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>{comments.length}</span>
+              <span>{comments.filter(c => !c.content.includes('[repost]')).length}</span>
             </button>
 
             {/* Repost */}
@@ -1332,7 +1574,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       {/* KHUNG BÌNH LUẬN NÂNG CAO (COMMENTS SECTION MULTI-LEVEL) */}
       {showComments && (
-        <div className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4"
+        >
           
           {/* Ô nhập bình luận gốc */}
           {user && (
@@ -1363,6 +1608,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   accept="image/*"
                   className="hidden"
                 />
+
+                {/* Nút chọn Emoji bình luận */}
+                <div className="relative" ref={commentEmojiPickerRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowCommentEmojiPicker(!showCommentEmojiPicker)}
+                    disabled={postingComment}
+                    className={`p-2 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${showCommentEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
+                    title="Biểu cảm"
+                  >
+                    <Smile className="w-4.5 h-4.5" />
+                  </button>
+                  {showCommentEmojiPicker && renderEmojiPicker('comment')}
+                </div>
 
                 <button
                   type="submit"
@@ -1437,6 +1696,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                             accept="image/*"
                             className="hidden"
                           />
+
+                          {/* Nút chọn Emoji phản hồi */}
+                          <div className="relative" ref={replyEmojiPickerRef}>
+                            <button
+                              type="button"
+                              onClick={() => setShowReplyEmojiPicker(!showReplyEmojiPicker)}
+                              disabled={postingComment}
+                              className={`p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${showReplyEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
+                              title="Biểu cảm"
+                            >
+                              <Smile className="w-4 h-4" />
+                            </button>
+                            {showReplyEmojiPicker && renderEmojiPicker('reply')}
+                          </div>
 
                           <button
                             type="submit"
