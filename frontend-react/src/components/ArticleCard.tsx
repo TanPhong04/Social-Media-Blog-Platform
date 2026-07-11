@@ -453,22 +453,24 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     if (!content) return null;
 
     let textToShow = content;
-    let imageSrc = '';
-    let videoSrc = '';
+    let images: string[] = [];
+    let videos: string[] = [];
 
-    // Tìm ảnh nhúng
-    const imgMatch = content.match(/!\[image\]\(([^\)]+)\)/);
-    if (imgMatch) {
-      imageSrc = imgMatch[1];
-      textToShow = textToShow.replace(imgMatch[0], '');
+    // Tìm TẤT CẢ ảnh nhúng
+    const imgRegex = /!\[image\]\(([^\)]+)\)/g;
+    let imgMatch;
+    while ((imgMatch = imgRegex.exec(textToShow)) !== null) {
+      images.push(imgMatch[1]);
     }
+    textToShow = textToShow.replace(/!\[image\]\(([^\)]+)\)/g, '');
 
-    // Tìm video nhúng
-    const videoMatch = content.match(/<video src="([^"]+)"[^>]*><\/video>/);
-    if (videoMatch) {
-      videoSrc = videoMatch[1];
-      textToShow = textToShow.replace(videoMatch[0], '');
+    // Tìm TẤT CẢ video nhúng
+    const videoRegex = /<video src="([^"]+)"[^>]*><\/video>/g;
+    let videoMatch;
+    while ((videoMatch = videoRegex.exec(textToShow)) !== null) {
+      videos.push(videoMatch[1]);
     }
+    textToShow = textToShow.replace(/<video src="([^"]+)"[^>]*><\/video>/g, '');
 
     return (
       <div className="space-y-2.5">
@@ -478,24 +480,32 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           </p>
         )}
 
-        {imageSrc && (
-          <div className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center mt-2">
-            <img
-              src={imageSrc}
-              alt="Attachment"
-              className="max-h-[450px] max-w-full object-contain rounded-app hover:opacity-95 transition-opacity cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
-            />
+        {images.length > 0 && (
+          <div className={`mt-2 grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {images.map((src, i) => (
+              <div key={i} className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center">
+                <img
+                  src={src}
+                  alt="Attachment"
+                  className="max-h-[450px] w-full object-cover rounded-app hover:opacity-95 transition-opacity cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); window.open(src, '_blank'); }}
+                />
+              </div>
+            ))}
           </div>
         )}
 
-        {videoSrc && (
-          <div className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center mt-2" onClick={(e) => e.stopPropagation()}>
-            <video
-              src={videoSrc}
-              controls
-              className="max-h-[450px] max-w-full object-contain rounded-app"
-            />
+        {videos.length > 0 && (
+          <div className={`mt-2 grid gap-2 ${videos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {videos.map((src, i) => (
+              <div key={i} className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                <video
+                  src={src}
+                  controls
+                  className="max-h-[450px] w-full object-contain rounded-app cursor-pointer"
+                />
+              </div>
+            ))}
           </div>
         )}
       </div>
