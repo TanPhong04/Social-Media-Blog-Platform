@@ -137,7 +137,7 @@ export default function UserManagement() {
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto pb-32 min-h-[50vh]">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/5">
@@ -200,7 +200,7 @@ export default function UserManagement() {
                           </button>
 
                           {actionMenuId === user.id && (
-                            <div className={`absolute right-0 ${isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-1 z-50 animate-fade-in`}>
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-1 z-50 animate-fade-in">
                               {user.status !== 'SUSPENDED' && (
                                 <button
                                   onClick={() => handleSuspend(user.id)}

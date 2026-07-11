@@ -510,46 +510,58 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
          </div>
 
          {/* Content */}
-         {/* Content */}
-         <div className="text-text-primary text-[16px] leading-relaxed whitespace-pre-wrap mb-10">
+         <div className="text-text-primary text-[16px] leading-relaxed whitespace-pre-wrap mb-10 break-words">
            {(() => {
-             let imageSrc = '';
-             let videoSrc = '';
-             let cleanContent = article.content || '';
+             let textToShow = article.content || '';
+             let images: string[] = [];
+             let videos: string[] = [];
 
-             // Trích xuất hình ảnh
-             const imgMatch = cleanContent.match(/!\[image\]\(([^\)]+)\)/);
-             if (imgMatch) {
-               imageSrc = imgMatch[1];
-               cleanContent = cleanContent.replace(imgMatch[0], '').trim();
+             // Tìm TẤT CẢ ảnh nhúng
+             const imgRegex = /!\[image\]\(([^\)]+)\)/g;
+             let imgMatch;
+             while ((imgMatch = imgRegex.exec(textToShow)) !== null) {
+               images.push(imgMatch[1]);
              }
+             textToShow = textToShow.replace(/!\[image\]\(([^\)]+)\)/g, '');
 
-             // Trích xuất video
-             const videoMatch = cleanContent.match(/<video src="([^"]+)"/);
-             if (videoMatch) {
-               videoSrc = videoMatch[1];
-               cleanContent = cleanContent.replace(/<video[^>]+><\/video>/, '').trim();
+             // Tìm TẤT CẢ video nhúng
+             const videoRegex = /<video src="([^"]+)"[^>]*><\/video>/g;
+             let videoMatch;
+             while ((videoMatch = videoRegex.exec(textToShow)) !== null) {
+               videos.push(videoMatch[1]);
              }
+             textToShow = textToShow.replace(/<video src="([^"]+)"[^>]*><\/video>/g, '');
 
              return (
                <>
-                 <div>{cleanContent}</div>
-                 {imageSrc && (
-                   <div className="mt-8 rounded-2xl overflow-hidden border border-white/10">
-                     <img 
-                       src={imageSrc} 
-                       alt="Article Attachment" 
-                       className="w-full max-h-[700px] object-contain bg-black/20"
-                     />
+                 <div>{textToShow.trim()}</div>
+                 
+                 {images.length > 0 && (
+                   <div className={`mt-8 grid gap-4 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                     {images.map((src, i) => (
+                       <div key={i} className="rounded-2xl overflow-hidden border border-white/10 bg-black/20 flex items-center justify-center">
+                         <img 
+                           src={src} 
+                           alt="Article Attachment" 
+                           className="w-full max-h-[700px] object-contain hover:opacity-95 transition-opacity cursor-pointer"
+                           onClick={() => window.open(src, '_blank')}
+                         />
+                       </div>
+                     ))}
                    </div>
                  )}
-                 {videoSrc && (
-                   <div className="mt-8 rounded-2xl overflow-hidden border border-white/10">
-                     <video 
-                       src={videoSrc} 
-                       controls 
-                       className="w-full max-h-[700px] bg-black" 
-                     />
+
+                 {videos.length > 0 && (
+                   <div className={`mt-8 grid gap-4 ${videos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                     {videos.map((src, i) => (
+                       <div key={i} className="rounded-2xl overflow-hidden border border-white/10 bg-black/20 flex items-center justify-center">
+                         <video 
+                           src={src} 
+                           controls 
+                           className="w-full max-h-[700px] object-contain outline-none bg-black"
+                         />
+                       </div>
+                     ))}
                    </div>
                  )}
                </>
