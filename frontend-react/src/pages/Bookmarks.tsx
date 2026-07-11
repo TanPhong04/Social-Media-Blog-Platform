@@ -3,11 +3,13 @@ import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
 import { Bookmark, Trash2, AlertCircle } from 'lucide-react';
 import type { ArticleResponse } from '../api/articleApi';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 const Bookmarks: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [articles, setArticles] = useState<ArticleResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -34,14 +36,20 @@ const Bookmarks: React.FC = () => {
 
   const handleClearAll = () => {
     if (!user) return;
-    if (!window.confirm('Bạn có chắc chắn muốn bỏ lưu tất cả bài viết không?')) return;
-
-    try {
-      localStorage.setItem(`bookmarks_${user.id}`, '[]');
-      setArticles([]);
-    } catch (err) {
-      console.error('Error clearing bookmarks', err);
-    }
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Bỏ lưu tất cả',
+      message: 'Bạn có chắc chắn muốn bỏ lưu tất cả bài viết không?',
+      onConfirm: () => {
+        try {
+          localStorage.setItem(`bookmarks_${user.id}`, '[]');
+          setArticles([]);
+        } catch (err) {
+          console.error('Error clearing bookmarks', err);
+        }
+      }
+    });
   };
 
   if (!isAuthenticated) {
@@ -117,6 +125,19 @@ const Bookmarks: React.FC = () => {
             />
           ))}
         </div>
+      )}
+
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={() => {
+            confirmModal.onConfirm();
+            setConfirmModal(null);
+          }}
+          onCancel={() => setConfirmModal(null)}
+        />
       )}
     </div>
   );

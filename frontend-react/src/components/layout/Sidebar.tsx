@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, User, Users, FileText, Bell, Bookmark, Settings, MessageSquare } from 'lucide-react';
+import { Home, User, Users, FileText, Bell, Bookmark, Settings, MessageSquare, Film } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationApi } from '../../api/notificationApi';
 import { chatApi } from '../../api/chatApi';
@@ -55,6 +55,7 @@ const Sidebar = () => {
 
   const navItems = [
     { name: 'Bảng tin', path: '/', icon: Home },
+    { name: 'Reels', path: '/reels', icon: Film },
     { name: 'Hồ sơ', path: '/profile', icon: User, requiresAuth: true },
     { name: 'Theo dõi', path: '/following', icon: Users, requiresAuth: true },
     { name: 'Tin nhắn', path: '/messages', icon: MessageSquare, requiresAuth: true },
