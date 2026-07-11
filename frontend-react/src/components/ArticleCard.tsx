@@ -50,6 +50,69 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
   return data.secure_url;
 };
 
+// Sub-component hiển thị từng hình ảnh/video kèm tính năng thả tim độc lập
+const MediaItem: React.FC<{ url: string; articleId: string; isVideo?: boolean }> = ({ url, articleId, isVideo }) => {
+  const { user } = useAuth();
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchInteraction = async () => {
+      try {
+        const res: any = await articleApi.getMediaInteraction(url);
+        setLiked(res.likedByCurrentUser);
+        setLikeCount(res.count);
+      } catch (e) {
+        console.warn('Media interaction unavailable', e);
+      }
+    };
+    fetchInteraction();
+  }, [url, user]);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    const nextLiked = !liked;
+    setLiked(nextLiked);
+    setLikeCount(p => nextLiked ? p + 1 : p - 1);
+    try {
+      if (nextLiked) await articleApi.likeMedia(url, articleId, 'LIKE');
+      else await articleApi.unlikeMedia(url);
+    } catch (e) {
+      setLiked(!nextLiked);
+      setLikeCount(p => nextLiked ? p - 1 : p + 1);
+    }
+  };
+
+  return (
+    <div className="relative group/media rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center">
+      {isVideo ? (
+        <video src={url} controls className="max-h-[450px] w-full object-cover rounded-app" onClick={(e) => e.stopPropagation()} />
+      ) : (
+        <img 
+          src={url} 
+          alt="Attachment" 
+          className="max-h-[450px] w-full object-cover rounded-app hover:opacity-95 transition-opacity cursor-pointer" 
+          onClick={(e) => { e.stopPropagation(); window.open(url, '_blank'); }} 
+        />
+      )}
+      
+      {/* Nút thả tim ảnh nổi lên khi hover */}
+      <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-full transition-opacity duration-300 ${liked || likeCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/media:opacity-100'}`}>
+        <button 
+          onClick={handleLike} 
+          className={`p-1 rounded-full hover:bg-white/10 transition-colors ${liked ? 'text-red-500' : 'text-white'}`}
+          title="Thích ảnh này"
+        >
+          <Heart className={`w-4 h-4 hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
+        </button>
+        {likeCount > 0 && <span className="text-[13px] text-white font-medium pr-1 cursor-default">{likeCount}</span>}
+      </div>
+    </div>
+  );
+};
+
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -103,6 +166,44 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
   
+  // Thêm state cho danh sách người thích & cảm xúc
+  const [showLikersModal, setShowLikersModal] = useState(false);
+  const [likers, setLikers] = useState<any[]>([]);
+  const [loadingLikers, setLoadingLikers] = useState(false);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+
+  useEffect(() => {
+    if (showLikersModal) {
+      loadLikers();
+    }
+  }, [showLikersModal]);
+
+  const loadLikers = async () => {
+    try {
+      setLoadingLikers(true);
+      const res: any = await articleApi.getArticleLikers(article.id, 0, 50);
+      const interactions = res.content || res.data?.content || [];
+      
+      const profiles = await Promise.all(
+        interactions.map(async (interaction: any) => {
+          try {
+            const userRes: any = await userApi.getUserById(interaction.actorId);
+            return userRes.data || userRes;
+          } catch (e) {
+            return null;
+          }
+        })
+      );
+      
+      setLikers(profiles.filter(p => p !== null));
+    } catch (err) {
+      console.error('Failed to load likers', err);
+    } finally {
+      setLoadingLikers(false);
+    }
+  };
+  
   // Trạng thái bình luận hình ảnh
   const [commentImage, setCommentImage] = useState<string | null>(null);
   const [replyImage, setReplyImage] = useState<string | null>(null);
@@ -148,12 +249,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     {
       icon: '🍎',
       title: 'Đồ ăn & thức uống',
-      emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🧅', '🥖', '🥨', '🧀', '🍕', '🌭', '🍔', '🍟', '🍺', '🍻', '🍷', '🥤', '🧋']
+      emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🧅', '🥖', '🥨', '🧀', '🍕', '🌭', '🍔', '🍟', '🍺', '🍻', '🍷', '🥤', '🧋']
     },
     {
       icon: '⚽',
       title: 'Hoạt động & thể thao',
-      emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🏆', '🥇', '🥈', '🥉', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎨', '🎭', '🎬', '🎤', '🎧', '🎼', '🥁']
+      emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🏆', '🥇', '🥈', '🥉', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎨', '🎭', '🎬', '🎤', '🎧', '🎼', '🥁']
     },
     {
       icon: '🚗',
@@ -195,8 +296,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       setToast(null);
     }, 2500);
   };
-
-  // Bỏ compressImage để upload trực tiếp qua API
 
   // Helper: Đo thời lượng video
   const checkVideoDuration = (file: File): Promise<number> => {
@@ -283,6 +382,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         // Tải trạng thái thích bài viết
         const res: any = await articleApi.getArticleInteraction(article.id);
         setLiked(res.likedByCurrentUser);
+        setMyReaction(res.reactionType || (res.likedByCurrentUser ? 'LIKE' : null));
         setLikeCount(res.count);
       } catch (err) {
         console.warn('Interaction service unavailable, falling back to mock likes', err);
@@ -453,22 +553,24 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     if (!content) return null;
 
     let textToShow = content;
-    let imageSrc = '';
-    let videoSrc = '';
+    let images: string[] = [];
+    let videos: string[] = [];
 
-    // Tìm ảnh nhúng
-    const imgMatch = content.match(/!\[image\]\(([^\)]+)\)/);
-    if (imgMatch) {
-      imageSrc = imgMatch[1];
-      textToShow = textToShow.replace(imgMatch[0], '');
+    // Tìm TẤT CẢ ảnh nhúng
+    const imgRegex = /!\[image\]\(([^\)]+)\)/g;
+    let imgMatch;
+    while ((imgMatch = imgRegex.exec(textToShow)) !== null) {
+      images.push(imgMatch[1]);
     }
+    textToShow = textToShow.replace(/!\[image\]\(([^\)]+)\)/g, '');
 
-    // Tìm video nhúng
-    const videoMatch = content.match(/<video src="([^"]+)"[^>]*><\/video>/);
-    if (videoMatch) {
-      videoSrc = videoMatch[1];
-      textToShow = textToShow.replace(videoMatch[0], '');
+    // Tìm TẤT CẢ video nhúng
+    const videoRegex = /<video src="([^"]+)"[^>]*><\/video>/g;
+    let videoMatch;
+    while ((videoMatch = videoRegex.exec(textToShow)) !== null) {
+      videos.push(videoMatch[1]);
     }
+    textToShow = textToShow.replace(/<video src="([^"]+)"[^>]*><\/video>/g, '');
 
     return (
       <div className="space-y-2.5">
@@ -478,24 +580,19 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           </p>
         )}
 
-        {imageSrc && (
-          <div className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center mt-2">
-            <img
-              src={imageSrc}
-              alt="Attachment"
-              className="max-h-[450px] max-w-full object-contain rounded-app hover:opacity-95 transition-opacity cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
-            />
+        {images.length > 0 && (
+          <div className={`mt-2 grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {images.map((src, i) => (
+              <MediaItem key={i} url={src} articleId={article.id} isVideo={false} />
+            ))}
           </div>
         )}
 
-        {videoSrc && (
-          <div className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center mt-2" onClick={(e) => e.stopPropagation()}>
-            <video
-              src={videoSrc}
-              controls
-              className="max-h-[450px] max-w-full object-contain rounded-app"
-            />
+        {videos.length > 0 && (
+          <div className={`mt-2 grid gap-2 ${videos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {videos.map((src, i) => (
+              <MediaItem key={i} url={src} articleId={article.id} isVideo={true} />
+            ))}
           </div>
         )}
       </div>
@@ -531,20 +628,30 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   };
 
   // Thích bài viết
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent, reactionType: string = 'LIKE') => {
     e.stopPropagation();
     if (!user) {
       showToastMessage('Vui lòng đăng nhập để thích bài viết.', 'error');
       return;
     }
 
-    const nextLiked = !liked;
+    setShowReactionPicker(false);
+
+    const nextLiked = !liked || (liked && myReaction !== reactionType);
+    const wasLiked = liked;
+
     setLiked(nextLiked);
-    setLikeCount(prev => nextLiked ? prev + 1 : prev - 1);
+    setMyReaction(nextLiked ? reactionType : null);
+    
+    if (!wasLiked && nextLiked) {
+      setLikeCount(prev => prev + 1);
+    } else if (wasLiked && !nextLiked) {
+      setLikeCount(prev => prev - 1);
+    }
 
     try {
       if (nextLiked) {
-        await articleApi.likeArticle(article.id);
+        await articleApi.likeArticle(article.id, reactionType);
       } else {
         await articleApi.unlikeArticle(article.id);
       }
@@ -1486,14 +1593,59 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
           {/* Footer: Hộp tương tác */}
           <div className="flex justify-between items-center max-w-md mt-3 text-text-secondary text-[13px] -ml-2">
-            {/* Like (Thả tim đầu tiên) */}
-            <button
-              onClick={handleLike}
-              className={`flex items-center gap-1.5 hover:text-red-500 group p-2 rounded-full hover:bg-red-500/10 transition-all cursor-pointer ${liked ? 'text-red-500' : ''}`}
+            {/* Like (Đa cảm xúc) */}
+            <div 
+              className="flex items-center gap-1 relative"
+              onMouseEnter={() => setShowReactionPicker(true)}
+              onMouseLeave={() => setShowReactionPicker(false)}
             >
-              <Heart className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
-              <span>{likeCount}</span>
-            </button>
+              {/* Bảng chọn cảm xúc (Reaction Picker) */}
+              {showReactionPicker && (
+                <div className="absolute bottom-full left-0 mb-2 bg-background border border-gray-800 rounded-full px-3 py-2 flex items-center gap-3 shadow-xl z-50 animate-[slideIn_0.2s_ease-out]">
+                  {[
+                    { type: 'LIKE', icon: '👍' },
+                    { type: 'LOVE', icon: '❤️' },
+                    { type: 'HAHA', icon: '😆' },
+                    { type: 'WOW', icon: '😮' },
+                    { type: 'SAD', icon: '😢' },
+                    { type: 'ANGRY', icon: '😡' }
+                  ].map((reaction) => (
+                    <button
+                      key={reaction.type}
+                      onClick={(e) => handleLike(e, reaction.type)}
+                      className="text-2xl hover:scale-125 transition-transform origin-bottom cursor-pointer"
+                      title={reaction.type}
+                    >
+                      {reaction.icon}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={(e) => handleLike(e, 'LIKE')}
+                className={`flex items-center justify-center p-2 rounded-full hover:bg-red-500/10 transition-all cursor-pointer group`}
+                title="Thích"
+              >
+                {myReaction === 'LOVE' ? <span className="text-xl leading-none">❤️</span> :
+                 myReaction === 'HAHA' ? <span className="text-xl leading-none">😆</span> :
+                 myReaction === 'WOW' ? <span className="text-xl leading-none">😮</span> :
+                 myReaction === 'SAD' ? <span className="text-xl leading-none">😢</span> :
+                 myReaction === 'ANGRY' ? <span className="text-xl leading-none">😡</span> :
+                 myReaction === 'LIKE' ? <span className="text-xl leading-none text-primary">👍</span> :
+                 <Heart className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current text-red-500' : ''}`} />
+                }
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowLikersModal(true); }}
+                className={`hover:underline transition-colors cursor-pointer text-[13px] hover:text-red-500 ${liked ? 'text-red-500' : ''}`}
+                title="Xem người thích"
+                disabled={likeCount === 0}
+              >
+                {likeCount > 0 ? likeCount : ''}
+              </button>
+              {likeCount === 0 && <span className="text-[13px]">0</span>}
+            </div>
 
             {/* Comment */}
             <button
@@ -1822,6 +1974,61 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
           </div>
           <span className="font-semibold text-sm">{toast.message}</span>
+        </div>
+      )}
+
+      {/* Modal Danh sách người Thích */}
+      {showLikersModal && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={(e) => { e.stopPropagation(); setShowLikersModal(false); }}
+        >
+          <div 
+            className="bg-background border border-gray-800 rounded-2xl w-full max-w-sm overflow-hidden relative shadow-2xl animate-[slideIn_0.2s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="font-bold text-lg text-text-primary">Đã thích</h3>
+              <button 
+                onClick={() => setShowLikersModal(false)}
+                className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-text-secondary" />
+              </button>
+            </div>
+            
+            <div className="max-h-[60vh] overflow-y-auto p-2">
+              {loadingLikers ? (
+                <div className="flex justify-center p-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary" />
+                </div>
+              ) : likers.length === 0 ? (
+                <div className="text-center p-8 text-text-secondary text-sm">
+                  Không có thông tin.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {likers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors cursor-pointer" onClick={() => window.location.href = `/?userId=${user.id}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold shadow-md overflow-hidden shrink-0">
+                          {user.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            (user.displayName || user.username || 'U').substring(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-[15px] text-text-primary hover:underline">{user.displayName || user.username}</span>
+                          <span className="text-text-secondary text-[13px]">@{user.username}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

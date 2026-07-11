@@ -121,7 +121,7 @@ export default function ArticleManagement() {
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto pb-32 min-h-[50vh]">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/5">
@@ -134,11 +134,10 @@ export default function ArticleManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredArticles.map((article, index) => {
+                {filteredArticles.map((article) => {
                   const status = statusConfig[article.status] || statusConfig.DRAFT;
                   const StatusIcon = status.icon;
                   const date = new Date(article.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short', year: 'numeric' });
-                  const isNearBottom = index >= filteredArticles.length - 2 && filteredArticles.length > 3;
 
                   return (
                     <tr key={article.id} className="hover:bg-white/[0.02] transition-colors duration-200 group">
@@ -188,7 +187,7 @@ export default function ArticleManagement() {
                           </button>
 
                           {actionMenuId === article.id && (
-                            <div className={`absolute right-0 ${isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-1 z-50 animate-fade-in`}>
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-1 z-50 animate-fade-in">
                               <button
                                 onClick={() => window.open(`/article/${article.slug}`, '_blank')}
                                 className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-text-primary hover:bg-white/5 transition-colors"

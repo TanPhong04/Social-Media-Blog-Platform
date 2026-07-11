@@ -76,14 +76,31 @@ export const articleApi = {
   unpublishArticle: (id: string) => {
     return axiosClient.post<ArticleResponse>(`/articles/${id}/unpublish`);
   },
-  likeArticle: (id: string) => {
-    return axiosClient.put(`/interactions/ARTICLE/${id}/like`);
+  likeArticle: (id: string, reaction: string = 'LIKE') => {
+    return axiosClient.put(`/interactions/ARTICLE/${id}/like?reaction=${reaction}`);
   },
   unlikeArticle: (id: string) => {
     return axiosClient.delete(`/interactions/ARTICLE/${id}/like`);
   },
   getArticleInteraction: (id: string) => {
     return axiosClient.get(`/interactions/ARTICLE/${id}`);
+  },
+  getArticleLikers: async (id: string, page = 0, size = 20) => {
+    const res: any = await axiosClient.get(`/interactions/ARTICLE/${id}/users`, {
+      params: { page, size }
+    });
+    return res;
+  },
+  likeMedia: (url: string, articleId: string, reaction: string = 'LIKE') => {
+    const b64Url = btoa(url);
+    return axiosClient.put(`/interactions/MEDIA/url/like?b64Url=${b64Url}&articleId=${articleId}&reaction=${reaction}`);
+  },
+  unlikeMedia: (url: string) => {
+    const b64Url = btoa(url);
+    return axiosClient.delete(`/interactions/MEDIA/url/like?b64Url=${b64Url}`);
+  },
+  getMediaInteraction: (url: string) => {
+    const b64Url = btoa(url);
+    return axiosClient.get(`/interactions/MEDIA/url?b64Url=${b64Url}`);
   }
 };
-

@@ -94,12 +94,13 @@ const Home: React.FC = () => {
   const [hoveredEmoji, setHoveredEmoji] = useState<string | null>(null);
 
   // Trạng thái cho tệp đính kèm (Ảnh/Video)
-  const [selectedFile, setSelectedFile] = useState<{
+  const [selectedFiles, setSelectedFiles] = useState<{
+    id: string;
     name: string;
     url: string;
     type: 'image' | 'video';
     file: File;
-  } | null>(null);
+  }[]>([]);
 
   // Helper: Kiểm tra thời lượng video
   const checkVideoDuration = (file: File): Promise<number> => {
@@ -174,50 +175,54 @@ const Home: React.FC = () => {
 
   // Xử lý chọn hình ảnh hoặc video
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-
-    if (!isImage && !isVideo) {
-      setPostError('Chỉ cho phép tải lên hình ảnh hoặc video.');
+    if (selectedFiles.length + files.length > 4) {
+      setPostError('Chỉ được tải lên tối đa 4 tệp tin cùng lúc.');
       return;
     }
 
-    // Kiểm tra giới hạn thời lượng video dưới 2.5 phút (150 giây)
-    if (isVideo) {
-      try {
-        const duration = await checkVideoDuration(file);
-        if (duration > 150) {
-          setPostError('Thời lượng video phải dưới 2.5 phút!');
-          return;
-        }
-      } catch (err) {
-        console.error('Error checking video duration', err);
-        setPostError('Không thể kiểm tra thời lượng video.');
-        return;
-      }
-    }
+    const newFiles: typeof selectedFiles = [];
 
-    try {
-      setPostError(null);
+    for (const file of files) {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+
+      if (!isImage && !isVideo) {
+        setPostError(`Tệp ${file.name} không hợp lệ. Chỉ cho phép ảnh/video.`);
+        continue;
+      }
+
+      if (isVideo) {
+        try {
+          const duration = await checkVideoDuration(file);
+          if (duration > 150) {
+            setPostError(`Thời lượng video ${file.name} vượt quá 2.5 phút.`);
+            continue;
+          }
+        } catch (err) {
+          console.error('Error checking video duration', err);
+        }
+      }
+
       const url = URL.createObjectURL(file);
-      setSelectedFile({
+      newFiles.push({
+        id: Math.random().toString(36).substr(2, 9),
         name: file.name,
         url,
         type: isImage ? 'image' : 'video',
         file: file
       });
-    } catch (err) {
-      console.error('Error reading file', err);
-      setPostError('Lỗi đọc tệp tin từ thiết bị.');
     }
+
+    setPostError(null);
+    setSelectedFiles(prev => [...prev, ...newFiles]);
   };
 
   // Hàm xử lý đăng bài (Post)
   const handlePost = async () => {
-    if (!postText.trim() && !selectedFile) return;
+    if (!postText.trim() && selectedFiles.length === 0) return;
 
     setPosting(true);
     setPostError(null);
@@ -225,7 +230,7 @@ const Home: React.FC = () => {
     // 1. Tự động sinh tiêu đề từ dòng đầu tiên
     const lines = postText.trim().split('\n');
     const firstLine = lines[0].trim();
-    const title = firstLine.substring(0, 100) || (selectedFile?.type === 'image' ? 'Hình ảnh mới' : 'Video mới');
+    const title = firstLine.substring(0, 100) || (selectedFiles.length > 0 ? (selectedFiles[0].type === 'image' ? 'Hình ảnh mới' : 'Video mới') : 'Bài viết mới');
 
     // 2. Tự động lọc ra các hashtag từ nội dung bài viết
     const hashtagRegex = /#(\w+)/g;
@@ -239,22 +244,21 @@ const Home: React.FC = () => {
     const summary = postText.substring(0, 150) + (postText.length > 150 ? '...' : '');
 
     try {
-      let mediaUrl = '';
-      if (selectedFile) {
-        // Tải tệp qua Backend (MinIO)
-        setPostError('Đang tải tệp tin lên hệ thống...');
-        mediaUrl = await mediaApi.uploadFile(selectedFile.file);
-        setPostError(null);
-      }
-
-      // 4. Nhúng URL Cloudinary vào nội dung thay thế cho Base64 cực nặng
       let mediaEmbed = '';
-      if (mediaUrl) {
-        if (selectedFile?.type === 'image') {
-          mediaEmbed = `\n\n![image](${mediaUrl})`;
-        } else {
-          mediaEmbed = `\n\n<video src="${mediaUrl}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
-        }
+      if (selectedFiles.length > 0) {
+        // Tải nhiều tệp song song
+        setPostError(`Đang tải lên ${selectedFiles.length} tệp tin...`);
+        const uploadPromises = selectedFiles.map(f => mediaApi.uploadFile(f.file).then(url => ({ url, type: f.type })));
+        const uploadedMedias = await Promise.all(uploadPromises);
+        
+        uploadedMedias.forEach(media => {
+          if (media.type === 'image') {
+            mediaEmbed += `\n\n![image](${media.url})`;
+          } else {
+            mediaEmbed += `\n\n<video src="${media.url}" controls class="rounded-app w-full max-h-[450px] mt-2 bg-black"></video>`;
+          }
+        });
+        setPostError(null);
       }
 
       const finalContent = postText.trim() + mediaEmbed;
@@ -271,13 +275,11 @@ const Home: React.FC = () => {
       await articleApi.publishArticle(res.id);
 
       // Giải phóng bộ nhớ Blob URL
-      if (selectedFile?.url) {
-        URL.revokeObjectURL(selectedFile.url);
-      }
+      selectedFiles.forEach(f => URL.revokeObjectURL(f.url));
 
       // Làm sạch ô nhập và tải lại feed
       setPostText('');
-      setSelectedFile(null);
+      setSelectedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
       fetchArticles();
     } catch (err: any) {
@@ -296,11 +298,14 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleRemoveFile = () => {
-    if (selectedFile?.url) {
-      URL.revokeObjectURL(selectedFile.url);
-    }
-    setSelectedFile(null);
+  const handleRemoveFile = (idToRemove: string) => {
+    setSelectedFiles(prev => {
+      const fileToRemove = prev.find(f => f.id === idToRemove);
+      if (fileToRemove?.url) {
+        URL.revokeObjectURL(fileToRemove.url);
+      }
+      return prev.filter(f => f.id !== idToRemove);
+    });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -362,28 +367,32 @@ const Home: React.FC = () => {
             />
 
             {/* KHUNG XEM TRƯỚC (PREVIEW) TỆP ĐÃ CHỌN */}
-            {selectedFile && (
-              <div className="relative mt-2 rounded-app overflow-hidden border border-gray-800 bg-black/40 max-h-80 flex items-center justify-center">
-                {selectedFile.type === 'image' ? (
-                  <img
-                    src={selectedFile.url}
-                    alt="Preview"
-                    className="max-h-80 max-w-full object-contain rounded-app"
-                  />
-                ) : (
-                  <video
-                    src={selectedFile.url}
-                    controls
-                    className="max-h-80 max-w-full object-contain rounded-app"
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={handleRemoveFile}
-                  className="absolute top-2.5 right-2.5 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors cursor-pointer hover:scale-105"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {selectedFiles.length > 0 && (
+              <div className={`mt-3 grid gap-2 ${selectedFiles.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {selectedFiles.map((f) => (
+                  <div key={f.id} className="relative rounded-xl overflow-hidden border border-gray-800 bg-black/40 flex items-center justify-center">
+                    {f.type === 'image' ? (
+                      <img
+                        src={f.url}
+                        alt="Preview"
+                        className="max-h-[300px] w-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <video
+                        src={f.url}
+                        controls
+                        className="max-h-[300px] w-full object-cover rounded-xl"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(f.id)}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors cursor-pointer hover:scale-105 z-10"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -406,6 +415,7 @@ const Home: React.FC = () => {
                 {/* Nút chọn ảnh / video ẩn */}
                 <input
                   type="file"
+                  multiple
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   accept="image/*,video/mp4,video/quicktime"
@@ -538,7 +548,7 @@ const Home: React.FC = () => {
                 {/* Nút đăng bài */}
                 <button
                   onClick={handlePost}
-                  disabled={posting || (!postText.trim() && !selectedFile)}
+                  disabled={posting || (!postText.trim() && selectedFiles.length === 0)}
                   className="px-5 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-sm rounded-full transition-colors disabled:opacity-50 cursor-pointer ml-2 shadow-md"
                 >
                   {posting ? 'Đang đăng...' : 'Post'}
