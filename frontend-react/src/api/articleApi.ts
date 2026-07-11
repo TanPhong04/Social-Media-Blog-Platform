@@ -90,5 +90,17 @@ export const articleApi = {
       params: { page, size }
     });
     return res;
+  },
+  likeMedia: (url: string, articleId: string, reaction: string = 'LIKE') => {
+    const b64Url = btoa(url);
+    return axiosClient.put(`/interactions/MEDIA/url/like?b64Url=${b64Url}&articleId=${articleId}&reaction=${reaction}`);
+  },
+  unlikeMedia: (url: string) => {
+    const b64Url = btoa(url);
+    return axiosClient.delete(`/interactions/MEDIA/url/like?b64Url=${b64Url}`);
+  },
+  getMediaInteraction: (url: string) => {
+    const b64Url = btoa(url);
+    return axiosClient.get(`/interactions/MEDIA/url?b64Url=${b64Url}`);
   }
 };

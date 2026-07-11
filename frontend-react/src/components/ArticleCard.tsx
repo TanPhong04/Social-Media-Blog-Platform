@@ -50,6 +50,69 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
   return data.secure_url;
 };
 
+// Sub-component hiển thị từng hình ảnh/video kèm tính năng thả tim độc lập
+const MediaItem: React.FC<{ url: string; articleId: string; isVideo?: boolean }> = ({ url, articleId, isVideo }) => {
+  const { user } = useAuth();
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchInteraction = async () => {
+      try {
+        const res: any = await articleApi.getMediaInteraction(url);
+        setLiked(res.likedByCurrentUser);
+        setLikeCount(res.count);
+      } catch (e) {
+        console.warn('Media interaction unavailable', e);
+      }
+    };
+    fetchInteraction();
+  }, [url, user]);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    const nextLiked = !liked;
+    setLiked(nextLiked);
+    setLikeCount(p => nextLiked ? p + 1 : p - 1);
+    try {
+      if (nextLiked) await articleApi.likeMedia(url, articleId, 'LIKE');
+      else await articleApi.unlikeMedia(url);
+    } catch (e) {
+      setLiked(!nextLiked);
+      setLikeCount(p => nextLiked ? p - 1 : p + 1);
+    }
+  };
+
+  return (
+    <div className="relative group/media rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center">
+      {isVideo ? (
+        <video src={url} controls className="max-h-[450px] w-full object-cover rounded-app" onClick={(e) => e.stopPropagation()} />
+      ) : (
+        <img 
+          src={url} 
+          alt="Attachment" 
+          className="max-h-[450px] w-full object-cover rounded-app hover:opacity-95 transition-opacity cursor-pointer" 
+          onClick={(e) => { e.stopPropagation(); window.open(url, '_blank'); }} 
+        />
+      )}
+      
+      {/* Nút thả tim ảnh nổi lên khi hover */}
+      <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-full transition-opacity duration-300 ${liked || likeCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/media:opacity-100'}`}>
+        <button 
+          onClick={handleLike} 
+          className={`p-1 rounded-full hover:bg-white/10 transition-colors ${liked ? 'text-red-500' : 'text-white'}`}
+          title="Thích ảnh này"
+        >
+          <Heart className={`w-4 h-4 hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
+        </button>
+        {likeCount > 0 && <span className="text-[13px] text-white font-medium pr-1 cursor-default">{likeCount}</span>}
+      </div>
+    </div>
+  );
+};
+
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -520,14 +583,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         {images.length > 0 && (
           <div className={`mt-2 grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
             {images.map((src, i) => (
-              <div key={i} className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center">
-                <img
-                  src={src}
-                  alt="Attachment"
-                  className="max-h-[450px] w-full object-cover rounded-app hover:opacity-95 transition-opacity cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); window.open(src, '_blank'); }}
-                />
-              </div>
+              <MediaItem key={i} url={src} articleId={article.id} isVideo={false} />
             ))}
           </div>
         )}
@@ -535,13 +591,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         {videos.length > 0 && (
           <div className={`mt-2 grid gap-2 ${videos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
             {videos.map((src, i) => (
-              <div key={i} className="rounded-app overflow-hidden border border-gray-800 bg-black/20 max-h-[450px] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                <video
-                  src={src}
-                  controls
-                  className="max-h-[450px] w-full object-contain rounded-app cursor-pointer"
-                />
-              </div>
+              <MediaItem key={i} url={src} articleId={article.id} isVideo={true} />
             ))}
           </div>
         )}
