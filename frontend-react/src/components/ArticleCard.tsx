@@ -5,6 +5,7 @@ import { articleApi } from '../api/articleApi';
 import { userApi } from '../api/userApi';
 import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
+import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile } from 'lucide-react';
 interface ArticleCardProps {
@@ -195,44 +196,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }, 2500);
   };
 
-  // Helper: Nén hình ảnh dùng Canvas
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = document.createElement('img');
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          resolve(dataUrl);
-        };
-      };
-    });
-  };
+  // Bỏ compressImage để upload trực tiếp qua API
 
   // Helper: Đo thời lượng video
   const checkVideoDuration = (file: File): Promise<number> => {
@@ -544,7 +508,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     let textToShow = content;
     let imageSrc = '';
 
-    const imgMatch = content.match(/!\[comment_image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
+    const imgMatch = content.match(/!\[comment_image\]\(([^\)]+)\)/);
     if (imgMatch) {
       imageSrc = imgMatch[1];
       textToShow = textToShow.replace(imgMatch[0], '');
@@ -795,11 +759,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       return;
     }
     try {
-      const base64 = await compressImage(file);
-      setCommentImage(base64);
+      const url = await mediaApi.uploadFile(file);
+      setCommentImage(url);
     } catch (err) {
       console.error(err);
-      showToastMessage('Lỗi đọc ảnh.', 'error');
+      showToastMessage('Lỗi tải ảnh.', 'error');
     }
   };
 
@@ -812,11 +776,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       return;
     }
     try {
-      const base64 = await compressImage(file);
-      setReplyImage(base64);
+      const url = await mediaApi.uploadFile(file);
+      setReplyImage(url);
     } catch (err) {
       console.error(err);
-      showToastMessage('Lỗi đọc ảnh.', 'error');
+      showToastMessage('Lỗi tải ảnh.', 'error');
     }
   };
 
@@ -899,7 +863,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       const oldComment = comments.find(c => c.id === commentId);
       let imagePart = '';
       if (oldComment) {
-        const imgMatch = oldComment.content.match(/!\[comment_image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
+        const imgMatch = oldComment.content.match(/!\[comment_image\]\(([^\)]+)\)/);
         if (imgMatch) {
           imagePart = `\n\n${imgMatch[0]}`;
         }
@@ -1291,7 +1255,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   onClick={() => {
                     setEditingCommentId(comment.id);
                     let text = comment.content;
-                    const imgMatch = comment.content.match(/!\[comment_image\]\((data:image\/[^;]+;base64,[^\)]+)\)/);
+                    const imgMatch = comment.content.match(/!\[comment_image\]\(([^\)]+)\)/);
                     if (imgMatch) {
                       text = text.replace(imgMatch[0], '');
                     }

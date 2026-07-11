@@ -4,6 +4,7 @@ import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { commentApi, type CommentResponse } from '../api/commentApi';
 import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
+import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send } from 'lucide-react';
 
@@ -255,52 +256,15 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
     }
   }, [article, user]);
 
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = document.createElement('img');
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(dataUrl);
-        };
-      };
-    });
-  };
-
   const handleCommentImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
     try {
-      const base64 = await compressImage(file);
-      setCommentImage(base64);
+      const url = await mediaApi.uploadFile(file);
+      setCommentImage(url);
     } catch (err) {
-      console.error(err);
+      console.error('Error uploading comment image:', err);
     }
   };
 
@@ -341,7 +305,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
     if (slug) {
       fetchData();
     }
-  }, [slug]);
+  }, [slug, user?.id]);
 
   const fetchData = async () => {
     setLoading(true);
