@@ -84,6 +84,11 @@ export const articleApi = {
   },
   getArticleInteraction: (id: string) => {
     return axiosClient.get(`/interactions/ARTICLE/${id}`);
+  },
+  getArticleLikers: async (id: string, page = 0, size = 20) => {
+    const res: any = await axiosClient.get(`/interactions/ARTICLE/${id}/users`, {
+      params: { page, size }
+    });
+    return res;
   }
 };
-
