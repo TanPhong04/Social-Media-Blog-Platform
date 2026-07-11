@@ -34,6 +34,14 @@ export interface AdminStats {
   newArticlesToday: number;
 }
 
+export interface AdminActivity {
+  type: 'USER' | 'ARTICLE';
+  text: string;
+  time: string;
+  color: string;
+  icon: string;
+}
+
 export interface PageResponse<T> {
   content: T[];
   totalElements: number;
@@ -64,6 +72,43 @@ export const adminApi = {
       console.error('Error fetching admin stats:', error);
       // Fallback or throw error
       throw error;
+    }
+  },
+
+  getRecentActivities: async (): Promise<AdminActivity[]> => {
+    try {
+      // Fetch newest 5 users and 5 articles
+      const [usersRes, articlesRes] = await Promise.all([
+        adminApi.getUsers(0, 5),
+        adminApi.getArticles(0, 5)
+      ]);
+
+      const userActivities: AdminActivity[] = usersRes.content.map(u => ({
+        type: 'USER',
+        text: `${u.displayName} đã đăng ký tài khoản`,
+        time: u.createdAt,
+        color: 'text-blue-400',
+        icon: 'UserCheck'
+      }));
+
+      const articleActivities: AdminActivity[] = articlesRes.content.map(a => ({
+        type: 'ARTICLE',
+        text: `${a.authorName} đã đăng bài "${a.title}"`,
+        time: a.createdAt,
+        color: 'text-purple-400',
+        icon: 'BookOpen'
+      }));
+
+      // Combine and sort by newest first
+      const all = [...userActivities, ...articleActivities].sort(
+        (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+      );
+
+      // Return top 5
+      return all.slice(0, 5);
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+      return [];
     }
   },
 

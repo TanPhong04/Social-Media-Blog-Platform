@@ -48,26 +48,45 @@ export default function UserManagement() {
 
   const handleSuspend = async (userId: string) => {
     setActionLoading(userId);
-    await adminApi.suspendUser(userId);
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'SUSPENDED' } : u));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.suspendUser(userId);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'SUSPENDED' } : u));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi tạm ngưng tài khoản');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const handleActivate = async (userId: string) => {
     setActionLoading(userId);
-    await adminApi.activateUser(userId);
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'ACTIVE' } : u));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.activateUser(userId);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'ACTIVE' } : u));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi kích hoạt tài khoản');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const handleDelete = async (userId: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa tài khoản này không?')) return;
     setActionLoading(userId);
-    await adminApi.deleteUser(userId);
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'DELETED' } : u));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.deleteUser(userId);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'DELETED' } : u));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi xóa tài khoản');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const filteredUsers = searchQuery
