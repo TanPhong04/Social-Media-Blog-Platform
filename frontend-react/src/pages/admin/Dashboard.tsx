@@ -25,13 +25,7 @@ const statCards = [
   { key: 'newArticlesToday' as keyof AdminStats, label: 'Bài viết mới hôm nay', icon: PenLine, gradient: 'from-indigo-500 to-blue-500', glow: 'shadow-indigo-500/20' },
 ];
 
-const recentActivities = [
-  { icon: UserCheck, text: 'Alice Nguyễn đã đăng ký tài khoản', time: '5 phút trước', color: 'text-blue-400' },
-  { icon: BookOpen, text: 'Bob Trần đã đăng bài "Spring Boot Microservices"', time: '12 phút trước', color: 'text-purple-400' },
-  { icon: UserCheck, text: 'Edward Hoàng đã đăng ký tài khoản', time: '30 phút trước', color: 'text-blue-400' },
-  { icon: BookOpen, text: 'Fiona Đặng đã đăng bài "UI/UX Design Principles"', time: '1 giờ trước', color: 'text-purple-400' },
-  { icon: UserCheck, text: 'Helen Bùi đã đăng ký tài khoản', time: '2 giờ trước', color: 'text-blue-400' },
-];
+// Todo: Fetch real recent activities from API when available
 
 const quickActions = [
   { label: 'Quản lý người dùng', path: '/admin/users', icon: Users, description: 'Xem, tạm ngưng, hoặc xóa tài khoản' },
@@ -112,24 +106,8 @@ export default function Dashboard() {
             <Clock className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-heading font-semibold">Hoạt động gần đây</h2>
           </div>
-          <div className="space-y-4">
-            {recentActivities.map((activity, index) => {
-              const Icon = activity.icon;
-              return (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors duration-300 group"
-                >
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors duration-300">
-                    <Icon className={`w-5 h-5 ${activity.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-text-primary truncate">{activity.text}</p>
-                    <p className="text-xs text-text-secondary">{activity.time}</p>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-center py-10 border border-dashed border-white/10 rounded-xl">
+            <p className="text-sm text-text-secondary">Tính năng nhật ký hoạt động đang được phát triển...</p>
           </div>
         </div>
 
