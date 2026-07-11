@@ -14,7 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
-import type { AdminStats } from '../../api/adminApi';
+import type { AdminStats, AdminActivity } from '../../api/adminApi';
 
 const statCards = [
   { key: 'totalUsers' as keyof AdminStats, label: 'Tổng người dùng', icon: Users, gradient: 'from-blue-500 to-cyan-500', glow: 'shadow-blue-500/20' },
@@ -35,16 +35,21 @@ const quickActions = [
 
 export default function Dashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [activities, setActivities] = useState<AdminActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminApi.getStats()
-      .then((data) => {
-        setStats(data);
+    Promise.all([
+      adminApi.getStats(),
+      adminApi.getRecentActivities()
+    ])
+      .then(([statsData, activitiesData]) => {
+        setStats(statsData);
+        setActivities(activitiesData);
         setLoading(false);
       })
       .catch((err) => {
-        console.error('Failed to load stats:', err);
+        console.error('Failed to load dashboard data:', err);
         setLoading(false);
       });
   }, []);
@@ -106,9 +111,44 @@ export default function Dashboard() {
             <Clock className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-heading font-semibold">Hoạt động gần đây</h2>
           </div>
-          <div className="flex items-center justify-center py-10 border border-dashed border-white/10 rounded-xl">
-            <p className="text-sm text-text-secondary">Tính năng nhật ký hoạt động đang được phát triển...</p>
-          </div>
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-full bg-white/5" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-white/5 rounded w-3/4" />
+                    <div className="h-3 bg-white/5 rounded w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {activities.length === 0 ? (
+                <p className="text-sm text-text-secondary text-center py-4">Chưa có hoạt động nào</p>
+              ) : (
+                activities.map((activity, index) => {
+                  const Icon = activity.icon === 'UserCheck' ? UserCheck : BookOpen;
+                  const timeStr = new Date(activity.time).toLocaleString('vi-VN');
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors duration-300 group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors duration-300">
+                        <Icon className={`w-5 h-5 ${activity.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-text-primary truncate">{activity.text}</p>
+                        <p className="text-xs text-text-secondary">{timeStr}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}
