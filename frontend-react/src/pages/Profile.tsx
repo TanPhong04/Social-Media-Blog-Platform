@@ -3,48 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { userApi } from '../api/userApi';
 import { articleApi } from '../api/articleApi';
 import type { ArticleResponse } from '../api/articleApi';
+import { mediaApi } from '../api/mediaApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Calendar, FileText, Heart, X, Check, Gift, Repeat, Image as ImageIcon, Users } from 'lucide-react';
 
-// Helper: Nén hình ảnh dùng Canvas
-const compressImage = (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = document.createElement('img');
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-        resolve(dataUrl);
-      };
-    };
-  });
-};
+// Bỏ compressImage để upload trực tiếp qua API
 
 const Profile: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -244,7 +208,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  // Chọn ảnh từ máy và nén
+  // Chọn ảnh từ máy và upload qua MinIO
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -253,12 +217,13 @@ const Profile: React.FC = () => {
       return;
     }
     try {
-      const base64 = await compressImage(file);
-      setEditAvatar(base64);
+      showToastMessage('Đang tải ảnh lên...', 'success');
+      const url = await mediaApi.uploadFile(file);
+      setEditAvatar(url);
       showToastMessage('Đã nạp ảnh đại diện mới.');
     } catch (err) {
       console.error(err);
-      showToastMessage('Không thể đọc file ảnh.', 'error');
+      showToastMessage('Lỗi tải ảnh.', 'error');
     }
   };
 
@@ -270,12 +235,13 @@ const Profile: React.FC = () => {
       return;
     }
     try {
-      const base64 = await compressImage(file);
-      setEditBanner(base64);
+      showToastMessage('Đang tải ảnh lên...', 'success');
+      const url = await mediaApi.uploadFile(file);
+      setEditBanner(url);
       showToastMessage('Đã nạp ảnh bìa mới.');
     } catch (err) {
       console.error(err);
-      showToastMessage('Không thể đọc file ảnh.', 'error');
+      showToastMessage('Lỗi tải ảnh.', 'error');
     }
   };
 
