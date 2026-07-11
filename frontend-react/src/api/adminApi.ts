@@ -55,18 +55,18 @@ export const adminApi = {
   getStats: async (): Promise<AdminStats> => {
     try {
       const [userStatsRes, articleStatsRes, commentStatsRes] = await Promise.all([
-        axiosClient.get('/admin/users/stats'),
-        axiosClient.get('/admin/articles/stats'),
-        axiosClient.get('/admin/comments/stats')
+        axiosClient.get<any, any>('/admin/users/stats'),
+        axiosClient.get<any, any>('/admin/articles/stats'),
+        axiosClient.get<any, any>('/admin/comments/stats')
       ]);
       
       return {
-        totalUsers: userStatsRes.data.totalUsers || 0,
-        activeUsers: userStatsRes.data.activeUsers || 0,
-        newUsersToday: userStatsRes.data.newUsersToday || 0,
-        totalArticles: articleStatsRes.data.totalArticles || 0,
-        newArticlesToday: articleStatsRes.data.newArticlesToday || 0,
-        totalComments: commentStatsRes.data.totalComments || 0,
+        totalUsers: userStatsRes.totalUsers || 0,
+        activeUsers: userStatsRes.activeUsers || 0,
+        newUsersToday: userStatsRes.newUsersToday || 0,
+        totalArticles: articleStatsRes.totalArticles || 0,
+        newArticlesToday: articleStatsRes.newArticlesToday || 0,
+        totalComments: commentStatsRes.totalComments || 0,
       };
     } catch (error) {
       console.error('Error fetching admin stats:', error);
