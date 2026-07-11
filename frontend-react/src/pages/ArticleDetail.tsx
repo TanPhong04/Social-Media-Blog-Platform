@@ -510,10 +510,52 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
          </div>
 
          {/* Content */}
-         <div 
-           className="prose prose-invert prose-p:text-text-secondary prose-a:text-primary max-w-none mb-10"
-           dangerouslySetInnerHTML={{ __html: article.content }}
-         />
+         {/* Content */}
+         <div className="text-text-primary text-[16px] leading-relaxed whitespace-pre-wrap mb-10">
+           {(() => {
+             let imageSrc = '';
+             let videoSrc = '';
+             let cleanContent = article.content || '';
+
+             // Trích xuất hình ảnh
+             const imgMatch = cleanContent.match(/!\[image\]\(([^\)]+)\)/);
+             if (imgMatch) {
+               imageSrc = imgMatch[1];
+               cleanContent = cleanContent.replace(imgMatch[0], '').trim();
+             }
+
+             // Trích xuất video
+             const videoMatch = cleanContent.match(/<video src="([^"]+)"/);
+             if (videoMatch) {
+               videoSrc = videoMatch[1];
+               cleanContent = cleanContent.replace(/<video[^>]+><\/video>/, '').trim();
+             }
+
+             return (
+               <>
+                 <div>{cleanContent}</div>
+                 {imageSrc && (
+                   <div className="mt-8 rounded-2xl overflow-hidden border border-white/10">
+                     <img 
+                       src={imageSrc} 
+                       alt="Article Attachment" 
+                       className="w-full max-h-[700px] object-contain bg-black/20"
+                     />
+                   </div>
+                 )}
+                 {videoSrc && (
+                   <div className="mt-8 rounded-2xl overflow-hidden border border-white/10">
+                     <video 
+                       src={videoSrc} 
+                       controls 
+                       className="w-full max-h-[700px] bg-black" 
+                     />
+                   </div>
+                 )}
+               </>
+             );
+           })()}
+         </div>
 
          {/* Tags */}
          {article.tags && article.tags.length > 0 && (

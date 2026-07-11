@@ -149,10 +149,11 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredUsers.map((user) => {
+                {filteredUsers.map((user, index) => {
                   const status = statusConfig[user.status] || statusConfig.ACTIVE;
                   const StatusIcon = status.icon;
                   const date = new Date(user.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short', year: 'numeric' });
+                  const isNearBottom = index >= filteredUsers.length - 2 && filteredUsers.length > 3;
 
                   return (
                     <tr key={user.id} className="hover:bg-white/[0.02] transition-colors duration-200 group">
@@ -199,7 +200,7 @@ export default function UserManagement() {
                           </button>
 
                           {actionMenuId === user.id && (
-                            <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-1 z-50 animate-fade-in">
+                            <div className={`absolute right-0 ${isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-1 z-50 animate-fade-in`}>
                               {user.status !== 'SUSPENDED' && (
                                 <button
                                   onClick={() => handleSuspend(user.id)}
