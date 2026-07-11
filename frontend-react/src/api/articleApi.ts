@@ -76,8 +76,8 @@ export const articleApi = {
   unpublishArticle: (id: string) => {
     return axiosClient.post<ArticleResponse>(`/articles/${id}/unpublish`);
   },
-  likeArticle: (id: string) => {
-    return axiosClient.put(`/interactions/ARTICLE/${id}/like`);
+  likeArticle: (id: string, reaction: string = 'LIKE') => {
+    return axiosClient.put(`/interactions/ARTICLE/${id}/like?reaction=${reaction}`);
   },
   unlikeArticle: (id: string) => {
     return axiosClient.delete(`/interactions/ARTICLE/${id}/like`);

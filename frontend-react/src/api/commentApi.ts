@@ -37,8 +37,8 @@ export const commentApi = {
   getCommentInteraction: (commentId: string) => {
     return axiosClient.get<{ count: number; likedByCurrentUser: boolean }>(`/interactions/COMMENT/${commentId}`);
   },
-  likeComment: (commentId: string) => {
-    return axiosClient.put(`/interactions/COMMENT/${commentId}/like`);
+  likeComment: (commentId: string, reaction: string = 'LIKE') => {
+    return axiosClient.put(`/interactions/COMMENT/${commentId}/like?reaction=${reaction}`);
   },
   unlikeComment: (commentId: string) => {
     return axiosClient.delete(`/interactions/COMMENT/${commentId}/like`);

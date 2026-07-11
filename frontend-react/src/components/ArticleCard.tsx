@@ -103,10 +103,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
   
-  // Thêm state cho danh sách người thích
+  // Thêm state cho danh sách người thích & cảm xúc
   const [showLikersModal, setShowLikersModal] = useState(false);
   const [likers, setLikers] = useState<any[]>([]);
   const [loadingLikers, setLoadingLikers] = useState(false);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
 
   useEffect(() => {
     if (showLikersModal) {
@@ -317,6 +319,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         // Tải trạng thái thích bài viết
         const res: any = await articleApi.getArticleInteraction(article.id);
         setLiked(res.likedByCurrentUser);
+        setMyReaction(res.reactionType || (res.likedByCurrentUser ? 'LIKE' : null));
         setLikeCount(res.count);
       } catch (err) {
         console.warn('Interaction service unavailable, falling back to mock likes', err);
@@ -575,20 +578,30 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   };
 
   // Thích bài viết
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent, reactionType: string = 'LIKE') => {
     e.stopPropagation();
     if (!user) {
       showToastMessage('Vui lòng đăng nhập để thích bài viết.', 'error');
       return;
     }
 
-    const nextLiked = !liked;
+    setShowReactionPicker(false);
+
+    const nextLiked = !liked || (liked && myReaction !== reactionType);
+    const wasLiked = liked;
+
     setLiked(nextLiked);
-    setLikeCount(prev => nextLiked ? prev + 1 : prev - 1);
+    setMyReaction(nextLiked ? reactionType : null);
+    
+    if (!wasLiked && nextLiked) {
+      setLikeCount(prev => prev + 1);
+    } else if (wasLiked && !nextLiked) {
+      setLikeCount(prev => prev - 1);
+    }
 
     try {
       if (nextLiked) {
-        await articleApi.likeArticle(article.id);
+        await articleApi.likeArticle(article.id, reactionType);
       } else {
         await articleApi.unlikeArticle(article.id);
       }
@@ -1530,14 +1543,48 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
           {/* Footer: Hộp tương tác */}
           <div className="flex justify-between items-center max-w-md mt-3 text-text-secondary text-[13px] -ml-2">
-            {/* Like (Thả tim đầu tiên) */}
-            <div className="flex items-center gap-1">
+            {/* Like (Đa cảm xúc) */}
+            <div 
+              className="flex items-center gap-1 relative"
+              onMouseEnter={() => setShowReactionPicker(true)}
+              onMouseLeave={() => setShowReactionPicker(false)}
+            >
+              {/* Bảng chọn cảm xúc (Reaction Picker) */}
+              {showReactionPicker && (
+                <div className="absolute bottom-full left-0 mb-2 bg-background border border-gray-800 rounded-full px-3 py-2 flex items-center gap-3 shadow-xl z-50 animate-[slideIn_0.2s_ease-out]">
+                  {[
+                    { type: 'LIKE', icon: '👍' },
+                    { type: 'LOVE', icon: '❤️' },
+                    { type: 'HAHA', icon: '😆' },
+                    { type: 'WOW', icon: '😮' },
+                    { type: 'SAD', icon: '😢' },
+                    { type: 'ANGRY', icon: '😡' }
+                  ].map((reaction) => (
+                    <button
+                      key={reaction.type}
+                      onClick={(e) => handleLike(e, reaction.type)}
+                      className="text-2xl hover:scale-125 transition-transform origin-bottom cursor-pointer"
+                      title={reaction.type}
+                    >
+                      {reaction.icon}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <button
-                onClick={handleLike}
-                className={`flex items-center justify-center p-2 rounded-full hover:bg-red-500/10 transition-all cursor-pointer group ${liked ? 'text-red-500' : ''}`}
+                onClick={(e) => handleLike(e, 'LIKE')}
+                className={`flex items-center justify-center p-2 rounded-full hover:bg-red-500/10 transition-all cursor-pointer group`}
                 title="Thích"
               >
-                <Heart className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
+                {myReaction === 'LOVE' ? <span className="text-xl leading-none">❤️</span> :
+                 myReaction === 'HAHA' ? <span className="text-xl leading-none">😆</span> :
+                 myReaction === 'WOW' ? <span className="text-xl leading-none">😮</span> :
+                 myReaction === 'SAD' ? <span className="text-xl leading-none">😢</span> :
+                 myReaction === 'ANGRY' ? <span className="text-xl leading-none">😡</span> :
+                 myReaction === 'LIKE' ? <span className="text-xl leading-none text-primary">👍</span> :
+                 <Heart className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current text-red-500' : ''}`} />
+                }
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowLikersModal(true); }}
