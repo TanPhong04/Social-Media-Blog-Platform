@@ -31,7 +31,21 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain chain(HttpSecurity http) throws Exception {
-        return http.csrf(c -> c.disable()).sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).authorizeHttpRequests(a -> a.requestMatchers("/actuator/health/**").permitAll().requestMatchers(HttpMethod.GET, "/api/v1/articles", "/api/v1/articles/by-slug/**").permitAll().anyRequest().authenticated()).oauth2ResourceServer(o -> o.jwt(j -> {
-        })).build();
+        return http
+                .csrf(c -> c.disable())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(a -> a
+                        .requestMatchers("/actuator/health/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/articles",
+                                "/api/v1/articles/by-slug/**",
+                                "/api/v1/articles/users/**"
+                        ).permitAll()
+                        // Allow GET /api/v1/articles/{uuid} for viewing article detail publicly
+                        .requestMatchers(HttpMethod.GET, "/api/v1/articles/{id}").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(o -> o.jwt(j -> {}))
+                .build();
     }
 }
