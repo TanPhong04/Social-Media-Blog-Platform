@@ -6,6 +6,7 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -68,9 +69,18 @@ public class SecurityConfig {
     }
 
     @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
+
     @Bean SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.csrf(csrf->csrf.disable()).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(a->a.requestMatchers("/api/v1/auth/**","/.well-known/jwks.json","/actuator/health/**").permitAll().anyRequest().authenticated())
-                .oauth2ResourceServer(o->o.jwt(j->{})).build();
+        return http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(a -> a
+                        .requestMatchers("/api/v1/auth/**", "/.well-known/jwks.json", "/actuator/health/**").permitAll()
+                        // Allow public profile lookup by ID (used on article detail pages)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/{id}").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(o -> o.jwt(j -> {}))
+                .build();
     }
 }
