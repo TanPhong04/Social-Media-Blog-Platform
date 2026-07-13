@@ -887,7 +887,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       localStorage.setItem(repostsKey, JSON.stringify(newReposts));
       setReposted(nextReposted);
-      setRepostCount(nextReposted ? 1 : 0);
+      setRepostCount(prev => nextReposted ? prev + 1 : Math.max(0, prev - 1));
 
       if (onRefresh) {
         setTimeout(() => {
