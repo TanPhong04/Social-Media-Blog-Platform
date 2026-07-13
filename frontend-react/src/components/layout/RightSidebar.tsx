@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { userApi, ProfileResponse } from '../../api/userApi';
+import { userApi, type ProfileResponse } from '../../api/userApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserPlus, Check, TrendingUp } from 'lucide-react';
 

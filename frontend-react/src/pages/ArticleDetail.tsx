@@ -651,12 +651,12 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
              textToShow = textToShow.replace(/!\[image\]\(([^\)]+)\)/g, '');
 
              // Tìm TẤT CẢ video nhúng
-             const videoRegex = /<video src="([^"]+)"[^>]*><\/video>/g;
+             const videoRegex = /<video src="([^"]+)"/g;
              let videoMatch;
              while ((videoMatch = videoRegex.exec(textToShow)) !== null) {
                videos.push(videoMatch[1]);
              }
-             textToShow = textToShow.replace(/<video src="([^"]+)"[^>]*><\/video>/g, '');
+             textToShow = textToShow.replace(/<video src="([^"]+)"[^>]*>(?:<\/video>)?/g, '');
 
              return (
                <>

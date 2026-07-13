@@ -263,7 +263,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [authorProfile, setAuthorProfile] = useState<any>(null);
 
   // Trạng thái cho khung bình luận (Comments Section)
-  const [showComments, setShowComments] = useState(false);
+
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [commentText, setCommentText] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
@@ -1569,9 +1569,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     );
   };
 
-  const handleCardClick = () => {
-    navigate(`/?articleId=${article.id}`);
-  };
+
 
   return (
     <div 
@@ -1772,7 +1770,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                 e.stopPropagation();
                 navigate(`/?articleId=${article.id}`);
               }}
-              className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
+              className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span>{comments.filter(c => !c.content.includes('[repost]')).length}</span>
@@ -1809,7 +1807,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       </div>
 
       {/* KHUNG BÌNH LUẬN NÂNG CAO (COMMENTS SECTION MULTI-LEVEL) */}
-      {showComments && (
+      {false && (
         <div 
           onClick={(e) => e.stopPropagation()}
           className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4"
@@ -1871,7 +1869,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               {/* Preview ảnh đính kèm bình luận cha */}
               {commentImage && (
                 <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-gray-800 max-h-24 overflow-hidden">
-                  <img src={commentImage} alt="Comment Preview" className="max-h-24 max-w-[150px] object-contain rounded-lg" />
+                  <img src={commentImage || undefined} alt="Comment Preview" className="max-h-24 max-w-[150px] object-contain rounded-lg" />
                   <button
                     type="button"
                     onClick={() => {
@@ -1959,7 +1957,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                         {/* Preview ảnh phản hồi */}
                         {replyImage && (
                           <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-gray-800 max-h-20 overflow-hidden">
-                            <img src={replyImage} alt="Reply Preview" className="max-h-20 max-w-[120px] object-contain rounded-lg" />
+                            <img src={replyImage || undefined} alt="Reply Preview" className="max-h-20 max-w-[120px] object-contain rounded-lg" />
                             <button
                               type="button"
                               onClick={() => {

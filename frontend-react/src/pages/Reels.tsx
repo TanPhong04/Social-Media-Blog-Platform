@@ -8,7 +8,9 @@ import ShareModal from '../components/ShareModal';
 
 // Helper to determine if article is a reel (exactly 1 video, 0 images)
 const isReel = (article: ArticleResponse): boolean => {
-  const videoMatches = article.content.match(/<video src="([^"]+)"[^>]*><\/video>/g);
+  if (article.tags && article.tags.includes('reel')) return true;
+  if (!article.content) return false;
+  const videoMatches = article.content.match(/<video src="([^"]+)"/g);
   const imageMatches = article.content.match(/!\[image\]\(([^)]+)\)/g);
   return (videoMatches?.length === 1) && (!imageMatches || imageMatches.length === 0);
 };
@@ -27,12 +29,13 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
 
   // Extract video URL
   let videoUrl = '';
-  const videoRegex = /<video src="([^"]+)"[^>]*><\/video>/;
-  const match = videoRegex.exec(article.content);
+  const content = article.content || '';
+  const videoRegex = /<video src="([^"]+)"/;
+  const match = videoRegex.exec(content);
   if (match) videoUrl = match[1];
 
   // Extract text
-  const textContent = article.content.replace(/<video src="([^"]+)"[^>]*><\/video>/g, '').trim();
+  const textContent = content.replace(/<video src="([^"]+)"[^>]*>(?:<\/video>)?/g, '').trim();
 
   useEffect(() => {
     if (isActive) {
