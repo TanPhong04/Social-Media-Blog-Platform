@@ -25,6 +25,11 @@ public class ArticleController {
         return ResponseEntity.ok(service.feed(PageRequests.of(page, size, 50)));
     }
 
+    @GetMapping("/search")
+    ResponseEntity<Page<Response>> search(@RequestParam("query") String query, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(service.searchArticles(query, PageRequests.of(page, size, 50)));
+    }
+
     @GetMapping("/following")
     Page<Response> following(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return service.followingFeed(user(jwt), PageRequests.of(page, size, 50));

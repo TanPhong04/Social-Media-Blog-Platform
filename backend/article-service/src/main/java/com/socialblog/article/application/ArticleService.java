@@ -82,6 +82,14 @@ public class ArticleService {
         return articles.findByAuthorIdAndStatusNotOrderByUpdatedAtDesc(author, Article.Status.DELETED, p).map(this::map);
     }
 
+    @Transactional(readOnly = true)
+    public Page<Response> searchArticles(String query, Pageable p) {
+        if (query == null || query.trim().isEmpty()) {
+            return Page.empty(p);
+        }
+        return articles.searchArticles(query.trim(), p).map(this::map);
+    }
+
     private Article owned(UUID id, UUID author) {
         Article a = articles.findById(id).orElseThrow(this::notFound);
         if (a.getStatus() == Article.Status.DELETED) throw notFound();

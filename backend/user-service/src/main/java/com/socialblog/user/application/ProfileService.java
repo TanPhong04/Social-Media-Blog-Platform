@@ -49,6 +49,15 @@ public class ProfileService {
             .map(this::map)
             .collect(java.util.stream.Collectors.toList());
     }
+    @Transactional(readOnly=true)
+    public java.util.List<ProfileResponse> searchUsers(String query, int limit) {
+        if (query == null || query.trim().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return users.searchActiveUsers(query.trim(), org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream().map(this::map).collect(java.util.stream.Collectors.toList());
+    }
+
     private UserAccount find(UUID id){return users.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"USER_NOT_FOUND","User not found"));}
     private ProfileResponse map(UserAccount u){return new ProfileResponse(u.getId(),u.getEmail(),u.getDisplayName(),u.getBio(),u.getAvatarUrl(),u.getRole().name(),u.getUsername(),u.getDob(),u.getCreatedAt());}
 }
