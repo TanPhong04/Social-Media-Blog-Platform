@@ -1,4 +1,4 @@
-import { Home as HomeIcon, User, LogIn, Settings as SettingsIcon, UserPlus } from 'lucide-react';
+import { Home as HomeIcon, User, LogIn, Settings as SettingsIcon, UserPlus, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,8 +9,8 @@ const Navbar = () => {
     <nav className="bg-surface border-b border-gray-800 sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo & Left Links */}
-          <div className="flex items-center">
+          {/* Logo & Search */}
+          <div className="flex items-center gap-4">
             <Link
               to="/"
               onClick={(e) => {
@@ -22,8 +22,18 @@ const Navbar = () => {
               className="flex items-center gap-2 font-bold text-xl text-primary font-heading"
             >
               <HomeIcon className="w-6 h-6" />
-              <span>Axion</span>
+              <span className="hidden sm:inline">Axion</span>
             </Link>
+
+            {/* Search Bar */}
+            <div className="relative hidden md:flex items-center">
+              <Search className="w-4 h-4 absolute left-3 text-text-secondary" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm trên Axion"
+                className="bg-background border border-gray-800 rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary placeholder-text-secondary transition-all"
+              />
+            </div>
           </div>
 
           {/* Right Actions */}

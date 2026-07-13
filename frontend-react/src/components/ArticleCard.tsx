@@ -7,9 +7,10 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
+import ArticleDetail from '../pages/ArticleDetail';
 
 interface ArticleCardProps {
   article: ArticleResponse;
@@ -101,7 +102,14 @@ const MediaItem: React.FC<{
       onClick={onClick}
     >
       {isVideo ? (
-        <video src={url} controls className="w-full h-full object-cover" onClick={(e) => e.stopPropagation()} />
+        <>
+          <video src={url} className="w-full h-full object-contain bg-black" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none transition-transform group-hover/media:scale-110">
+            <div className="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl">
+               <Play className="w-6 h-6 text-white fill-white ml-1" />
+            </div>
+          </div>
+        </>
       ) : (
         <img 
           src={url} 
@@ -202,38 +210,14 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
   return (
     <>
       {renderGrid()}
-      {/* Lightbox Modal */}
+      {/* Lightbox Modal / Theater Mode */}
       {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center animate-fade-in" onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}>
-          <button className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 z-[10000] cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}>
-             <X className="w-8 h-8" />
-          </button>
-          
-          {count > 1 && (
-            <button 
-               className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-white hover:text-gray-300 bg-white/10 rounded-full z-[10000] cursor-pointer"
-               onClick={(e) => { e.stopPropagation(); setSelectedIndex(prev => prev! > 0 ? prev! - 1 : count - 1); }}
-            >
-               <ChevronLeft className="w-8 h-8" />
-            </button>
-          )}
-
-          <div className="w-full h-full flex items-center justify-center p-8" onClick={(e) => e.stopPropagation()}>
-             {items[selectedIndex].isVideo ? (
-               <video src={items[selectedIndex].url} controls className="max-w-full max-h-full object-contain" />
-             ) : (
-               <img src={items[selectedIndex].url} alt="Gallery view" className="max-w-full max-h-[90vh] object-contain animate-[scaleIn_0.2s_ease-out]" />
-             )}
-          </div>
-
-          {count > 1 && (
-            <button 
-               className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white hover:text-gray-300 bg-white/10 rounded-full z-[10000] cursor-pointer"
-               onClick={(e) => { e.stopPropagation(); setSelectedIndex(prev => prev! < count - 1 ? prev! + 1 : 0); }}
-            >
-               <ChevronRight className="w-8 h-8" />
-            </button>
-          )}
+        <div className="fixed inset-0 z-[9999] bg-black">
+           <ArticleDetail 
+             articleId={articleId} 
+             onClose={() => setSelectedIndex(null)} 
+             initialMediaUrl={items[selectedIndex].url} 
+           />
         </div>
       )}
     </>
@@ -706,6 +690,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       ...videos.map(url => ({ url, isVideo: true }))
     ];
 
+    const isReel = videos.length === 1 && images.length === 0;
+
     return (
       <div className="space-y-2.5">
         {textToShow.trim() && (
@@ -714,7 +700,25 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           </p>
         )}
 
-        <MediaGallery items={mediaItems} articleId={article.id} />
+        {isReel ? (
+          <div 
+            className="relative w-full max-w-[320px] mx-auto rounded-xl overflow-hidden bg-black cursor-pointer group border border-gray-800 shadow-lg"
+            onClick={(e) => { e.stopPropagation(); navigate('/reels'); }}
+          >
+            <video src={videos[0]} className="w-full aspect-[9/16] object-cover opacity-90 group-hover:opacity-100 transition" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 group-hover:bg-black/10 transition">
+              <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-md border border-white/20">
+                <Play className="w-6 h-6 text-white fill-white ml-1" />
+              </div>
+            </div>
+            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded flex items-center gap-1.5 border border-white/10">
+              <Film className="w-3.5 h-3.5 text-white" />
+              <span className="text-[11px] text-white font-bold uppercase tracking-widest">Reel</span>
+            </div>
+          </div>
+        ) : (
+          <MediaGallery items={mediaItems} articleId={article.id} />
+        )}
       </div>
     );
   };

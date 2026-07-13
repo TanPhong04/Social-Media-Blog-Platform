@@ -1,16 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
-import { Heart, MessageCircle, Share2, Music, Film } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { userApi } from '../api/userApi';
 import ShareModal from '../components/ShareModal';
+
+// Helper to determine if article is a reel (exactly 1 video, 0 images)
+const isReel = (article: ArticleResponse): boolean => {
+  const videoMatches = article.content.match(/<video src="([^"]+)"[^>]*><\/video>/g);
+  const imageMatches = article.content.match(/!\[image\]\(([^)]+)\)/g);
+  return (videoMatches?.length === 1) && (!imageMatches || imageMatches.length === 0);
+};
 
 const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: boolean }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [progress, setProgress] = useState(0);
   
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -33,6 +41,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
     } else {
       videoRef.current?.pause();
       setIsPlaying(false);
+      if (videoRef.current) videoRef.current.currentTime = 0;
     }
   }, [isActive]);
 
@@ -53,6 +62,14 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
         videoRef.current.play();
       }
       setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const current = videoRef.current.currentTime;
+      const total = videoRef.current.duration;
+      setProgress((current / total) * 100);
     }
   };
 
@@ -79,7 +96,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
   if (!videoUrl) return null;
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)] max-w-lg mx-auto bg-black flex items-center justify-center snap-start snap-always shrink-0 overflow-hidden">
+    <div className="relative w-full h-[calc(100vh-4rem)] max-w-[420px] mx-auto bg-black flex items-center justify-center snap-start snap-always shrink-0 overflow-hidden">
       <video
         ref={videoRef}
         src={videoUrl}
@@ -87,21 +104,26 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
         loop
         playsInline
         onClick={togglePlay}
+        onTimeUpdate={handleTimeUpdate}
       />
 
+      {/* Play Icon Overlay when paused */}
       {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center">
-            <div className="w-0 h-0 border-t-8 border-t-transparent border-l-[16px] border-l-white border-b-8 border-b-transparent ml-1" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 transition-opacity">
+          <div className="w-20 h-20 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+            <Play className="w-10 h-10 text-white fill-white ml-2 opacity-90" />
           </div>
         </div>
       )}
+
+      {/* Gradient Overlay for bottom text readability */}
+      <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-10" />
 
       {/* Right Actions Overlay */}
       <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-20">
         <button 
           onClick={(e) => { e.stopPropagation(); navigate(`/profile?userId=${article.authorId}`); }}
-          className="w-11 h-11 rounded-full border-2 border-white overflow-hidden"
+          className="w-11 h-11 rounded-full border-[2px] border-white overflow-hidden shadow-lg"
         >
           {author?.avatarUrl ? (
             <img src={author.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
@@ -113,62 +135,82 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
         </button>
 
         <button onClick={handleLike} className="flex flex-col items-center gap-1 group">
-          <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition">
-            <Heart className={`w-6 h-6 ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+          <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
+            <Heart className={`w-7 h-7 ${liked ? 'fill-error text-error scale-110' : 'text-white drop-shadow-md'} transition-transform duration-300`} />
           </div>
-          <span className="text-white text-xs font-medium shadow-black drop-shadow-md">{likeCount > 0 ? likeCount : ''}</span>
+          <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
         </button>
 
         <button onClick={() => navigate(`/?articleId=${article.id}`)} className="flex flex-col items-center gap-1 group">
-          <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition">
-            <MessageCircle className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
+            <MessageCircle className="w-7 h-7 text-white drop-shadow-md" />
           </div>
-          <span className="text-white text-xs font-medium shadow-black drop-shadow-md">Bình luận</span>
+          <span className="text-white text-xs font-bold drop-shadow-md">Bình luận</span>
         </button>
 
         <button onClick={handleShare} className="flex flex-col items-center gap-1 group">
-          <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition">
-            <Share2 className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
+            <Share2 className="w-7 h-7 text-white drop-shadow-md" />
           </div>
-          <span className="text-white text-xs font-medium shadow-black drop-shadow-md">Chia sẻ</span>
+          <span className="text-white text-xs font-bold drop-shadow-md">Chia sẻ</span>
         </button>
       </div>
 
       {/* Bottom Info Overlay */}
-      <div className="absolute left-4 bottom-4 right-20 z-20 pointer-events-none">
-        <div className="flex items-center gap-2 mb-2 pointer-events-auto">
-          <span 
-            className="text-white font-bold text-[15px] cursor-pointer hover:underline shadow-black drop-shadow-md"
-            onClick={(e) => { e.stopPropagation(); navigate(`/profile?userId=${article.authorId}`); }}
-          >
-            {author?.displayName || author?.username || 'Đang tải...'}
-          </span>
-          <button className="px-3 py-1 rounded-full border border-white text-white text-[13px] font-medium hover:bg-white/10 transition">
-            Theo dõi
-          </button>
-        </div>
-
-        {textContent && (
-          <p className="text-white text-[14px] line-clamp-2 mb-3 shadow-black drop-shadow-md">
-            {textContent}
-          </p>
-        )}
-
-        <div className="flex items-center gap-2 text-white">
-          <Music className="w-4 h-4 animate-spin-slow" />
-          <div className="overflow-hidden w-40 whitespace-nowrap mask-image-linear">
-            <span className="inline-block animate-marquee text-[13px] font-medium shadow-black drop-shadow-md">
-              Âm thanh gốc - {author?.displayName || 'Unknown'}
+      <div className="absolute left-4 bottom-6 right-20 z-20 flex items-end justify-between">
+        <div className="flex-1 pointer-events-none">
+          <div className="flex items-center gap-2 mb-2 pointer-events-auto">
+            <span 
+              className="text-white font-bold text-[16px] cursor-pointer hover:underline drop-shadow-md"
+              onClick={(e) => { e.stopPropagation(); navigate(`/profile?userId=${article.authorId}`); }}
+            >
+              {author?.displayName || author?.username || 'Đang tải...'}
             </span>
+            <button className="px-4 py-1 rounded-md border border-white text-white text-[13px] font-semibold hover:bg-white/20 transition backdrop-blur-sm">
+              Theo dõi
+            </button>
+          </div>
+
+          {textContent && (
+            <p className="text-white text-[15px] line-clamp-2 mb-4 drop-shadow-md leading-snug font-medium pr-4">
+              {textContent}
+            </p>
+          )}
+
+          <div className="flex items-center gap-2 text-white">
+            <Music className="w-4 h-4" />
+            <div className="overflow-hidden w-40 whitespace-nowrap mask-image-linear">
+              <span className="inline-block animate-marquee text-[13px] font-semibold drop-shadow-md">
+                Âm thanh gốc - {author?.displayName || 'Unknown'}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Music Disc animation (bottom right corner next to actions) */}
+        <div className="w-10 h-10 rounded-full border-[6px] border-[#222] bg-gradient-to-tr from-gray-800 to-gray-600 animate-spin-slow overflow-hidden shadow-lg flex-shrink-0 relative left-12 bottom-1">
+          {author?.avatarUrl ? (
+            <img src={author.avatarUrl} alt="disc" className="w-full h-full object-cover opacity-80" />
+          ) : (
+            <div className="w-full h-full bg-primary/50" />
+          )}
+          <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white"></div>
+        </div>
+      </div>
+      
+      {/* Progress Bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-30">
+        <div 
+          className="h-full bg-primary transition-all duration-100 ease-linear rounded-r-full shadow-[0_0_8px_rgba(108,92,231,0.8)]"
+          style={{ width: `${progress}%` }}
+        />
       </div>
       
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         shareUrl={`${window.location.origin}/article/${article.id}`}
-        title={article.title || 'Reel từ Axion'}
+        title={article.title || 'Reel mới'}
       />
     </div>
   );
@@ -187,13 +229,17 @@ const Reels = () => {
       const res = await articleApi.getFeed(pageNum, 100);
       const data = res.data.content;
       
-      // Lọc ra các bài viết có video (được coi là Reel)
-      const videoArticles = data.filter(a => /<video src="([^"]+)"[^>]*><\/video>/.test(a.content));
+      // Lọc ra các bài viết là Reel (chính xác 1 video, 0 hình ảnh)
+      const videoArticles = data.filter((a: ArticleResponse) => isReel(a));
       
       if (pageNum === 0) {
         setReels(videoArticles);
       } else {
-        setReels(prev => [...prev, ...videoArticles]);
+        setReels(prev => {
+          const newIds = new Set(prev.map(r => r.id));
+          const uniqueNewReels = videoArticles.filter((r: ArticleResponse) => !newIds.has(r.id));
+          return [...prev, ...uniqueNewReels];
+        });
       }
       
       if (res.data.last) {
@@ -213,16 +259,15 @@ const Reels = () => {
   const handleScroll = () => {
     if (!containerRef.current) return;
     
-    // Tính toán index của Reel đang hiển thị
     const scrollPosition = containerRef.current.scrollTop;
     const windowHeight = containerRef.current.clientHeight;
+    // Thay vì chia làm tròn, dùng offset nhỏ để snap mượt hơn
     const currentIndex = Math.round(scrollPosition / windowHeight);
     
     if (currentIndex !== activeIndex) {
       setActiveIndex(currentIndex);
     }
 
-    // Tải thêm reels nếu cuộn gần đến cuối
     if (hasMore && currentIndex >= reels.length - 2) {
       setPage(p => {
         const next = p + 1;
@@ -247,24 +292,31 @@ const Reels = () => {
           -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
         .animate-spin-slow {
-          animation: spin 3s linear infinite;
+          animation: spin 4s linear infinite;
+        }
+        /* Custom scrollbar hiding */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
       `}</style>
       
       <div 
         ref={containerRef}
         onScroll={handleScroll}
-        className="w-full max-w-[500px] h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide bg-black relative"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        className="w-full h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide bg-black relative"
       >
         {loading && reels.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-full h-full flex items-center justify-center bg-black">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : reels.length === 0 ? (
-          <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary gap-4">
-            <Film className="w-12 h-12 opacity-50" />
-            <p>Chưa có thước phim nào.</p>
+          <div className="w-full h-full flex flex-col items-center justify-center bg-black text-text-secondary gap-4">
+            <Film className="w-16 h-16 opacity-30 text-white" />
+            <p className="text-lg font-medium text-white/70">Chưa có thước phim nào.</p>
           </div>
         ) : (
           reels.map((article, index) => (

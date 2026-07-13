@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Repeat, Link as LinkIcon, Send, Globe, MessageSquare, MessageCircle } from 'lucide-react';
+import { X, Repeat, Link as LinkIcon, Send, Globe, MessageSquare, MessageCircle, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,15 +14,18 @@ interface ShareModalProps {
 
 const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, title = 'Bài viết', onRepost, reposted }) => {
   const navigate = useNavigate();
+  const [isCopied, setIsCopied] = React.useState(false);
 
   if (!isOpen) return null;
 
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      // Có thể gọi Toast ở ngoài hoặc tự báo
-      alert('Đã sao chép liên kết vào khay nhớ tạm!');
-      onClose();
+      setIsCopied(true);
+      setTimeout(() => {
+        setIsCopied(false);
+        onClose();
+      }, 1500);
     } catch (e) {
       console.error(e);
     }
@@ -85,12 +88,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, titl
 
           <button 
             onClick={copyToClipboard}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 text-text-primary transition-colors cursor-pointer text-left"
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors cursor-pointer text-left ${isCopied ? 'bg-green-500/10 text-green-500' : 'hover:bg-white/5 text-text-primary'}`}
           >
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-text-primary">
-              <LinkIcon className="w-5 h-5" />
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCopied ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-text-primary'}`}>
+              {isCopied ? <Check className="w-5 h-5" /> : <LinkIcon className="w-5 h-5" />}
             </div>
-            <div className="flex-1 font-semibold">Sao chép liên kết</div>
+            <div className="flex-1 font-semibold">{isCopied ? 'Đã sao chép!' : 'Sao chép liên kết'}</div>
           </button>
 
           <button 
