@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { articleApi } from '../api/articleApi';
 import { userApi } from '../api/userApi';
 import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
-import ArticleDetail from './ArticleDetail';
+
 import { Image, Smile, Globe, AlertCircle, X, Film } from 'lucide-react';
 
 import { mediaApi } from '../api/mediaApi';
@@ -55,23 +55,7 @@ const EMOJI_CATEGORIES = [
 const Home: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeArticleId = searchParams.get('articleId');
 
-  const handleCloseModal = () => {
-    setSearchParams({});
-  };
-
-  useEffect(() => {
-    if (activeArticleId) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [activeArticleId]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -615,26 +599,7 @@ const Home: React.FC = () => {
         )}
       </div>
 
-      {/* Modal chi tiết bài viết (Popup kiểu X / Twitter / Facebook) */}
-      {activeArticleId && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
-          onClick={handleCloseModal}
-        >
-          <div 
-            className="bg-background border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative shadow-2xl animate-[slideIn_0.2s_ease-out]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button 
-              onClick={handleCloseModal}
-              className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors z-50 cursor-pointer border border-white/5 animate-pulse"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <ArticleDetail articleId={activeArticleId} onClose={handleCloseModal} />
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { Heart, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { userApi } from '../api/userApi';
 import ShareModal from '../components/ShareModal';
 
 // Helper to determine if article is a reel (exactly 1 video, 0 images)
 const isReel = (article: ArticleResponse): boolean => {
-  const videoMatches = article.content.match(/<video src="([^"]+)"[^>]*><\/video>/g);
+  if (article.tags && article.tags.includes('reel')) return true;
+  if (!article.content) return false;
+  const videoMatches = article.content.match(/<video src="([^"]+)"/g);
   const imageMatches = article.content.match(/!\[image\]\(([^)]+)\)/g);
   return (videoMatches?.length === 1) && (!imageMatches || imageMatches.length === 0);
 };
@@ -16,6 +18,7 @@ const isReel = (article: ArticleResponse): boolean => {
 const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: boolean }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -27,12 +30,13 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
 
   // Extract video URL
   let videoUrl = '';
-  const videoRegex = /<video src="([^"]+)"[^>]*><\/video>/;
-  const match = videoRegex.exec(article.content);
+  const content = article.content || '';
+  const videoRegex = /<video src="([^"]+)"/;
+  const match = videoRegex.exec(content);
   if (match) videoUrl = match[1];
 
   // Extract text
-  const textContent = article.content.replace(/<video src="([^"]+)"[^>]*><\/video>/g, '').trim();
+  const textContent = content.replace(/<video src="([^"]+)"[^>]*>(?:<\/video>)?/g, '').trim();
 
   useEffect(() => {
     if (isActive) {
@@ -141,7 +145,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
         </button>
 
-        <button onClick={() => navigate(`/?articleId=${article.id}`)} className="flex flex-col items-center gap-1 group">
+        <button onClick={() => navigate(`/article/${article.id}`, { state: { backgroundLocation: location } })} className="flex flex-col items-center gap-1 group">
           <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
             <MessageCircle className="w-7 h-7 text-white drop-shadow-md" />
           </div>

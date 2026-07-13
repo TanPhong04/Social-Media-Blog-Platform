@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { ArticleResponse } from '../api/articleApi';
 import { articleApi } from '../api/articleApi';
 import { userApi } from '../api/userApi';
@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
-import ArticleDetail from '../pages/ArticleDetail';
+
 
 interface ArticleCardProps {
   article: ArticleResponse;
@@ -135,15 +135,18 @@ const MediaItem: React.FC<{
 };
 
 const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], articleId: string }> = ({ items, articleId }) => {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
 
   if (!items || items.length === 0) return null;
 
   const count = items.length;
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const handleImageClick = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
-    setSelectedIndex(index);
+    navigate(`/article/${articleId}?mediaUrl=${encodeURIComponent(items[index].url)}`, { state: { backgroundLocation: location } });
   };
 
   const renderGrid = () => {
@@ -207,21 +210,7 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
     );
   };
 
-  return (
-    <>
-      {renderGrid()}
-      {/* Lightbox Modal / Theater Mode */}
-      {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black">
-           <ArticleDetail 
-             articleId={articleId} 
-             onClose={() => setSelectedIndex(null)} 
-             initialMediaUrl={items[selectedIndex].url} 
-           />
-        </div>
-      )}
-    </>
-  );
+  return renderGrid();
 };
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
@@ -263,7 +252,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [authorProfile, setAuthorProfile] = useState<any>(null);
 
   // Trạng thái cho khung bình luận (Comments Section)
-  const [showComments, setShowComments] = useState(false);
+
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [commentText, setCommentText] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
@@ -1569,14 +1558,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     );
   };
 
-  const handleCardClick = () => {
-    navigate(`/?articleId=${article.id}`);
-  };
+
 
   return (
     <div 
-      onClick={handleCardClick}
-      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative cursor-pointer"
+      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative"
     >
       {/* Khung nội dung chính của Post */}
       <div className="flex gap-3">
@@ -1771,9 +1757,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowComments(!showComments);
+                navigate(`/article/${article.id}`, { state: { backgroundLocation: location } });
               }}
-              className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
+              className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span>{comments.filter(c => !c.content.includes('[repost]')).length}</span>
@@ -1810,7 +1796,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       </div>
 
       {/* KHUNG BÌNH LUẬN NÂNG CAO (COMMENTS SECTION MULTI-LEVEL) */}
-      {showComments && (
+      {false && (
         <div 
           onClick={(e) => e.stopPropagation()}
           className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4"
@@ -1872,7 +1858,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               {/* Preview ảnh đính kèm bình luận cha */}
               {commentImage && (
                 <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-gray-800 max-h-24 overflow-hidden">
-                  <img src={commentImage} alt="Comment Preview" className="max-h-24 max-w-[150px] object-contain rounded-lg" />
+                  <img src={commentImage || undefined} alt="Comment Preview" className="max-h-24 max-w-[150px] object-contain rounded-lg" />
                   <button
                     type="button"
                     onClick={() => {
@@ -1960,7 +1946,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                         {/* Preview ảnh phản hồi */}
                         {replyImage && (
                           <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-gray-800 max-h-20 overflow-hidden">
-                            <img src={replyImage} alt="Reply Preview" className="max-h-20 max-w-[120px] object-contain rounded-lg" />
+                            <img src={replyImage || undefined} alt="Reply Preview" className="max-h-20 max-w-[120px] object-contain rounded-lg" />
                             <button
                               type="button"
                               onClick={() => {

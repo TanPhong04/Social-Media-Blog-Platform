@@ -26,14 +26,16 @@ const Navbar = () => {
             </Link>
 
             {/* Search Bar */}
-            <div className="relative hidden md:flex items-center">
+            <form action="/search" method="GET" className="relative hidden md:flex items-center">
               <Search className="w-4 h-4 absolute left-3 text-text-secondary" />
               <input
                 type="text"
+                name="q"
+                defaultValue={new URLSearchParams(window.location.search).get('q') || ''}
                 placeholder="Tìm kiếm trên Axion"
                 className="bg-background border border-gray-800 rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary placeholder-text-secondary transition-all"
               />
-            </div>
+            </form>
           </div>
 
           {/* Right Actions */}

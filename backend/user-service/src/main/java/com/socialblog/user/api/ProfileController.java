@@ -15,6 +15,11 @@ public class ProfileController {
     public java.util.List<ProfileResponse> getSuggestions(@org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt) {
         return service.getSuggestions(UUID.fromString(jwt.getSubject()));
     }
+    @GetMapping("/search")
+    public java.util.List<ProfileResponse> search(@RequestParam("query") String query, @RequestParam(defaultValue = "20") int limit) {
+        return service.searchUsers(query, limit);
+    }
+    
     @PostMapping("/me/password")
     @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
     public void changePassword(

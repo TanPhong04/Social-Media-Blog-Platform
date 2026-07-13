@@ -45,6 +45,11 @@ export const articleApi = {
       params: { page, size }
     });
   },
+  searchArticles: async (query: string, page: number = 0, size: number = 20) => {
+    const response = await axiosClient.get(`/articles/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
+    return response.data;
+  },
+
   getBySlug: (slug: string) => {
     return axiosClient.get<ArticleResponse>(`/articles/by-slug/${slug}`);
   },
