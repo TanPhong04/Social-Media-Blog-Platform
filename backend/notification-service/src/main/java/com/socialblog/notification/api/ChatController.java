@@ -60,7 +60,7 @@ public class ChatController {
     }
 
     @PostMapping("/online-statuses")
-    public Map<UUID, Boolean> checkOnlineStatuses(@RequestBody List<UUID> userIds) {
+    public Map<UUID, Map<String, Object>> checkOnlineStatuses(@RequestBody List<UUID> userIds) {
         return chatService.checkOnlineStatuses(userIds);
     }
 

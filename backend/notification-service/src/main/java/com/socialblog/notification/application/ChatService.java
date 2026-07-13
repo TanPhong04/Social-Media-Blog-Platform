@@ -31,7 +31,8 @@ public class ChatService {
             String lastMessage,
             Instant lastMessageTime,
             long unreadCount,
-            boolean isOnline
+            boolean isOnline,
+            Instant lastOnlineTime
     ) {}
 
     private final ChatMessageRepository chatMessageRepository;
@@ -102,13 +103,15 @@ public class ChatService {
             UUID contactId = msg.getSenderId().equals(userId) ? msg.getRecipientId() : msg.getSenderId();
             long unread = chatMessageRepository.countBySenderIdAndRecipientIdAndIsReadFalse(contactId, userId);
             boolean isOnline = NotificationController.isUserOnline(contactId);
+            Instant lastOnlineTime = NotificationController.getLastOnlineTime(contactId);
 
             return new ChatContactResponse(
                     contactId,
                     msg.getContent(),
                     msg.getCreatedAt(),
                     unread,
-                    isOnline
+                    isOnline,
+                    lastOnlineTime
             );
         }).collect(Collectors.toList());
     }
@@ -119,10 +122,16 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
-    public Map<UUID, Boolean> checkOnlineStatuses(List<UUID> userIds) {
-        Map<UUID, Boolean> statuses = new HashMap<>();
+    public Map<UUID, Map<String, Object>> checkOnlineStatuses(List<UUID> userIds) {
+        Map<UUID, Map<String, Object>> statuses = new HashMap<>();
         for (UUID uid : userIds) {
-            statuses.put(uid, NotificationController.isUserOnline(uid));
+            Map<String, Object> info = new HashMap<>();
+            info.put("isOnline", NotificationController.isUserOnline(uid));
+            Instant lastOnline = NotificationController.getLastOnlineTime(uid);
+            if (lastOnline != null) {
+                info.put("lastOnlineTime", lastOnline.toString());
+            }
+            statuses.put(uid, info);
         }
         return statuses;
     }
