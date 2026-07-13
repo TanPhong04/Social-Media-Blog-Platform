@@ -16,6 +16,7 @@ export interface ChatContactResponse {
   lastMessageTime: string;
   unreadCount: number;
   isOnline: boolean;
+  lastOnlineTime?: string;
 }
 
 export const chatApi = {
@@ -34,6 +35,6 @@ export const chatApi = {
     return axiosClient.put(`/chats/${contactId}/read`);
   },
   checkOnlineStatuses: (userIds: string[]) => {
-    return axiosClient.post<Record<string, boolean>>('/chats/online-statuses', userIds);
+    return axiosClient.post<Record<string, { isOnline: boolean, lastOnlineTime?: string }>>('/chats/online-statuses', userIds);
   }
 };

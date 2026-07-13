@@ -23,6 +23,7 @@ public class NotificationController {
 
     // Quản lý các SSE emitters kết nối realtime
     private static final Map<UUID, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
+    private static final Map<UUID, java.time.Instant> lastOnlineTime = new ConcurrentHashMap<>();
 
     public NotificationController(NotificationService s, JwtDecoder j) {
         service = s;
@@ -38,6 +39,7 @@ public class NotificationController {
             SseEmitter emitter = new SseEmitter(24 * 60 * 60 * 1000L); // 24 giờ timeout
             
             emitters.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>()).add(emitter);
+            lastOnlineTime.remove(userId);
             
             emitter.onCompletion(() -> removeEmitter(userId, emitter));
             emitter.onTimeout(() -> removeEmitter(userId, emitter));
@@ -62,6 +64,7 @@ public class NotificationController {
             list.remove(emitter);
             if (list.isEmpty()) {
                 emitters.remove(userId);
+                lastOnlineTime.put(userId, java.time.Instant.now());
             }
         }
     }
@@ -105,6 +108,10 @@ public class NotificationController {
     public static boolean isUserOnline(UUID userId) {
         List<SseEmitter> list = emitters.get(userId);
         return list != null && !list.isEmpty();
+    }
+
+    public static java.time.Instant getLastOnlineTime(UUID userId) {
+        return lastOnlineTime.get(userId);
     }
 
     @GetMapping 
