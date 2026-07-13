@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { ArticleResponse } from '../api/articleApi';
 import { articleApi } from '../api/articleApi';
 import { userApi } from '../api/userApi';
@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
-import ArticleDetail from '../pages/ArticleDetail';
+
 
 interface ArticleCardProps {
   article: ArticleResponse;
@@ -135,15 +135,18 @@ const MediaItem: React.FC<{
 };
 
 const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], articleId: string }> = ({ items, articleId }) => {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
 
   if (!items || items.length === 0) return null;
 
   const count = items.length;
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const handleImageClick = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
-    setSelectedIndex(index);
+    navigate(`/article/${articleId}?mediaUrl=${encodeURIComponent(items[index].url)}`, { state: { backgroundLocation: location } });
   };
 
   const renderGrid = () => {
@@ -207,21 +210,7 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
     );
   };
 
-  return (
-    <>
-      {renderGrid()}
-      {/* Lightbox Modal / Theater Mode */}
-      {selectedIndex !== null && (
-        <div className="fixed inset-0 z-[9999] bg-black">
-           <ArticleDetail 
-             articleId={articleId} 
-             onClose={() => setSelectedIndex(null)} 
-             initialMediaUrl={items[selectedIndex].url} 
-           />
-        </div>
-      )}
-    </>
-  );
+  return renderGrid();
 };
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
@@ -1768,7 +1757,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/?articleId=${article.id}`);
+                navigate(`/article/${article.id}`, { state: { backgroundLocation: location } });
               }}
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer`}
             >

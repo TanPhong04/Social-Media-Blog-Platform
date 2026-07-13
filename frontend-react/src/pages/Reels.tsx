@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { Heart, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { userApi } from '../api/userApi';
 import ShareModal from '../components/ShareModal';
 
@@ -18,6 +18,7 @@ const isReel = (article: ArticleResponse): boolean => {
 const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: boolean }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -144,7 +145,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
         </button>
 
-        <button onClick={() => navigate(`/?articleId=${article.id}`)} className="flex flex-col items-center gap-1 group">
+        <button onClick={() => navigate(`/article/${article.id}`, { state: { backgroundLocation: location } })} className="flex flex-col items-center gap-1 group">
           <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
             <MessageCircle className="w-7 h-7 text-white drop-shadow-md" />
           </div>

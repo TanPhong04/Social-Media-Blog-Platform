@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import Home from './pages/Home';
 import Reels from './pages/Reels';
@@ -21,6 +21,10 @@ import ArticleDetail from './pages/ArticleDetail';
 import Messages from './pages/Messages';
 
 function App() {
+  const location = useLocation();
+  const backgroundLocation = location.state?.backgroundLocation;
+  const navigate = useNavigate();
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') {
@@ -31,40 +35,56 @@ function App() {
   }, []);
 
   return (
-    <Routes>
-      {/* Auth routes without MainLayout */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      
-      {/* Routes wrapped in MainLayout */}
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/reels" element={<Reels />} />
+    <>
+      <Routes location={backgroundLocation || location}>
+        {/* Auth routes without MainLayout */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         
-        {/* Placeholder Routes */}
-        <Route path="/article/:slug" element={<ArticleDetail />} />
-        
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/following" element={<Following />} />
-          <Route path="/my-articles" element={<MyArticles />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/bookmarks" element={<Bookmarks />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/settings" element={<Settings />} />
+        {/* Routes wrapped in MainLayout */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/reels" element={<Reels />} />
+          
+          {/* Placeholder Routes */}
+          <Route path="/article/:slug" element={<ArticleDetail />} />
+          
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/following" element={<Following />} />
+            <Route path="/my-articles" element={<MyArticles />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/bookmarks" element={<Bookmarks />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* Admin Routes */}
-      <Route element={<AdminRoute />}>
-        <Route element={<AdminLayout />}>
-          <Route path="/admin" element={<Dashboard />} />
-          <Route path="/admin/users" element={<UserManagement />} />
-          <Route path="/admin/articles" element={<ArticleManagement />} />
+        {/* Admin Routes */}
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<Dashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/articles" element={<ArticleManagement />} />
+          </Route>
         </Route>
-      </Route>
-    </Routes>
+      </Routes>
+
+      {/* Modal Route Overlay */}
+      {backgroundLocation && (
+        <Routes>
+          <Route 
+            path="/article/:slug" 
+            element={
+              <div className="fixed inset-0 z-[100] overflow-y-auto bg-background/80 backdrop-blur-sm animate-fade-in">
+                <ArticleDetail onClose={() => navigate(-1)} />
+              </div>
+            } 
+          />
+        </Routes>
+      )}
+    </>
   );
 }
 
