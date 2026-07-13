@@ -1,0 +1,150 @@
+import React, { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { articleApi, type ArticleResponse } from '../api/articleApi';
+import { userApi, type ProfileResponse } from '../api/userApi';
+import ArticleCard from '../components/ArticleCard';
+import { Search as SearchIcon, User } from 'lucide-react';
+
+const Search: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get('q') || '';
+  const navigate = useNavigate();
+
+  const [articles, setArticles] = useState<ArticleResponse[]>([]);
+  const [users, setUsers] = useState<ProfileResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'articles' | 'users'>('articles');
+
+  useEffect(() => {
+    if (!query) return;
+
+    const fetchResults = async () => {
+      setLoading(true);
+      try {
+        const [articleRes, userRes] = await Promise.all([
+          articleApi.searchArticles(query, 0, 20),
+          userApi.searchUsers(query, 20)
+        ]);
+        
+        // Handle paginated or direct array response
+        const articleData = (articleRes as any).content || (articleRes as any).data || articleRes || [];
+        setArticles(Array.isArray(articleData) ? articleData : []);
+        
+        const userData = (userRes as any).content || (userRes as any).data || userRes || [];
+        setUsers(Array.isArray(userData) ? userData : []);
+      } catch (err) {
+        console.error('Error searching:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResults();
+  }, [query]);
+
+  if (!query) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center text-text-secondary h-64">
+        <SearchIcon className="w-12 h-12 mb-4 opacity-50" />
+        <h2 className="text-xl font-bold text-text-primary mb-2">Tìm kiếm trên Axion</h2>
+        <p>Nhập từ khóa vào ô tìm kiếm để bắt đầu</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-background border-x border-gray-800 min-h-screen">
+      {/* Header */}
+      <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-md border-b border-gray-800">
+        <div className="px-4 py-3">
+          <h1 className="text-xl font-bold font-heading">
+            Kết quả tìm kiếm cho "{query}"
+          </h1>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex px-4 gap-6 text-sm font-semibold border-b border-gray-800">
+          <button
+            onClick={() => setActiveTab('articles')}
+            className={`py-3 transition-colors relative cursor-pointer ${activeTab === 'articles' ? 'text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+          >
+            Bài viết
+            {activeTab === 'articles' && (
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`py-3 transition-colors relative cursor-pointer ${activeTab === 'users' ? 'text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+          >
+            Mọi người
+            {activeTab === 'users' && (
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="min-h-[50vh]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center text-text-secondary">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mb-3" />
+            <p className="text-sm">Đang tìm kiếm...</p>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'articles' && (
+              <div className="divide-y divide-gray-800">
+                {articles.length > 0 ? (
+                  articles.map((art) => (
+                    <ArticleCard key={art.id} article={art} onRefresh={() => {}} />
+                  ))
+                ) : (
+                  <div className="p-12 text-center text-text-secondary">
+                    <p className="text-base font-semibold">Không tìm thấy bài viết nào.</p>
+                    <p className="text-xs mt-1">Hãy thử tìm kiếm với các từ khóa khác.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'users' && (
+              <div className="divide-y divide-gray-800">
+                {users.length > 0 ? (
+                  users.map((u) => (
+                    <div 
+                      key={u.id}
+                      onClick={() => navigate(`/profile?userId=${u.id}`)}
+                      className="p-4 hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-3"
+                    >
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center shrink-0">
+                        {u.avatarUrl ? (
+                          <img src={u.avatarUrl} alt={u.displayName} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-6 h-6 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-text-primary truncate">{u.displayName || u.username}</h3>
+                        <p className="text-text-secondary text-sm truncate">@{u.username}</p>
+                        {u.bio && <p className="text-text-primary text-sm mt-1 line-clamp-2">{u.bio}</p>}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center text-text-secondary">
+                    <p className="text-base font-semibold">Không tìm thấy người dùng nào.</p>
+                    <p className="text-xs mt-1">Hãy thử tìm kiếm với các từ khóa khác.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Search;

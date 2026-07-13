@@ -52,7 +52,11 @@ export const userApi = {
   getFollowing: (userId: string, page: number = 0, size: number = 20) => {
     return axiosClient.get<any>(`/follows/users/${userId}/following?page=${page}&size=${size}`);
   },
-  getSuggestions: () => {
+  searchUsers: async (query: string, limit: number = 20) => {
+    const response = await axiosClient.get('/users/search', { params: { query, limit } });
+    return response.data;
+  },
+  getSuggestions: async () => {
     return axiosClient.get<ProfileResponse[]>('/users/suggestions');
   },
   changePassword: (data: any) => {
