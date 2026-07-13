@@ -398,6 +398,24 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     }
   }, [slug, user?.id]);
 
+  useEffect(() => {
+    if (user && article) {
+      if (mediaUrlQuery) {
+        articleApi.getMediaInteraction(mediaUrlQuery).then((res: any) => {
+          setLikeCount(res.count || res.likesCount || 0);
+          setIsLiked(res.likedByCurrentUser || res.isLiked || false);
+          setMyReaction(res.reactionType || (res.likedByCurrentUser ? 'LIKE' : null));
+        }).catch(() => {});
+      } else {
+        articleApi.getArticleInteraction(article.id).then((res: any) => {
+          setLikeCount(res.likesCount || res.count || 0);
+          setIsLiked(res.isLiked || res.likedByCurrentUser || false);
+          setMyReaction(res.reactionType || (res.isLiked ? 'LIKE' : null));
+        }).catch(() => {});
+      }
+    }
+  }, [mediaUrlQuery, article?.id, user]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -491,9 +509,17 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
 
     try {
       if (nextLiked) {
-        await articleApi.likeArticle(article.id, reactionType);
+        if (mediaUrlQuery) {
+          await articleApi.likeMedia(mediaUrlQuery, article.id, reactionType);
+        } else {
+          await articleApi.likeArticle(article.id, reactionType);
+        }
       } else {
-        await articleApi.unlikeArticle(article.id);
+        if (mediaUrlQuery) {
+          await articleApi.unlikeMedia(mediaUrlQuery);
+        } else {
+          await articleApi.unlikeArticle(article.id);
+        }
       }
     } catch (err) {
       console.error('Error toggling like', err);
