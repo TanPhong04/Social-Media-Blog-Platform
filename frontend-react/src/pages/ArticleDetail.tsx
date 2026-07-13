@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { commentApi, type CommentResponse } from '../api/commentApi';
 import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send } from 'lucide-react';
+import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X } from 'lucide-react';
 
 // Sub-component hiển thị từng hình ảnh/video kèm tính năng thả tim độc lập cho trang Chi tiết
-const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean }> = ({ url, articleId, isVideo }) => {
+const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, articleId, isVideo, onMediaClick }) => {
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -46,13 +46,23 @@ const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: bool
   return (
     <div className="relative group/media rounded-2xl overflow-hidden border border-white/10 bg-black/20 flex items-center justify-center">
       {isVideo ? (
-        <video src={url} controls className="w-full max-h-[700px] object-contain outline-none bg-black" onClick={(e) => e.stopPropagation()} />
+        <video 
+           src={url} 
+           controls 
+           controlsList="nodownload"
+           className="w-full max-h-[700px] object-contain outline-none bg-black rounded-2xl" 
+           onClick={(e) => e.stopPropagation()} 
+        />
       ) : (
         <img 
           src={url} 
           alt="Article Attachment" 
           className="w-full max-h-[700px] object-contain hover:opacity-95 transition-opacity cursor-pointer" 
-          onClick={(e) => { e.stopPropagation(); window.open(url, '_blank'); }} 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            if (onMediaClick) onMediaClick(url);
+            else window.open(url, '_blank'); 
+          }} 
         />
       )}
       
@@ -271,12 +281,28 @@ const CommentItem: React.FC<{
 interface ArticleDetailProps {
   articleId?: string;
   onClose?: () => void;
+  initialMediaUrl?: string;
 }
 
-const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => {
+const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initialMediaUrl }) => {
   const { slug: paramSlug } = useParams<{ slug: string }>();
   const slug = articleId || paramSlug;
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Use local state if initialMediaUrl is provided to avoid modifying URL in feed
+  const [localMediaUrl, setLocalMediaUrl] = useState<string | null>(initialMediaUrl || null);
+  const mediaUrlQuery = localMediaUrl || searchParams.get('mediaUrl');
+
+  const handleCloseTheater = () => {
+    if (localMediaUrl) {
+       setLocalMediaUrl(null);
+       if (onClose && initialMediaUrl) onClose();
+    } else {
+       setSearchParams({});
+    }
+  };
+
   const { user } = useAuth();
   
   const [article, setArticle] = useState<ArticleResponse | null>(null);
@@ -286,6 +312,8 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [isReposted, setIsReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(0);
   const [newComment, setNewComment] = useState('');
@@ -419,6 +447,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
           const ia = interaction as any;
           setLikeCount(ia.likesCount || 0);
           setIsLiked(ia.isLiked || false);
+          setMyReaction(ia.reactionType || (ia.isLiked ? 'LIKE' : null));
         } catch(e) { console.error("Could not fetch interactions", e); }
       }
 
@@ -446,22 +475,32 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
     }
   };
 
-  const handleLikeToggle = async () => {
+  const handleLike = async (e: React.MouseEvent, reactionType: string = 'LIKE') => {
+    e.stopPropagation();
     if (!user) return navigate('/login');
     if (!article) return;
     
+    setShowReactionPicker(false);
+    
+    const nextLiked = !isLiked || (isLiked && myReaction !== reactionType);
+    setIsLiked(nextLiked);
+    setMyReaction(nextLiked ? reactionType : null);
+    
+    if (nextLiked && !isLiked) setLikeCount(c => c + 1);
+    if (!nextLiked && isLiked) setLikeCount(c => Math.max(0, c - 1));
+
     try {
-      if (isLiked) {
-        await articleApi.unlikeArticle(article.id);
-        setIsLiked(false);
-        setLikeCount(c => Math.max(0, c - 1));
+      if (nextLiked) {
+        await articleApi.likeArticle(article.id, reactionType);
       } else {
-        await articleApi.likeArticle(article.id);
-        setIsLiked(true);
-        setLikeCount(c => c + 1);
+        await articleApi.unlikeArticle(article.id);
       }
     } catch (err) {
       console.error('Error toggling like', err);
+      setIsLiked(!nextLiked);
+      setMyReaction(isLiked ? myReaction : null);
+      if (nextLiked && !isLiked) setLikeCount(c => Math.max(0, c - 1));
+      if (!nextLiked && isLiked) setLikeCount(c => c + 1);
     }
   };
 
@@ -518,14 +557,32 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
   }
 
   return (
-    <div className="max-w-3xl mx-auto border-x border-gray-800 min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="sticky top-0 bg-background/80 backdrop-blur-md border-b border-gray-800 p-4 z-40 flex items-center gap-4">
-        <button onClick={onClose || (() => navigate(-1))} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-           <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="font-heading font-bold truncate">Bài viết</h1>
-      </div>
+    <div className={mediaUrlQuery ? "fixed inset-0 z-[9999] bg-black flex overflow-hidden" : "max-w-3xl mx-auto border-x border-gray-800 min-h-screen bg-background pb-20"}>
+      {mediaUrlQuery && (
+        <div className="flex-1 relative flex items-center justify-center bg-black">
+          <button 
+             onClick={handleCloseTheater} 
+             className="absolute top-4 left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full z-[10000] text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          {article?.content?.includes(`<video src="${mediaUrlQuery}"`) ? (
+            <video src={mediaUrlQuery} controls autoPlay className="max-w-full max-h-full object-contain outline-none" />
+          ) : (
+            <img src={mediaUrlQuery} className="max-w-full max-h-full object-contain" alt="Theater view" />
+          )}
+        </div>
+      )}
+      <div className={mediaUrlQuery ? "w-[400px] flex-shrink-0 bg-background border-l border-white/10 flex flex-col h-full overflow-y-auto" : "w-full"}>
+        {/* Header */}
+        {!mediaUrlQuery && (
+          <div className="sticky top-0 bg-background/80 backdrop-blur-md border-b border-gray-800 p-4 z-40 flex items-center gap-4">
+            <button onClick={onClose || (() => navigate(-1))} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+               <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="font-heading font-bold truncate">Bài viết</h1>
+          </div>
+        )}
 
       <div className="p-6">
          {/* Article Title */}
@@ -599,15 +656,15 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
                <>
                  <div>{textToShow.trim()}</div>
                  
-                 {images.length > 0 && (
+                 {!mediaUrlQuery && images.length > 0 && (
                    <div className={`mt-8 grid gap-4 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                      {images.map((src, i) => (
-                       <MediaItemDetail key={i} url={src} articleId={article.id} isVideo={false} />
+                       <MediaItemDetail key={i} url={src} articleId={article.id} isVideo={false} onMediaClick={(u) => setLocalMediaUrl(u)} />
                      ))}
                    </div>
                  )}
 
-                 {videos.length > 0 && (
+                 {!mediaUrlQuery && videos.length > 0 && (
                    <div className={`mt-8 grid gap-4 ${videos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                      {videos.map((src, i) => (
                        <MediaItemDetail key={i} url={src} articleId={article.id} isVideo={true} />
@@ -633,10 +690,43 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
          {/* Interaction Bar */}
          <div className="flex items-center justify-between py-4 border-y border-white/5 mb-10">
             <div className="flex items-center gap-6">
-               <button onClick={handleLikeToggle} className={`flex items-center gap-2 group transition-colors ${isLiked ? 'text-red-500' : 'text-text-secondary hover:text-red-400'}`}>
-                 <Heart className={`w-6 h-6 transition-transform group-hover:scale-110 ${isLiked ? 'fill-current' : ''}`} />
-                 <span className="font-medium">{likeCount > 0 ? likeCount : ''}</span>
-               </button>
+               <div 
+                 className="relative flex items-center group/like"
+                 onMouseEnter={() => setShowReactionPicker(true)}
+                 onMouseLeave={() => setShowReactionPicker(false)}
+               >
+                 {showReactionPicker && (
+                   <div className="absolute bottom-full left-0 mb-2 bg-background border border-gray-800 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out] after:content-[''] after:absolute after:w-full after:h-4 after:top-full after:left-0">
+                     {[
+                       { type: 'LIKE', icon: '👍' },
+                       { type: 'LOVE', icon: '❤️' },
+                       { type: 'HAHA', icon: '😆' },
+                       { type: 'WOW', icon: '😮' },
+                       { type: 'SAD', icon: '😢' },
+                       { type: 'ANGRY', icon: '😡' }
+                     ].map((reaction) => (
+                       <button
+                         key={reaction.type}
+                         onClick={(e) => handleLike(e, reaction.type)}
+                         className="text-2xl hover:scale-125 transition-transform origin-bottom cursor-pointer"
+                         title={reaction.type}
+                       >
+                         {reaction.icon}
+                       </button>
+                     ))}
+                   </div>
+                 )}
+                 <button onClick={(e) => handleLike(e, 'LIKE')} className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-red-500' : 'text-text-secondary hover:text-red-400'}`}>
+                   {myReaction === 'LOVE' ? <span className="text-2xl leading-none -ml-1">❤️</span> :
+                    myReaction === 'HAHA' ? <span className="text-2xl leading-none -ml-1">😆</span> :
+                    myReaction === 'WOW' ? <span className="text-2xl leading-none -ml-1">😮</span> :
+                    myReaction === 'SAD' ? <span className="text-2xl leading-none -ml-1">😢</span> :
+                    myReaction === 'ANGRY' ? <span className="text-2xl leading-none -ml-1">😡</span> :
+                    myReaction === 'LIKE' ? <span className="text-2xl leading-none -ml-1 text-primary">👍</span> :
+                    <Heart className={`w-6 h-6 transition-transform group-hover/like:scale-110 ${isLiked ? 'fill-current' : ''}`} />}
+                   <span className="font-medium">{likeCount > 0 ? likeCount : ''}</span>
+                 </button>
+               </div>
                <button className="flex items-center gap-2 text-text-secondary hover:text-primary transition-colors group">
                  <MessageCircle className="w-6 h-6 transition-transform group-hover:scale-110" />
                  <span className="font-medium">{comments.length > 0 ? comments.length : ''}</span>
@@ -780,6 +870,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose }) => 
                })}
             </div>
          </div>
+      </div>
       </div>
     </div>
   );

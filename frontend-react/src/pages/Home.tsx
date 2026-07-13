@@ -6,7 +6,7 @@ import type { ArticleResponse } from '../api/articleApi';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../contexts/AuthContext';
 import ArticleDetail from './ArticleDetail';
-import { Image, Smile, Globe, AlertCircle, X } from 'lucide-react';
+import { Image, Smile, Globe, AlertCircle, X, Film } from 'lucide-react';
 
 import { mediaApi } from '../api/mediaApi';
 const EMOJI_CATEGORIES = [
@@ -231,7 +231,10 @@ const Home: React.FC = () => {
     // 1. Tự động sinh tiêu đề từ dòng đầu tiên
     const lines = postText.trim().split('\n');
     const firstLine = lines[0].trim();
-    const title = firstLine.substring(0, 100) || (selectedFiles.length > 0 ? (selectedFiles[0].type === 'image' ? 'Hình ảnh mới' : 'Video mới') : 'Bài viết mới');
+    const videoFilesCount = selectedFiles.filter(f => f.type === 'video').length;
+    const imageFilesCount = selectedFiles.filter(f => f.type === 'image').length;
+    const isReelPost = videoFilesCount === 1 && imageFilesCount === 0;
+    const title = firstLine.substring(0, 100) || (selectedFiles.length > 0 ? (isReelPost ? 'Reel mới' : selectedFiles[0].type === 'image' ? 'Hình ảnh mới' : 'Video mới') : 'Bài viết mới');
 
     // 2. Tự động lọc ra các hashtag từ nội dung bài viết
     const hashtagRegex = /#(\w+)/g;
@@ -263,6 +266,13 @@ const Home: React.FC = () => {
       }
 
       const finalContent = postText.trim() + mediaEmbed;
+
+      // Detect reel: exactly 1 video, 0 images → auto-tag as reel
+      const rVideoFiles = selectedFiles.filter(f => f.type === 'video');
+      const rImageFiles = selectedFiles.filter(f => f.type === 'image');
+      if (rVideoFiles.length === 1 && rImageFiles.length === 0 && !tags.includes('reel')) {
+        tags.push('reel');
+      }
 
       // Gọi API tạo bản nháp bài viết
       const res: any = await articleApi.createArticle({
@@ -395,6 +405,14 @@ const Home: React.FC = () => {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Reel indicator - hiển thị khi chọn đúng 1 video */}
+            {selectedFiles.length === 1 && selectedFiles[0].type === 'video' && selectedFiles.filter(f => f.type === 'image').length === 0 && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-primary bg-primary/10 border border-primary/20 rounded-full px-3 py-1.5 w-fit">
+                <Film className="w-3.5 h-3.5" />
+                <span className="font-medium">Sẽ được đăng dưới dạng Reel</span>
               </div>
             )}
 
