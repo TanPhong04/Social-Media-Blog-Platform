@@ -633,6 +633,12 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
          <div className="text-text-primary text-[16px] leading-relaxed whitespace-pre-wrap mb-10 break-words">
            {(() => {
              let textToShow = article.content || '';
+             
+             // Xóa tiêu đề bị lặp ở đầu nội dung (vì đã render h1 ở trên)
+             if (article.title && textToShow.trim().startsWith(article.title)) {
+               textToShow = textToShow.trim().substring(article.title.length).trim();
+             }
+             
              let images: string[] = [];
              let videos: string[] = [];
 

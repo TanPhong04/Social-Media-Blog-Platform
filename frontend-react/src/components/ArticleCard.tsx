@@ -1575,8 +1575,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
   return (
     <div 
-      onClick={handleCardClick}
-      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative cursor-pointer"
+      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative"
     >
       {/* Khung nội dung chính của Post */}
       <div className="flex gap-3">
@@ -1771,7 +1770,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowComments(!showComments);
+                navigate(`/?articleId=${article.id}`);
               }}
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >
