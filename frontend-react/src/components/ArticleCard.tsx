@@ -887,7 +887,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       localStorage.setItem(repostsKey, JSON.stringify(newReposts));
       setReposted(nextReposted);
-      setRepostCount(nextReposted ? 1 : 0);
+      setRepostCount(prev => nextReposted ? prev + 1 : Math.max(0, prev - 1));
 
       if (onRefresh) {
         setTimeout(() => {
@@ -1781,8 +1781,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
             {/* Repost */}
             <button
-              onClick={handleRepost}
-              className={`flex items-center gap-1.5 hover:text-green-500 group p-2 rounded-full hover:bg-green-500/10 transition-all cursor-pointer ${reposted ? 'text-green-500' : ''}`}
+              onClick={user?.id !== article.authorId ? handleRepost : undefined}
+              className={`flex items-center gap-1.5 group p-2 rounded-full transition-all cursor-pointer ${user?.id === article.authorId ? 'opacity-50 cursor-not-allowed' : reposted ? 'text-green-500 hover:text-green-400' : 'text-text-secondary hover:text-green-400 hover:bg-green-500/10'}`}
+              title={user?.id === article.authorId ? "Không thể tự đăng lại bài của mình" : "Đăng lại"}
             >
               <Repeat className={`w-4 h-4 group-hover:rotate-180 transition-transform duration-300 ${reposted ? 'scale-110' : ''}`} />
               <span>{repostCount}</span>
@@ -2195,9 +2196,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         onClose={() => setShowShareModal(false)}
         shareUrl={`${window.location.origin}/article/${article.id}`}
         title={article.title || 'Bài viết từ Axion'}
-        onRepost={() => {
+        onRepost={user?.id !== article.authorId ? () => {
           handleRepost({ stopPropagation: () => {} } as any);
-        }}
+        } : undefined}
         reposted={reposted}
       />
     </div>

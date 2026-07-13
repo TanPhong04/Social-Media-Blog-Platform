@@ -731,7 +731,11 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                  <MessageCircle className="w-6 h-6 transition-transform group-hover:scale-110" />
                  <span className="font-medium">{comments.length > 0 ? comments.length : ''}</span>
                </button>
-               <button onClick={handleRepostToggle} className={`flex items-center gap-2 group transition-colors ${isReposted ? 'text-green-500 hover:text-green-400' : 'text-text-secondary hover:text-green-400'}`}>
+               <button 
+                 onClick={user?.id !== article.authorId ? handleRepostToggle : undefined} 
+                 className={`flex items-center gap-2 group transition-colors ${user?.id === article.authorId ? 'opacity-50 cursor-not-allowed text-text-secondary' : isReposted ? 'text-green-500 hover:text-green-400' : 'text-text-secondary hover:text-green-400'}`}
+                 title={user?.id === article.authorId ? "Không thể tự đăng lại bài của mình" : "Đăng lại"}
+               >
                  <Repeat className={`w-6 h-6 transition-transform group-hover:scale-110 ${isReposted ? 'animate-pulse' : ''}`} />
                  <span className="font-medium">{repostCount > 0 ? repostCount : ''}</span>
                </button>
