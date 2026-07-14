@@ -47,6 +47,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<Search />} />
           <Route path="/reels" element={<Reels />} />
+          <Route path="/reels/:id" element={<Reels />} />
           
           {/* Placeholder Routes */}
           <Route path="/article/:slug" element={<ArticleDetail />} />

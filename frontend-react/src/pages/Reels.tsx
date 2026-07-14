@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { Heart, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { userApi } from '../api/userApi';
 import ShareModal from '../components/ShareModal';
 
@@ -222,6 +222,8 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
 
 const Reels = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { id } = useParams<{id: string}>();
   const initialReel = location.state?.initialReel as ArticleResponse | undefined;
 
   const [reels, setReels] = useState<ArticleResponse[]>(initialReel ? [initialReel] : []);
@@ -241,16 +243,26 @@ const Reels = () => {
       let newReelsFound: ArticleResponse[] = [];
       let isLast = false;
       let fetchedPagesCount = 0;
+      
+      let fetchedInitialReel: ArticleResponse | undefined = undefined;
+      if (isInitial && id && !initialReel) {
+        try {
+          const res = await articleApi.getById(id);
+          fetchedInitialReel = res as any;
+        } catch (e) {
+          console.error('Failed to fetch initial reel by id', e);
+        }
+      }
 
       // Tìm kiếm reel trong bảng tin, có thể phải duyệt qua nhiều trang vì trang đầu có thể không có
       while (newReelsFound.length === 0 && !isLast && fetchedPagesCount < 5) {
-        const res = await articleApi.getFeed(currentPage, 100);
-        const data = res.data.content;
+        const res: any = await articleApi.getFeed(currentPage, 100);
+        const data = res.content || res.data?.content || [];
         
         // Lọc ra các bài viết là Reel (chính xác 1 video, 0 hình ảnh)
         const videoArticles = data.filter((a: ArticleResponse) => isReel(a));
         newReelsFound = videoArticles;
-        isLast = res.data.last;
+        isLast = res.last || false;
         
         if (newReelsFound.length === 0 && !isLast) {
           currentPage++;
@@ -263,10 +275,12 @@ const Reels = () => {
         setHasMore(false);
       }
       
+      const targetInitialReel = initialReel || fetchedInitialReel;
+
       if (isInitial) {
-        if (initialReel) {
-          const filtered = newReelsFound.filter((a: ArticleResponse) => a.id !== initialReel.id);
-          setReels([initialReel, ...filtered]);
+        if (targetInitialReel) {
+          const filtered = newReelsFound.filter((a: ArticleResponse) => a.id !== targetInitialReel.id);
+          setReels([targetInitialReel, ...filtered]);
         } else {
           setReels(newReelsFound);
         }
@@ -294,15 +308,18 @@ const Reels = () => {
     
     const scrollPosition = containerRef.current.scrollTop;
     const windowHeight = containerRef.current.clientHeight;
-    // Thay vì chia làm tròn, dùng offset nhỏ để snap mượt hơn
     const currentIndex = Math.round(scrollPosition / windowHeight);
     
     if (currentIndex !== activeIndex) {
       setActiveIndex(currentIndex);
-    }
+      
+      if (reels[currentIndex]) {
+        navigate(`/reels/${reels[currentIndex].id}`, { replace: true, state: location.state });
+      }
 
-    if (hasMore && currentIndex >= reels.length - 2 && !isFetchingRef.current) {
-      fetchReels(false);
+      if (hasMore && currentIndex >= reels.length - 2 && !isFetchingRef.current) {
+        fetchReels(false);
+      }
     }
   };
 
