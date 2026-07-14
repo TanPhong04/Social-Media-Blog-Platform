@@ -221,43 +221,72 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
 };
 
 const Reels = () => {
-  const [reels, setReels] = useState<ArticleResponse[]>([]);
+  const location = useLocation();
+  const initialReel = location.state?.initialReel as ArticleResponse | undefined;
+
+  const [reels, setReels] = useState<ArticleResponse[]>(initialReel ? [initialReel] : []);
   const [loading, setLoading] = useState(true);
-  const [, setPage] = useState(0);
+  const pageRef = useRef(0);
+  const isFetchingRef = useRef(false);
   const [hasMore, setHasMore] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const fetchReels = async (pageNum: number) => {
+  const fetchReels = async (isInitial: boolean = false) => {
+    if (isFetchingRef.current || (!hasMore && !isInitial)) return;
+    isFetchingRef.current = true;
+    
     try {
-      const res = await articleApi.getFeed(pageNum, 100);
-      const data = res.data.content;
+      let currentPage = isInitial ? 0 : pageRef.current + 1;
+      let newReelsFound: ArticleResponse[] = [];
+      let isLast = false;
+      let fetchedPagesCount = 0;
+
+      // Tìm kiếm reel trong bảng tin, có thể phải duyệt qua nhiều trang vì trang đầu có thể không có
+      while (newReelsFound.length === 0 && !isLast && fetchedPagesCount < 5) {
+        const res = await articleApi.getFeed(currentPage, 100);
+        const data = res.data.content;
+        
+        // Lọc ra các bài viết là Reel (chính xác 1 video, 0 hình ảnh)
+        const videoArticles = data.filter((a: ArticleResponse) => isReel(a));
+        newReelsFound = videoArticles;
+        isLast = res.data.last;
+        
+        if (newReelsFound.length === 0 && !isLast) {
+          currentPage++;
+          fetchedPagesCount++;
+        }
+      }
       
-      // Lọc ra các bài viết là Reel (chính xác 1 video, 0 hình ảnh)
-      const videoArticles = data.filter((a: ArticleResponse) => isReel(a));
+      pageRef.current = currentPage;
+      if (isLast) {
+        setHasMore(false);
+      }
       
-      if (pageNum === 0) {
-        setReels(videoArticles);
+      if (isInitial) {
+        if (initialReel) {
+          const filtered = newReelsFound.filter((a: ArticleResponse) => a.id !== initialReel.id);
+          setReels([initialReel, ...filtered]);
+        } else {
+          setReels(newReelsFound);
+        }
       } else {
         setReels(prev => {
           const newIds = new Set(prev.map(r => r.id));
-          const uniqueNewReels = videoArticles.filter((r: ArticleResponse) => !newIds.has(r.id));
+          const uniqueNewReels = newReelsFound.filter((r: ArticleResponse) => !newIds.has(r.id));
           return [...prev, ...uniqueNewReels];
         });
-      }
-      
-      if (res.data.last) {
-        setHasMore(false);
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
-    fetchReels(0);
+    fetchReels(true);
   }, []);
 
   const handleScroll = () => {
@@ -272,12 +301,8 @@ const Reels = () => {
       setActiveIndex(currentIndex);
     }
 
-    if (hasMore && currentIndex >= reels.length - 2) {
-      setPage(p => {
-        const next = p + 1;
-        fetchReels(next);
-        return next;
-      });
+    if (hasMore && currentIndex >= reels.length - 2 && !isFetchingRef.current) {
+      fetchReels(false);
     }
   };
 
