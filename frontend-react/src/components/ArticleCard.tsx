@@ -252,6 +252,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [authorProfile, setAuthorProfile] = useState<any>(null);
 
   // Trạng thái cho khung bình luận (Comments Section)
+  const [showComments, setShowComments] = useState(false);
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [commentText, setCommentText] = useState('');
@@ -487,8 +489,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         setMyReaction(res.reactionType || (res.likedByCurrentUser ? 'LIKE' : null));
         setLikeCount(res.count);
       } catch (err) {
-        console.warn('Interaction service unavailable, falling back to mock likes', err);
-        setLikeCount(Math.floor(Math.random() * 30) + 5);
+        console.warn('Interaction service unavailable', err);
+        setLikeCount(0);
       }
 
       // Tải trạng thái follow của tác giả bài viết
@@ -692,7 +694,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         {isReel ? (
           <div 
             className="relative w-full max-w-[320px] mx-auto rounded-xl overflow-hidden bg-black cursor-pointer group border border-gray-800 shadow-lg"
-            onClick={(e) => { e.stopPropagation(); navigate('/reels'); }}
+            onClick={(e) => { e.stopPropagation(); navigate('/reels', { state: { initialReel: article } }); }}
           >
             <video src={videos[0]} className="w-full aspect-[9/16] object-cover opacity-90 group-hover:opacity-100 transition" />
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 group-hover:bg-black/10 transition">
@@ -1562,7 +1564,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
   return (
     <div 
-      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative"
+      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative cursor-pointer"
+      onClick={() => navigate(`/article/${article.id}`, { state: { backgroundLocation: location } })}
     >
       {/* Khung nội dung chính của Post */}
       <div className="flex gap-3">
@@ -1757,9 +1760,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/article/${article.id}`, { state: { backgroundLocation: location } });
+                setShowComments(prev => !prev);
+                setTimeout(() => {
+                  if (!showComments && commentInputRef.current) {
+                    commentInputRef.current.focus();
+                  }
+                }, 100);
               }}
-              className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer`}
+              className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >
               <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span>{comments.filter(c => !c.content.includes('[repost]')).length}</span>
@@ -1796,7 +1804,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       </div>
 
       {/* KHUNG BÌNH LUẬN NÂNG CAO (COMMENTS SECTION MULTI-LEVEL) */}
-      {false && (
+      {showComments && (
         <div 
           onClick={(e) => e.stopPropagation()}
           className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4"
@@ -1805,8 +1813,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           {/* Ô nhập bình luận gốc */}
           {user && (
             <div className="space-y-2">
-              <form onSubmit={handlePostComment} className="flex gap-2.5 items-center">
+              <form onSubmit={handlePostComment} className="flex gap-2.5 items-center" onClick={e => e.stopPropagation()}>
                 <input
+                  ref={commentInputRef}
                   type="text"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
