@@ -16,13 +16,13 @@ services:
       JWT_VERIFICATION_KEYS: ${JWT_VERIFICATION_KEYS:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     expose:
       - "8081"
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 450M
     networks: [backend]
 
   article-service:
@@ -43,7 +43,7 @@ services:
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -51,7 +51,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 450M
     networks: [backend]
 
   comment-service:
@@ -68,7 +68,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -76,7 +76,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 450M
     networks: [backend]
 
   interaction-service:
@@ -93,7 +93,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -101,7 +101,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 450M
     networks: [backend]
 
   follower-service:
@@ -118,7 +118,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -126,7 +126,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 450M
     networks: [backend]
 
   notification-service:
@@ -143,7 +143,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-https://social-blog-platform.example}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-http://user-service:8081/.well-known/jwks.json}
-      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     depends_on:
       - user-service
     expose:
@@ -151,7 +151,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 450M
     networks: [backend]
 
   api-gateway:
@@ -169,7 +169,7 @@ services:
       NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8086}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
       TRUST_FORWARDED_FOR: ${TRUST_FORWARDED_FOR:-true}
-      JAVA_TOOL_OPTIONS: "-Xmx300m -Xms128m"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     depends_on:
       - user-service
       - article-service
@@ -182,7 +182,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 450M
     networks: [backend]
 
 networks:
