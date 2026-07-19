@@ -24,17 +24,15 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
 
   // Reset chat và khởi tạo lời chào khi mở bài viết mới
   useEffect(() => {
-    if (isOpen) {
-      setMessages([
-        {
-          role: 'model',
-          text: `Xin chào! Tôi là trợ lý AI của mạng xã hội **Axion** ✨.\n\nTôi đã đọc bài viết **"${articleTitle}"**. Bạn có câu hỏi nào cần tôi giải đáp hoặc phân tích về nội dung/hình ảnh của bài viết này không?`
-        }
-      ]);
-      setErrorMsg('');
-      setInput('');
-    }
-  }, [isOpen, articleId, articleTitle]);
+    setMessages([
+      {
+        role: 'model',
+        text: `Xin chào! Tôi là trợ lý AI của mạng xã hội **Axion** ✨.\n\nTôi đã đọc bài viết **"${articleTitle}"**. Bạn có câu hỏi nào cần tôi giải đáp hoặc phân tích về nội dung/hình ảnh của bài viết này không?`
+      }
+    ]);
+    setErrorMsg('');
+    setInput('');
+  }, [articleId, articleTitle]);
 
   // Tự động cuộn xuống tin nhắn mới nhất
   useEffect(() => {
