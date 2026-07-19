@@ -27,10 +27,10 @@ const Search: React.FC = () => {
         ]);
         
         // Handle paginated or direct array response
-        const articleData = (articleRes as any).content || (articleRes as any).data || articleRes || [];
+        const articleData = (articleRes as any)?.content || (articleRes as any)?.data || articleRes || [];
         setArticles(Array.isArray(articleData) ? articleData : []);
         
-        const userData = (userRes as any).content || (userRes as any).data || userRes || [];
+        const userData = (userRes as any)?.content || (userRes as any)?.data || userRes || [];
         setUsers(Array.isArray(userData) ? userData : []);
       } catch (err) {
         console.error('Error searching:', err);
