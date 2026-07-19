@@ -7,9 +7,10 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play } from 'lucide-react';
+import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play, Sparkles } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
+import AiChatDrawer from './AiChatDrawer';
 
 
 interface ArticleCardProps {
@@ -173,8 +174,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   
-  // Trạng thái theo dõi tác giả bài viết
   const [isAuthorFollowing, setIsAuthorFollowing] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   // Trạng thái cho Dropdown Menu tác vụ
@@ -1740,6 +1741,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               <Bookmark className={`w-4 h-4 group-hover:scale-110 transition-transform ${bookmarked ? 'fill-current' : ''}`} />
             </button>
 
+            {/* AI Assistant */}
+            {user && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAiChatOpen(true);
+                }}
+                className="flex items-center gap-1.5 hover:text-purple-500 group p-2 rounded-full hover:bg-purple-500/10 transition-all cursor-pointer text-text-secondary"
+                title="Hỏi trợ lý AI"
+              >
+                <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform text-purple-400 fill-purple-400/20" />
+              </button>
+            )}
+
             {/* Share */}
             <button
               onClick={handleShare}
@@ -2144,6 +2159,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           handleRepost({ stopPropagation: () => {} } as any);
         } : undefined}
         reposted={reposted}
+      />
+
+      <AiChatDrawer
+        isOpen={aiChatOpen}
+        onClose={() => setAiChatOpen(false)}
+        articleId={article.id}
+        articleTitle={article.title || 'Bài đăng'}
+        articleContent={article.content}
       />
     </div>
   );

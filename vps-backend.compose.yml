@@ -44,6 +44,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     depends_on:
       - user-service
     expose:

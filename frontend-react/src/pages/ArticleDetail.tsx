@@ -6,7 +6,8 @@ import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X, Sparkles } from 'lucide-react';
+import AiChatDrawer from '../components/AiChatDrawer';
 
 // Sub-component hiển thị từng hình ảnh/video cho trang Chi tiết
 const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, isVideo, onMediaClick }) => {
@@ -273,6 +274,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -736,6 +738,15 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                </button>
             </div>
             <div className="flex items-center gap-4 text-text-secondary">
+               {user && (
+                 <button 
+                   onClick={() => setAiChatOpen(true)}
+                   className="hover:text-purple-500 transition-colors text-purple-400 fill-purple-400/20"
+                   title="Hỏi trợ lý AI"
+                 >
+                   <Sparkles className="w-5 h-5" />
+                 </button>
+               )}
                <button className="hover:text-primary transition-colors">
                  <Bookmark className="w-5 h-5" />
                </button>
@@ -770,7 +781,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                       className="flex-1 bg-transparent border-0 text-text-primary text-sm focus:outline-none placeholder-text-secondary"
                     />
                     
-                    {/* Nút chọn ảnh */}
                     <button
                       type="button"
                       onClick={() => commentImageInputRef.current?.click()}
@@ -787,7 +797,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                       className="hidden"
                     />
 
-                    {/* Nút chọn Emoji */}
                     <div className="relative" ref={mainEmojiPickerRef}>
                       <button 
                         type="button"
@@ -817,7 +826,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                       )}
                     </div>
 
-                    {/* Nút gửi */}
                     <button
                       onClick={handlePostComment}
                       disabled={submittingComment || (!newComment.trim() && !commentImage)}
@@ -828,7 +836,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                   </div>
                 </div>
 
-                {/* Xem trước ảnh nếu có */}
                 {commentImage && (
                   <div className="ml-13 relative inline-block">
                     <img src={commentImage} alt="Comment Preview" className="max-h-24 max-w-[150px] object-contain rounded-lg border border-white/10" />
@@ -872,6 +879,15 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
          </div>
       </div>
       </div>
+      {article && (
+        <AiChatDrawer
+          isOpen={aiChatOpen}
+          onClose={() => setAiChatOpen(false)}
+          articleId={article.id}
+          articleTitle={article.title || 'Bài đăng'}
+          articleContent={article.content}
+        />
+      )}
     </div>
   );
 };

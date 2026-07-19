@@ -86,6 +86,14 @@ public class ArticleController {
         service.delete(id, user(jwt));
     }
 
+    @PostMapping("/{id}/ask-ai")
+    public ResponseEntity<com.socialblog.article.api.AiDtos.AiChatResponse> askAi(
+            @PathVariable UUID id,
+            @Valid @RequestBody com.socialblog.article.api.AiDtos.AiChatRequest r
+    ) {
+        return ResponseEntity.ok(service.askAi(id, r));
+    }
+
     private UUID user(Jwt jwt) {
         return UUID.fromString(jwt.getSubject());
     }
