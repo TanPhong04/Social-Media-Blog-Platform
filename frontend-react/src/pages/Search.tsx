@@ -7,7 +7,7 @@ import { Search as SearchIcon, User } from 'lucide-react';
 
 const Search: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const query = searchParams.get('q') || '';
+  const query = searchParams.get('q') || searchParams.get('query') || '';
   const navigate = useNavigate();
 
   const [articles, setArticles] = useState<ArticleResponse[]>([]);
