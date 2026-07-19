@@ -40,8 +40,9 @@ const CommentItem: React.FC<{
   comment: CommentResponse;
   replies: CommentResponse[];
   user: any;
+  targetUrl?: string | null;
   onReplySuccess: () => void;
-}> = ({ comment, replies, user, onReplySuccess }) => {
+}> = ({ comment, replies, user, targetUrl, onReplySuccess }) => {
   const [author, setAuthor] = useState<any>(null);
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -81,6 +82,7 @@ const CommentItem: React.FC<{
       await commentApi.createComment({
         articleId: comment.articleId,
         parentId: comment.id,
+        targetUrl: targetUrl,
         content: replyText
       });
       setReplyText('');
@@ -224,6 +226,7 @@ const CommentItem: React.FC<{
               comment={reply} 
               replies={[]} 
               user={user} 
+              targetUrl={targetUrl}
               onReplySuccess={onReplySuccess} 
             />
           ))}
@@ -410,7 +413,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
 
       // Fetch comments
       try {
-        const commentsData = await commentApi.getComments(art.id);
+        const commentsData = await commentApi.getComments(art.id, mediaUrlQuery);
         const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
         setComments(list.filter((c: any) => !c.content.includes('[repost]')));
         const count = list.filter((c: any) => c.content.includes('[repost]')).length;
@@ -502,13 +505,14 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
 
       await commentApi.createComment({
         articleId: article.id,
+        targetUrl: mediaUrlQuery,
         content: finalContent
       });
       setNewComment('');
       setCommentImage(null);
       if (commentImageInputRef.current) commentImageInputRef.current.value = '';
 
-      const commentsData = await commentApi.getComments(article.id);
+      const commentsData = await commentApi.getComments(article.id, mediaUrlQuery);
       const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
       setComments(list.filter((c: any) => !c.content.includes('[repost]')));
       const count = list.filter((c: any) => c.content.includes('[repost]')).length;
@@ -859,6 +863,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                      comment={comment} 
                      replies={replies} 
                      user={user} 
+                     targetUrl={mediaUrlQuery}
                      onReplySuccess={fetchData} 
                    />
                  );
