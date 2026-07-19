@@ -54,8 +54,7 @@ export const articleApi = {
     return axiosClient.get<TrendingTagResponse[]>(`/articles/trending?limit=${limit}`);
   },
   searchArticles: async (query: string, page: number = 0, size: number = 20) => {
-    const response = await axiosClient.get(`/articles/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
-    return response.data;
+    return axiosClient.get(`/articles/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
   },
 
   getBySlug: (slug: string) => {

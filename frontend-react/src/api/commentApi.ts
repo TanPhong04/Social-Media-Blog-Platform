@@ -14,13 +14,14 @@ export interface CommentResponse {
 export interface CreateCommentRequest {
   articleId: string;
   parentId?: string | null;
+  targetUrl?: string | null;
   content: string;
 }
 
 export const commentApi = {
-  getComments: (articleId: string, page = 0, size = 50) => {
+  getComments: (articleId: string, targetUrl?: string | null, page = 0, size = 50) => {
     return axiosClient.get<{ content: CommentResponse[] }>(`/comments/articles/${articleId}`, {
-      params: { page, size }
+      params: { page, size, ...(targetUrl ? { targetUrl } : {}) }
     });
   },
   createComment: (data: CreateCommentRequest) => {

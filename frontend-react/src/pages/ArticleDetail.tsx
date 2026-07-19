@@ -6,43 +6,11 @@ import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X, Sparkles } from 'lucide-react';
+import AiChatDrawer from '../components/AiChatDrawer';
 
-// Sub-component hiển thị từng hình ảnh/video kèm tính năng thả tim độc lập cho trang Chi tiết
-const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, articleId, isVideo, onMediaClick }) => {
-  const { user } = useAuth();
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchInteraction = async () => {
-      try {
-        const res: any = await articleApi.getMediaInteraction(url);
-        setLiked(res.likedByCurrentUser);
-        setLikeCount(res.count);
-      } catch (e) {
-        console.warn('Media interaction unavailable', e);
-      }
-    };
-    fetchInteraction();
-  }, [url, user]);
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) return;
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setLikeCount(p => nextLiked ? p + 1 : p - 1);
-    try {
-      if (nextLiked) await articleApi.likeMedia(url, articleId, 'LIKE');
-      else await articleApi.unlikeMedia(url);
-    } catch (e) {
-      setLiked(!nextLiked);
-      setLikeCount(p => nextLiked ? p - 1 : p + 1);
-    }
-  };
-
+// Sub-component hiển thị từng hình ảnh/video cho trang Chi tiết
+const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, isVideo, onMediaClick }) => {
   return (
     <div className="relative group/media rounded-2xl overflow-hidden border border-white/10 bg-black/20 flex items-center justify-center">
       {isVideo ? (
@@ -65,18 +33,6 @@ const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: bool
           }} 
         />
       )}
-      
-      {/* Nút thả tim ảnh nổi lên khi hover */}
-      <div className={`absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3 py-2 rounded-full transition-opacity duration-300 ${liked || likeCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/media:opacity-100'}`}>
-        <button 
-          onClick={handleLike} 
-          className={`p-1.5 rounded-full hover:bg-white/10 transition-colors ${liked ? 'text-red-500' : 'text-white'}`}
-          title="Thích ảnh này"
-        >
-          <Heart className={`w-5 h-5 hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
-        </button>
-        {likeCount > 0 && <span className="text-[14px] text-white font-medium pr-1 cursor-default">{likeCount}</span>}
-      </div>
     </div>
   );
 };
@@ -85,8 +41,9 @@ const CommentItem: React.FC<{
   comment: CommentResponse;
   replies: CommentResponse[];
   user: any;
+  targetUrl?: string | null;
   onReplySuccess: () => void;
-}> = ({ comment, replies, user, onReplySuccess }) => {
+}> = ({ comment, replies, user, targetUrl, onReplySuccess }) => {
   const [author, setAuthor] = useState<any>(null);
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -126,6 +83,7 @@ const CommentItem: React.FC<{
       await commentApi.createComment({
         articleId: comment.articleId,
         parentId: comment.id,
+        targetUrl: targetUrl,
         content: replyText
       });
       setReplyText('');
@@ -269,6 +227,7 @@ const CommentItem: React.FC<{
               comment={reply} 
               replies={[]} 
               user={user} 
+              targetUrl={targetUrl}
               onReplySuccess={onReplySuccess} 
             />
           ))}
@@ -315,6 +274,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -455,7 +415,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
 
       // Fetch comments
       try {
-        const commentsData = await commentApi.getComments(art.id);
+        const commentsData = await commentApi.getComments(art.id, mediaUrlQuery);
         const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
         setComments(list.filter((c: any) => !c.content.includes('[repost]')));
         const count = list.filter((c: any) => c.content.includes('[repost]')).length;
@@ -547,13 +507,14 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
 
       await commentApi.createComment({
         articleId: article.id,
+        targetUrl: mediaUrlQuery,
         content: finalContent
       });
       setNewComment('');
       setCommentImage(null);
       if (commentImageInputRef.current) commentImageInputRef.current.value = '';
 
-      const commentsData = await commentApi.getComments(article.id);
+      const commentsData = await commentApi.getComments(article.id, mediaUrlQuery);
       const list = (commentsData as any).content || (commentsData as any).data?.content || commentsData || [];
       setComments(list.filter((c: any) => !c.content.includes('[repost]')));
       const count = list.filter((c: any) => c.content.includes('[repost]')).length;
@@ -777,6 +738,15 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                </button>
             </div>
             <div className="flex items-center gap-4 text-text-secondary">
+               {user && (
+                 <button 
+                   onClick={() => setAiChatOpen(true)}
+                   className="hover:text-purple-500 transition-colors text-purple-400 fill-purple-400/20"
+                   title="Hỏi trợ lý AI"
+                 >
+                   <Sparkles className="w-5 h-5" />
+                 </button>
+               )}
                <button className="hover:text-primary transition-colors">
                  <Bookmark className="w-5 h-5" />
                </button>
@@ -811,7 +781,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                       className="flex-1 bg-transparent border-0 text-text-primary text-sm focus:outline-none placeholder-text-secondary"
                     />
                     
-                    {/* Nút chọn ảnh */}
                     <button
                       type="button"
                       onClick={() => commentImageInputRef.current?.click()}
@@ -828,7 +797,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                       className="hidden"
                     />
 
-                    {/* Nút chọn Emoji */}
                     <div className="relative" ref={mainEmojiPickerRef}>
                       <button 
                         type="button"
@@ -858,7 +826,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                       )}
                     </div>
 
-                    {/* Nút gửi */}
                     <button
                       onClick={handlePostComment}
                       disabled={submittingComment || (!newComment.trim() && !commentImage)}
@@ -869,7 +836,6 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                   </div>
                 </div>
 
-                {/* Xem trước ảnh nếu có */}
                 {commentImage && (
                   <div className="ml-13 relative inline-block">
                     <img src={commentImage} alt="Comment Preview" className="max-h-24 max-w-[150px] object-contain rounded-lg border border-white/10" />
@@ -904,6 +870,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                      comment={comment} 
                      replies={replies} 
                      user={user} 
+                     targetUrl={mediaUrlQuery}
                      onReplySuccess={fetchData} 
                    />
                  );
@@ -912,6 +879,15 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
          </div>
       </div>
       </div>
+      {article && (
+        <AiChatDrawer
+          isOpen={aiChatOpen}
+          onClose={() => setAiChatOpen(false)}
+          articleId={article.id}
+          articleTitle={article.title || 'Bài đăng'}
+          articleContent={article.content}
+        />
+      )}
     </div>
   );
 };

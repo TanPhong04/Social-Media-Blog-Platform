@@ -49,3 +49,6 @@ app:
     access-key: ${MINIO_ACCESS_KEY:minio}
     secret-key: ${MINIO_SECRET_KEY:minio12345}
     bucket-name: ${MINIO_BUCKET_NAME:media}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
