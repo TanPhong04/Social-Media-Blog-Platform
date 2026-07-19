@@ -292,7 +292,7 @@ const RightSidebar = () => {
               <div 
                 key={i} 
                 className="flex flex-col cursor-pointer group"
-                onClick={() => navigate(`/search?query=${encodeURIComponent(item.tag)}`)}
+                onClick={() => navigate(`/search?q=${encodeURIComponent(item.tag)}`)}
               >
                 <span className="text-xs text-text-secondary font-medium">Chủ đề {i+1}</span>
                 <span className="text-sm font-bold text-text-primary group-hover:text-primary transition-colors">#{item.tag}</span>
