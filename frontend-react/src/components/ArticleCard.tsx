@@ -2161,13 +2161,15 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         reposted={reposted}
       />
 
-      <AiChatDrawer
-        isOpen={aiChatOpen}
-        onClose={() => setAiChatOpen(false)}
-        articleId={article.id}
-        articleTitle={article.title || 'Bài đăng'}
-        articleContent={article.content}
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <AiChatDrawer
+          isOpen={aiChatOpen}
+          onClose={() => setAiChatOpen(false)}
+          articleId={article.id}
+          articleTitle={article.title || 'Bài đăng'}
+          articleContent={article.content}
+        />
+      </div>
     </div>
   );
 };
