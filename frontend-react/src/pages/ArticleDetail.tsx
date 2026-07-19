@@ -6,43 +6,10 @@ import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X } from 'lucide-react';
 
-// Sub-component hiển thị từng hình ảnh/video kèm tính năng thả tim độc lập cho trang Chi tiết
-const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, articleId, isVideo, onMediaClick }) => {
-  const { user } = useAuth();
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchInteraction = async () => {
-      try {
-        const res: any = await articleApi.getMediaInteraction(url);
-        setLiked(res.likedByCurrentUser);
-        setLikeCount(res.count);
-      } catch (e) {
-        console.warn('Media interaction unavailable', e);
-      }
-    };
-    fetchInteraction();
-  }, [url, user]);
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) return;
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setLikeCount(p => nextLiked ? p + 1 : p - 1);
-    try {
-      if (nextLiked) await articleApi.likeMedia(url, articleId, 'LIKE');
-      else await articleApi.unlikeMedia(url);
-    } catch (e) {
-      setLiked(!nextLiked);
-      setLikeCount(p => nextLiked ? p - 1 : p + 1);
-    }
-  };
-
+// Sub-component hiển thị từng hình ảnh/video cho trang Chi tiết
+const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, isVideo, onMediaClick }) => {
   return (
     <div className="relative group/media rounded-2xl overflow-hidden border border-white/10 bg-black/20 flex items-center justify-center">
       {isVideo ? (
@@ -65,18 +32,6 @@ const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: bool
           }} 
         />
       )}
-      
-      {/* Nút thả tim ảnh nổi lên khi hover */}
-      <div className={`absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3 py-2 rounded-full transition-opacity duration-300 ${liked || likeCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/media:opacity-100'}`}>
-        <button 
-          onClick={handleLike} 
-          className={`p-1.5 rounded-full hover:bg-white/10 transition-colors ${liked ? 'text-red-500' : 'text-white'}`}
-          title="Thích ảnh này"
-        >
-          <Heart className={`w-5 h-5 hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
-        </button>
-        {likeCount > 0 && <span className="text-[14px] text-white font-medium pr-1 cursor-default">{likeCount}</span>}
-      </div>
     </div>
   );
 };
