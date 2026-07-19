@@ -117,7 +117,7 @@ const RightSidebar = () => {
   const fetchOnlineStatuses = async (userIds: string[]) => {
     try {
       const res = await chatApi.checkOnlineStatuses(userIds);
-      setOnlineStatuses(res.data);
+      setOnlineStatuses(res.data || {});
     } catch (err) {
       console.error('Failed to fetch online statuses', err);
     }
@@ -220,7 +220,7 @@ const RightSidebar = () => {
           ) : contacts.length > 0 ? (
             <div className="space-y-3">
               {contacts.map((cUser) => {
-                const status = onlineStatuses[cUser.id];
+                const status = (onlineStatuses || {})[cUser.id];
                 const isOnline = status?.isOnline;
                 const lastOnlineStr = status?.lastOnlineTime ? formatTimeAgo(status.lastOnlineTime) : '';
                 
