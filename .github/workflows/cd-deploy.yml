@@ -81,9 +81,9 @@ jobs:
             MINIO_ROOT_PASSWORD=minio12345
             ENVEOF
             
-            # Giữ lại các biến môi trường cấu hình thủ công (Google, Resend) nếu có
+            # Giữ lại các biến môi trường cấu hình thủ công (Google, Resend, Gemini) nếu có
             if [ -f .env ]; then
-                grep -E "^(GOOGLE_CLIENT_ID|RESEND_API_KEY)=" .env >> .env.new || true
+                grep -E "^(GOOGLE_CLIENT_ID|RESEND_API_KEY|GEMINI_API_KEY|GEMINI_MODEL)=" .env >> .env.new || true
             fi
             mv .env.new .env
 
