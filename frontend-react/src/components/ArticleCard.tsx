@@ -169,6 +169,7 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   
