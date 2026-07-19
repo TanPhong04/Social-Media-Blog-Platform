@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userApi, type ProfileResponse } from '../../api/userApi';
+import { articleApi, type TrendingTagResponse } from '../../api/articleApi';
 import { chatApi } from '../../api/chatApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserPlus, Check, TrendingUp, Users } from 'lucide-react';
@@ -27,6 +28,8 @@ const RightSidebar = () => {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [followingMap, setFollowingMap] = useState<{[key: string]: boolean}>({});
+  const [trendingTags, setTrendingTags] = useState<TrendingTagResponse[]>([]);
+  const [loadingTrending, setLoadingTrending] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -46,12 +49,27 @@ const RightSidebar = () => {
     }
   }, [contacts]);
 
+  useEffect(() => {
+    const fetchTrending = async () => {
+      setLoadingTrending(true);
+      try {
+        const res: any = await articleApi.getTrendingTags();
+        setTrendingTags(res.data || res || []);
+      } catch (err) {
+        console.error('Failed to fetch trending tags', err);
+      } finally {
+        setLoadingTrending(false);
+      }
+    };
+    fetchTrending();
+  }, []);
+
   const fetchSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
       const res: any = await userApi.getSuggestions();
       const users = res.data || res || [];
-      const filtered = users.filter((u: any) => u.id !== user?.id).slice(0, 3);
+      const filtered = users.filter((u: any) => u.id !== user?.id);
       setSuggestions(filtered);
     } catch (err) {
       console.error('Failed to fetch suggestions', err);
@@ -67,8 +85,25 @@ const RightSidebar = () => {
       const res: any = await userApi.getFollowing(user.id, 0, 20);
       const followingList = res.data?.content || res.content || res.data || res || [];
       // Extract target properties if the API returns relationship objects, or just ProfileResponses
-      const formattedContacts = followingList.map((item: any) => item.target || item).filter((u: any) => u.id && u.id !== user.id);
+      const formattedContacts = followingList.map((item: any) => {
+         const target = item.target || item;
+         return {
+            ...target,
+            id: target.id || target.userId,
+            displayName: target.displayName || target.username,
+         };
+      }).filter((u: any) => u.id && u.id !== user.id);
+      
       setContacts(formattedContacts);
+      
+      setFollowingMap(prev => {
+        const newMap = { ...prev };
+        formattedContacts.forEach((c: any) => {
+          newMap[c.id] = true;
+        });
+        return newMap;
+      });
+
       if (formattedContacts.length > 0) {
         fetchOnlineStatuses(formattedContacts.map((c: any) => c.id));
       }
@@ -125,9 +160,9 @@ const RightSidebar = () => {
                 </div>
               ))}
             </div>
-          ) : suggestions.length > 0 ? (
+          ) : suggestions.filter(s => !followingMap[s.id]).length > 0 ? (
             <div className="space-y-4">
-              {suggestions.map((sUser) => (
+              {suggestions.filter(s => !followingMap[s.id]).slice(0, 3).map((sUser) => (
                 <div 
                   key={sUser.id} 
                   className="flex items-center gap-3 cursor-pointer group"
@@ -235,28 +270,41 @@ const RightSidebar = () => {
       )}
 
       {/* Trending Widget */}
-      <div className="bg-surface rounded-app p-5 border border-white/5 shadow-sm">
+      <div className="bg-surface rounded-app p-5 border border-white/5 shadow-sm mb-6">
         <h3 className="font-heading font-semibold text-text-primary mb-4 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" />
           Đang thịnh hành
         </h3>
-        <div className="space-y-4">
-          {[
-            { tag: '#javascript', posts: '12.5K' },
-            { tag: '#reactjs', posts: '8.2K' },
-            { tag: '#webdev', posts: '5.1K' },
-            { tag: '#uiux', posts: '3.4K' },
-            { tag: '#coding', posts: '2.9K' }
-          ].map((item, i) => (
-            <div key={i} className="flex flex-col cursor-pointer group">
-              <span className="text-xs text-text-secondary font-medium">Chủ đề {i+1}</span>
-              <span className="text-sm font-bold text-text-primary group-hover:text-primary transition-colors">{item.tag}</span>
-              <span className="text-xs text-text-secondary">{item.posts} bài viết</span>
-            </div>
-          ))}
-        </div>
+        
+        {loadingTrending ? (
+          <div className="space-y-4">
+             {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse flex flex-col space-y-2">
+                  <div className="h-2 bg-white/5 rounded w-1/4" />
+                  <div className="h-3 bg-white/5 rounded w-1/2" />
+                  <div className="h-2 bg-white/5 rounded w-1/3" />
+                </div>
+              ))}
+          </div>
+        ) : trendingTags.length > 0 ? (
+          <div className="space-y-4">
+            {trendingTags.map((item, i) => (
+              <div 
+                key={i} 
+                className="flex flex-col cursor-pointer group"
+                onClick={() => navigate(`/search?query=${encodeURIComponent(item.tag)}`)}
+              >
+                <span className="text-xs text-text-secondary font-medium">Chủ đề {i+1}</span>
+                <span className="text-sm font-bold text-text-primary group-hover:text-primary transition-colors">#{item.tag}</span>
+                <span className="text-xs text-text-secondary">{item.posts} bài viết</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-text-secondary text-center py-2">Chưa có chủ đề thịnh hành.</p>
+        )}
       </div>
-      
+
       <div className="mt-6 text-xs text-text-secondary text-center">
         &copy; 2026 Social Blog Platform. All rights reserved.
       </div>

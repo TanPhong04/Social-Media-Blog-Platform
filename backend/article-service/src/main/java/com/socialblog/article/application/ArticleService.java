@@ -90,6 +90,14 @@ public class ArticleService {
         return articles.searchArticles(query.trim(), p).map(this::map);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<com.socialblog.article.api.ArticleDtos.TrendingTagResponse> getTrendingTags(int limit) {
+        return articles.findTrendingTags(org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream()
+                .map(row -> new com.socialblog.article.api.ArticleDtos.TrendingTagResponse((String) row[0], ((Number) row[1]).longValue()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     private Article owned(UUID id, UUID author) {
         Article a = articles.findById(id).orElseThrow(this::notFound);
         if (a.getStatus() == Article.Status.DELETED) throw notFound();

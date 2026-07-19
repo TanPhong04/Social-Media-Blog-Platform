@@ -7,7 +7,7 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play } from 'lucide-react';
+import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
 
@@ -61,41 +61,7 @@ const MediaItem: React.FC<{
   isVideo?: boolean;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
-  hideLikeButton?: boolean;
-}> = ({ url, articleId, isVideo, className, onClick, hideLikeButton }) => {
-  const { user } = useAuth();
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchInteraction = async () => {
-      try {
-        const res: any = await articleApi.getMediaInteraction(url);
-        setLiked(res.likedByCurrentUser);
-        setLikeCount(res.count);
-      } catch (e) {
-        console.warn('Media interaction unavailable', e);
-      }
-    };
-    fetchInteraction();
-  }, [url, user]);
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) return;
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setLikeCount(p => nextLiked ? p + 1 : p - 1);
-    try {
-      if (nextLiked) await articleApi.likeMedia(url, articleId, 'LIKE');
-      else await articleApi.unlikeMedia(url);
-    } catch (e) {
-      setLiked(!nextLiked);
-      setLikeCount(p => nextLiked ? p - 1 : p + 1);
-    }
-  };
-
+}> = ({ url, isVideo, className, onClick }) => {
   return (
     <div 
       className={`relative group/media overflow-hidden flex items-center justify-center ${className || 'rounded-app border border-gray-800 bg-black/20 max-h-[450px]'}`}
@@ -117,19 +83,6 @@ const MediaItem: React.FC<{
           className="w-full h-full object-cover hover:opacity-95 transition-opacity" 
         />
       )}
-      
-      {!hideLikeButton && (
-        <div className={`absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-full transition-opacity duration-300 ${liked || likeCount > 0 ? 'opacity-100' : 'opacity-0 group-hover/media:opacity-100'}`}>
-          <button 
-            onClick={handleLike} 
-            className={`p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer ${liked ? 'text-red-500' : 'text-white'}`}
-            title="Thích ảnh này"
-          >
-            <Heart className={`w-4 h-4 hover:scale-110 transition-transform ${liked ? 'fill-current' : ''}`} />
-          </button>
-          {likeCount > 0 && <span className="text-[13px] text-white font-medium pr-1 cursor-default">{likeCount}</span>}
-        </div>
-      )}
     </div>
   );
 };
@@ -137,12 +90,12 @@ const MediaItem: React.FC<{
 const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], articleId: string }> = ({ items, articleId }) => {
 
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   if (!items || items.length === 0) return null;
 
   const count = items.length;
-
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const handleImageClick = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
@@ -198,7 +151,7 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tr-app rounded-b-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
            <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
            <div className="relative w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 4)}>
-             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-br-app rounded-t-none rounded-l-none" hideLikeButton />
+             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-br-app rounded-t-none rounded-l-none" />
              {count > 5 && (
                <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-br-app text-white text-2xl font-bold">
                  +{count - 5}
@@ -252,7 +205,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [authorProfile, setAuthorProfile] = useState<any>(null);
 
   // Trạng thái cho khung bình luận (Comments Section)
-  const [showComments, setShowComments] = useState(false);
+  const [showComments] = useState(false);
   const commentInputRef = useRef<HTMLInputElement>(null);
 
   const [comments, setComments] = useState<CommentResponse[]>([]);
@@ -1733,7 +1686,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
               <button
                 onClick={(e) => handleLike(e, 'LIKE')}
-                className={`flex items-center justify-center p-2 rounded-full hover:bg-red-500/10 transition-all cursor-pointer group`}
+                className={`flex items-center justify-center p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer group`}
                 title="Thích"
               >
                 {myReaction === 'LOVE' ? <span className="text-xl leading-none">❤️</span> :
@@ -1742,12 +1695,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                  myReaction === 'SAD' ? <span className="text-xl leading-none">😢</span> :
                  myReaction === 'ANGRY' ? <span className="text-xl leading-none">😡</span> :
                  myReaction === 'LIKE' ? <span className="text-xl leading-none text-primary">👍</span> :
-                 <Heart className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current text-red-500' : ''}`} />
+                 <ThumbsUp className={`w-4 h-4 group-hover:scale-110 transition-transform ${liked ? 'fill-current text-primary' : ''}`} />
                 }
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowLikersModal(true); }}
-                className={`hover:underline transition-colors cursor-pointer text-[13px] hover:text-red-500 ${liked ? 'text-red-500' : ''}`}
+                className={`hover:underline transition-colors cursor-pointer text-[13px] hover:text-primary ${liked ? 'text-primary' : ''}`}
                 title="Xem người thích"
                 disabled={likeCount === 0}
               >
@@ -1760,12 +1713,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowComments(prev => !prev);
-                setTimeout(() => {
-                  if (!showComments && commentInputRef.current) {
-                    commentInputRef.current.focus();
-                  }
-                }, 100);
+                navigate(`/article/${article.id}`, { state: { backgroundLocation: location } });
               }}
               className={`flex items-center gap-1.5 hover:text-primary group p-2 rounded-full hover:bg-primary/10 transition-all cursor-pointer ${showComments ? 'text-primary' : ''}`}
             >

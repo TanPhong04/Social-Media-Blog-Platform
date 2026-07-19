@@ -6,7 +6,7 @@ import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X } from 'lucide-react';
+import { MessageCircle, Heart, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X } from 'lucide-react';
 
 // Sub-component hiển thị từng hình ảnh/video kèm tính năng thả tim độc lập cho trang Chi tiết
 const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, articleId, isVideo, onMediaClick }) => {
@@ -288,7 +288,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   const { slug: paramSlug } = useParams<{ slug: string }>();
   const slug = articleId || paramSlug;
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   
   // Use local state if initialMediaUrl is provided to avoid modifying URL in feed
   const [localMediaUrl, setLocalMediaUrl] = useState<string | null>(initialMediaUrl || null);
@@ -298,8 +298,12 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     if (localMediaUrl) {
        setLocalMediaUrl(null);
        if (onClose && initialMediaUrl) onClose();
+    } else if (onClose) {
+       // In modal overlay mode: close the entire modal to return to feed
+       onClose();
     } else {
-       setSearchParams({});
+       // In standalone page mode: go back to home
+       navigate('/');
     }
   };
 
@@ -577,7 +581,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     return (
       <div className="max-w-3xl mx-auto border-x border-gray-800 min-h-screen bg-background p-8 text-center flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold mb-4">Không tìm thấy bài viết</h2>
-        <button onClick={() => navigate(-1)} className="text-primary hover:underline">Quay lại</button>
+        <button onClick={() => navigate('/')} className="text-primary hover:underline">Quay lại</button>
       </div>
     );
   }
@@ -603,7 +607,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
         {/* Header */}
         {!mediaUrlQuery && (
           <div className="sticky top-0 bg-background/80 backdrop-blur-md border-b border-gray-800 p-4 z-40 flex items-center gap-4">
-            <button onClick={onClose || (() => navigate(-1))} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+            <button onClick={onClose || (() => navigate('/'))} className="p-2 hover:bg-white/5 rounded-full transition-colors">
                <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="font-heading font-bold truncate">Bài viết</h1>
@@ -748,14 +752,14 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                      ))}
                    </div>
                  )}
-                 <button onClick={(e) => handleLike(e, 'LIKE')} className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-red-500' : 'text-text-secondary hover:text-red-400'}`}>
+                 <button onClick={(e) => handleLike(e, 'LIKE')} className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-primary' : 'text-text-secondary hover:text-primary/70'}`}>
                    {myReaction === 'LOVE' ? <span className="text-2xl leading-none -ml-1">❤️</span> :
                     myReaction === 'HAHA' ? <span className="text-2xl leading-none -ml-1">😆</span> :
                     myReaction === 'WOW' ? <span className="text-2xl leading-none -ml-1">😮</span> :
                     myReaction === 'SAD' ? <span className="text-2xl leading-none -ml-1">😢</span> :
                     myReaction === 'ANGRY' ? <span className="text-2xl leading-none -ml-1">😡</span> :
                     myReaction === 'LIKE' ? <span className="text-2xl leading-none -ml-1 text-primary">👍</span> :
-                    <Heart className={`w-6 h-6 transition-transform group-hover/like:scale-110 ${isLiked ? 'fill-current' : ''}`} />}
+                    <ThumbsUp className={`w-6 h-6 transition-transform group-hover/like:scale-110 ${isLiked ? 'fill-current' : ''}`} />}
                    <span className="font-medium">{likeCount > 0 ? likeCount : ''}</span>
                  </button>
                </div>
