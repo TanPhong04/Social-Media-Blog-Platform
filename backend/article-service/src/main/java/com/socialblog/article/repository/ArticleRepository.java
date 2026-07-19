@@ -17,7 +17,7 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
     Page<Article> findByAuthorIdAndStatusNotOrderByUpdatedAtDesc(UUID authorId, Article.Status status, Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' AND (LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(a.content) LIKE LOWER(CONCAT('%', :query, '%')))")
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT a FROM Article a LEFT JOIN a.tags t WHERE a.status = 'PUBLISHED' AND (LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(a.content) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(t) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<Article> searchArticles(@org.springframework.data.repository.query.Param("query") String query, Pageable pageable);
 
     @org.springframework.data.jpa.repository.Query("SELECT t, COUNT(a.id) FROM Article a JOIN a.tags t WHERE a.status = 'PUBLISHED' GROUP BY t ORDER BY COUNT(a.id) DESC")

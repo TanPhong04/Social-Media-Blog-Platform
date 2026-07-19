@@ -53,8 +53,7 @@ export const userApi = {
     return axiosClient.get<any>(`/follows/users/${userId}/following?page=${page}&size=${size}`);
   },
   searchUsers: async (query: string, limit: number = 20) => {
-    const response = await axiosClient.get('/users/search', { params: { query, limit } });
-    return response.data;
+    return axiosClient.get('/users/search', { params: { query, limit } });
   },
   getSuggestions: async () => {
     return axiosClient.get<ProfileResponse[]>('/users/suggestions');
