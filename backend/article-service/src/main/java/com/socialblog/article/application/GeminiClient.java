@@ -133,7 +133,7 @@ public class GeminiClient {
             String jsonPayload = mapper.writeValueAsString(requestBody);
 
             // Gửi request tới Google Gemini API
-            String uriStr = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+            String uriStr = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + apiKey;
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(uriStr))
                     .header("Content-Type", "application/json")
