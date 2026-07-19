@@ -19,4 +19,7 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
     @org.springframework.data.jpa.repository.Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' AND (LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(a.content) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<Article> searchArticles(@org.springframework.data.repository.query.Param("query") String query, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT t, COUNT(a.id) FROM Article a JOIN a.tags t WHERE a.status = 'PUBLISHED' GROUP BY t ORDER BY COUNT(a.id) DESC")
+    List<Object[]> findTrendingTags(Pageable pageable);
 }

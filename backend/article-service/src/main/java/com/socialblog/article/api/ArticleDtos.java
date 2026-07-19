@@ -17,4 +17,6 @@ public final class ArticleDtos {
     public record Response(UUID id, UUID authorId, String title, String slug, String summary, String content,
                            String status, Set<String> tags, Instant createdAt, Instant updatedAt, Instant publishedAt) {
     }
+
+    public record TrendingTagResponse(String tag, long posts) {}
 }

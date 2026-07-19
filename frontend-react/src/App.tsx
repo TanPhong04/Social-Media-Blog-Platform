@@ -35,6 +35,16 @@ function App() {
     }
   }, []);
 
+  // Lock body scroll when modal overlay is open
+  useEffect(() => {
+    if (backgroundLocation) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [backgroundLocation]);
+
   return (
     <>
       <Routes location={backgroundLocation || location}>
@@ -80,8 +90,14 @@ function App() {
           <Route 
             path="/article/:slug" 
             element={
-              <div className="fixed inset-0 z-[100] overflow-y-auto bg-background/80 backdrop-blur-sm animate-fade-in">
-                <ArticleDetail onClose={() => navigate(-1)} />
+              <div 
+                className="fixed inset-0 z-[100] overflow-y-auto bg-black/70 backdrop-blur-sm animate-fade-in"
+                onClick={(e) => { if (e.target === e.currentTarget) navigate(-1); }}
+                onKeyDown={(e) => { if (e.key === 'Escape') navigate(-1); }}
+              >
+                <div className="max-w-3xl mx-auto my-4 min-h-[calc(100vh-2rem)]" onClick={(e) => e.stopPropagation()}>
+                  <ArticleDetail onClose={() => navigate(-1)} />
+                </div>
               </div>
             } 
           />

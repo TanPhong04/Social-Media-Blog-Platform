@@ -34,6 +34,11 @@ export interface Page<T> {
   empty: boolean;
 }
 
+export interface TrendingTagResponse {
+  tag: string;
+  posts: number;
+}
+
 export const articleApi = {
   getFeed: (page: number = 0, size: number = 20) => {
     return axiosClient.get<Page<ArticleResponse>>('/articles', {
@@ -44,6 +49,9 @@ export const articleApi = {
     return axiosClient.get<Page<ArticleResponse>>('/articles/following', {
       params: { page, size }
     });
+  },
+  getTrendingTags: async (limit: number = 5) => {
+    return axiosClient.get<TrendingTagResponse[]>(`/articles/trending?limit=${limit}`);
   },
   searchArticles: async (query: string, page: number = 0, size: number = 20) => {
     const response = await axiosClient.get(`/articles/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
