@@ -6,7 +6,7 @@ import { followerApi } from '../api/followerApi';
 import { userApi, type ProfileResponse } from '../api/userApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X, Sparkles } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X, Sparkles, Edit2, Trash2, Check } from 'lucide-react';
 import AiChatDrawer from '../components/AiChatDrawer';
 
 // Sub-component hiển thị từng hình ảnh/video cho trang Chi tiết
@@ -51,6 +51,47 @@ const CommentItem: React.FC<{
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const isRepost = comment.content.includes('[repost]');
+
+  // State cho chỉnh sửa & xóa bình luận
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const isCommentOwner = user && user.id === comment.authorId;
+  const isEdited = comment.updatedAt && comment.createdAt && comment.updatedAt !== comment.createdAt;
+
+  // Bắt đầu chỉnh sửa bình luận
+  const startEditing = () => {
+    setEditText(comment.content);
+    setIsEditing(true);
+  };
+
+  // Lưu chỉnh sửa bình luận
+  const handleUpdateComment = async () => {
+    if (!editText.trim()) return;
+    setIsUpdating(true);
+    try {
+      await commentApi.updateComment(comment.id, { content: editText.trim() });
+      setIsEditing(false);
+      onReplySuccess(); // reload comments
+    } catch (err) {
+      console.error('Failed to update comment', err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Xóa bình luận
+  const handleDeleteComment = async () => {
+    try {
+      await commentApi.deleteComment(comment.id);
+      setShowDeleteConfirm(false);
+      onReplySuccess(); // reload comments
+    } catch (err) {
+      console.error('Failed to delete comment', err);
+    }
+  };
 
   useEffect(() => {
     const fetchAuthor = async () => {
@@ -131,14 +172,93 @@ const CommentItem: React.FC<{
             initials
           )}
         </div>
-        <div className="flex-1 bg-surface border border-white/5 rounded-2xl rounded-tl-none p-4">
+        <div className="flex-1 bg-surface border border-white/5 rounded-2xl rounded-tl-none p-4 group relative">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <span className="font-semibold text-text-primary text-sm">{displayName}</span>
-            <span className="text-xs text-text-secondary">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-text-primary text-sm">{displayName}</span>
+              <span className="text-xs text-text-secondary">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
+              {isEdited && (
+                <span 
+                  className="text-[10px] text-text-secondary italic" 
+                  title={`Chỉnh sửa lúc ${new Date(comment.updatedAt).toLocaleString('vi-VN')}`}
+                >
+                  · (đã chỉnh sửa)
+                </span>
+              )}
+            </div>
+            {/* Nút Sửa/Xóa - chỉ hiện cho chính chủ */}
+            {isCommentOwner && !isEditing && (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={startEditing}
+                  className="p-1.5 text-text-secondary hover:text-primary hover:bg-white/5 rounded-full transition-all cursor-pointer"
+                  title="Chỉnh sửa bình luận"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 text-text-secondary hover:text-red-500 hover:bg-red-500/5 rounded-full transition-all cursor-pointer"
+                  title="Xóa bình luận"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
-          <p className="text-text-secondary text-sm leading-relaxed">{comment.content}</p>
+
+          {/* Nội dung bình luận hoặc form chỉnh sửa */}
+          {isEditing ? (
+            <div className="space-y-2">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                className="w-full bg-background border border-white/10 rounded-lg p-2.5 text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary/50 resize-none min-h-[60px]"
+                autoFocus
+              />
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-text-primary text-xs font-semibold rounded-full transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleUpdateComment}
+                  disabled={!editText.trim() || isUpdating}
+                  className="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-full hover:bg-primary-hover disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Check className="w-3 h-3" />
+                  {isUpdating ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-text-secondary text-sm leading-relaxed">{comment.content}</p>
+          )}
+
+          {/* Hộp xác nhận xóa */}
+          {showDeleteConfirm && (
+            <div className="mt-3 p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
+              <p className="text-sm text-red-400 mb-2">Bạn có chắc muốn xóa bình luận này?</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDeleteComment}
+                  className="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-full hover:bg-red-600 transition-colors cursor-pointer"
+                >
+                  Xóa
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-text-primary text-xs font-semibold rounded-full transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          )}
           
-          {user && (
+          {user && !isEditing && (
             <div className="flex items-center gap-4 mt-3 pt-2 border-t border-white/5">
               <button 
                 onClick={() => setShowReplyBox(!showReplyBox)}

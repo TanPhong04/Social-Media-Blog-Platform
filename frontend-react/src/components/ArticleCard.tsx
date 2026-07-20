@@ -1419,6 +1419,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
               <span className="text-text-secondary text-[10px]">·</span>
               <span className="text-text-secondary text-[11px]">{formatTime(comment.createdAt)}</span>
+              {comment.updatedAt && comment.createdAt && comment.updatedAt !== comment.createdAt && (
+                <span className="text-text-secondary text-[10px] italic flex items-center gap-0.5" title={`Chỉnh sửa lúc ${new Date(comment.updatedAt).toLocaleString('vi-VN')}`}>
+                  · (đã chỉnh sửa)
+                </span>
+              )}
             </div>
 
             {/* Cụm hành động cho Comment */}
