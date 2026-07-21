@@ -696,13 +696,8 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
         )}
 
       <div className="p-6">
-         {/* Article Title */}
-         <h1 className="text-3xl font-heading font-bold mb-6 text-text-primary leading-tight">
-           {article.title}
-         </h1>
-
          {/* Author Info */}
-         <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/5">
+         <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold shadow-md overflow-hidden">
                 {author?.avatarUrl ? (
@@ -740,16 +735,13 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
             )}
          </div>
 
+
          {/* Content */}
          <div className="text-text-primary text-[16px] leading-relaxed whitespace-pre-wrap mb-10 break-words">
            {(() => {
              let textToShow = article.content || '';
              
-             // Xóa tiêu đề bị lặp ở đầu nội dung (vì đã render h1 ở trên)
-             if (article.title && textToShow.trim().startsWith(article.title)) {
-               textToShow = textToShow.trim().substring(article.title.length).trim();
-             }
-             
+
              let images: string[] = [];
              let videos: string[] = [];
 
