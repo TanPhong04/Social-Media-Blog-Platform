@@ -8,6 +8,7 @@ import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, ThumbsUp, Share2, Bookmark, UserPlus, UserMinus, ArrowLeft, Repeat, Smile, Image as ImageIcon, Send, X, Sparkles, Edit2, Trash2, Check } from 'lucide-react';
 import AiChatDrawer from '../components/AiChatDrawer';
+import ShareModal from '../components/ShareModal';
 
 // Sub-component hiển thị từng hình ảnh/video cho trang Chi tiết
 const MediaItemDetail: React.FC<{ url: string; articleId: string; isVideo?: boolean; onMediaClick?: (url: string) => void }> = ({ url, isVideo, onMediaClick }) => {
@@ -398,6 +399,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   const [likeCount, setLikeCount] = useState(0);
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [isReposted, setIsReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(0);
   const [newComment, setNewComment] = useState('');
@@ -678,7 +680,97 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
             <X className="w-6 h-6" />
           </button>
           {article?.content?.includes(`<video src="${mediaUrlQuery}"`) ? (
-            <video src={mediaUrlQuery} controls autoPlay className="max-w-full max-h-full object-contain outline-none" />
+            <div className="relative w-full max-w-[420px] h-[calc(100vh-4rem)] mx-auto flex items-center justify-center">
+              <video src={mediaUrlQuery} controls autoPlay className="w-full h-full object-cover outline-none" />
+              
+              {/* Right Actions Overlay */}
+              <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-20">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); navigate(`/profile?userId=${article.authorId}`); }}
+                  className="w-11 h-11 rounded-full border-[2px] border-white overflow-hidden shadow-lg"
+                >
+                  {author?.avatarUrl ? (
+                    <img src={author.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary flex items-center justify-center text-white text-sm font-bold">
+                      {(author?.displayName || 'U').substring(0,2).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+
+                <div 
+                  className="relative flex flex-col items-center gap-1"
+                  onMouseEnter={() => setShowReactionPicker(true)}
+                  onMouseLeave={() => setShowReactionPicker(false)}
+                >
+                  {showReactionPicker && (
+                    <div className="absolute right-full mr-2 bottom-0 bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out]">
+                      {[
+                        { type: 'LIKE', icon: '👍' },
+                        { type: 'LOVE', icon: '❤️' },
+                        { type: 'HAHA', icon: '😆' },
+                        { type: 'WOW', icon: '😮' },
+                        { type: 'SAD', icon: '😢' },
+                        { type: 'ANGRY', icon: '😡' }
+                      ].map((reaction) => (
+                        <button
+                          key={reaction.type}
+                          onClick={(e) => handleLike(e, reaction.type)}
+                          className="text-2xl hover:scale-125 transition-transform origin-bottom cursor-pointer"
+                          title={reaction.type}
+                        >
+                          {reaction.icon}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={(e) => handleLike(e, 'LIKE')} className="flex flex-col items-center gap-1 group">
+                    <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
+                      {myReaction === 'LOVE' ? <span className="text-2xl leading-none">❤️</span> :
+                       myReaction === 'HAHA' ? <span className="text-2xl leading-none">😆</span> :
+                       myReaction === 'WOW' ? <span className="text-2xl leading-none">😮</span> :
+                       myReaction === 'SAD' ? <span className="text-2xl leading-none">😢</span> :
+                       myReaction === 'ANGRY' ? <span className="text-2xl leading-none">😡</span> :
+                       myReaction === 'LIKE' ? <span className="text-2xl leading-none text-primary">👍</span> :
+                       <ThumbsUp className={`w-6 h-6 text-white drop-shadow-md transition-transform duration-300 ${isLiked ? 'fill-current text-primary' : ''}`} />
+                      }
+                    </div>
+                    <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
+                  </button>
+                </div>
+
+                <button onClick={() => {}} className="flex flex-col items-center gap-1 group cursor-default">
+                  <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center transition backdrop-blur-sm">
+                    <MessageCircle className="w-6 h-6 text-white drop-shadow-md" />
+                  </div>
+                  <span className="text-white text-xs font-bold drop-shadow-md">{comments.length}</span>
+                </button>
+
+                <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex flex-col items-center gap-1 group">
+                  <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
+                    <Share2 className="w-6 h-6 text-white drop-shadow-md" />
+                  </div>
+                  <span className="text-white text-xs font-bold drop-shadow-md">Chia sẻ</span>
+                </button>
+              </div>
+
+              {/* Bottom Info Overlay */}
+              <div className="absolute left-4 bottom-6 right-20 z-20 flex items-end justify-between pointer-events-none">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2 pointer-events-auto">
+                    <span 
+                      className="text-white font-bold text-[16px] cursor-pointer hover:underline drop-shadow-md"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/profile?userId=${article.authorId}`); }}
+                    >
+                      {author?.displayName || author?.username || 'Đang tải...'}
+                    </span>
+                  </div>
+                  <p className="text-white text-[15px] drop-shadow-md leading-snug font-medium whitespace-pre-wrap line-clamp-3">
+                    {article.content?.replace(/<video src="([^"]+)"[^>]*>(?:<\/video>)?/g, '').replace(/!\[image\]\(([^)]+)\)/g, '').trim()}
+                  </p>
+                </div>
+              </div>
+            </div>
           ) : (
             <img src={mediaUrlQuery} className="max-w-full max-h-full object-contain" alt="Theater view" />
           )}
@@ -797,7 +889,8 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
          )}
 
          {/* Interaction Bar */}
-         <div className="flex items-center justify-between py-4 border-y border-white/5 mb-10">
+         {(!mediaUrlQuery || !article?.content?.includes('<video')) && (
+           <div className="flex items-center justify-between py-4 border-y border-white/5 mb-10">
             <div className="flex items-center gap-6">
                <div 
                  className="relative flex items-center group/like"
@@ -998,6 +1091,14 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
           articleId={article.id}
           articleTitle={article.title || 'Bài đăng'}
           articleContent={article.content}
+        />
+      )}
+      {article && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          shareUrl={`${window.location.origin}/article/${article.id}`}
+          title={article.title || 'Bài đăng'}
         />
       )}
     </div>
