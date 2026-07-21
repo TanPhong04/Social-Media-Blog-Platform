@@ -6,6 +6,7 @@ import RightSidebar from './RightSidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { userApi } from '../../api/userApi';
 import { notificationApi } from '../../api/notificationApi';
+import { commentApi } from '../../api/commentApi';
 import { Bell, Heart, MessageCircle, UserPlus, Repeat, X, MessageSquare } from 'lucide-react';
 
 const MainLayout = () => {
@@ -47,17 +48,25 @@ const MainLayout = () => {
         let iconType = 'bell';
         
         let isRepost = false;
+        let reactionType = 'LIKE';
         try {
           const meta = JSON.parse(notification.metadata);
           if (meta.content && meta.content.includes('[repost]')) {
             isRepost = true;
           }
+          if (meta.reactionType) {
+            reactionType = meta.reactionType;
+          }
         } catch (e) {}
 
         switch (notification.type) {
           case 'NEW_LIKE':
-            message = `${actorName} đã thích bài viết của bạn.`;
-            iconType = 'like';
+            if (reactionType === 'LOVE') { message = `${actorName} đã yêu thích bài viết của bạn.`; iconType = 'love'; }
+            else if (reactionType === 'HAHA') { message = `${actorName} đã bày tỏ cảm xúc Haha.`; iconType = 'haha'; }
+            else if (reactionType === 'WOW') { message = `${actorName} đã bày tỏ cảm xúc Wow.`; iconType = 'wow'; }
+            else if (reactionType === 'SAD') { message = `${actorName} đã bày tỏ cảm xúc Buồn.`; iconType = 'sad'; }
+            else if (reactionType === 'ANGRY') { message = `${actorName} đã bày tỏ cảm xúc Phẫn nộ.`; iconType = 'angry'; }
+            else { message = `${actorName} đã thích bài viết của bạn.`; iconType = 'like'; }
             break;
           case 'NEW_COMMENT':
             if (isRepost) {
@@ -197,11 +206,21 @@ const MainLayout = () => {
           articleId = meta.articleId;
         } else if (meta.targetId && notification.entityType === 'ARTICLE') {
           articleId = meta.targetId;
+        } else if (meta.targetId && notification.entityType === 'COMMENT') {
+          try {
+            const commentRes = await commentApi.getCommentById(meta.targetId);
+            const comment = (commentRes as any).data || commentRes;
+            if (comment && comment.articleId) {
+              articleId = comment.articleId;
+            }
+          } catch (e) {
+            console.warn('Error fetching comment for articleId in toast', e);
+          }
         }
       } catch (e) {}
 
       if (articleId) {
-        navigate(`/?articleId=${articleId}`);
+        navigate(`/article/${articleId}`);
       }
     }
   };
@@ -252,6 +271,21 @@ const MainLayout = () => {
             <div className="absolute -bottom-1 -right-1">
               {realtimeToast.iconType === 'like' && (
                 <div className="p-1 bg-red-500 text-white rounded-full"><Heart className="w-3 h-3 fill-current" /></div>
+              )}
+              {realtimeToast.iconType === 'love' && (
+                <div className="p-1 bg-pink-500/10 text-pink-500 rounded-full text-[10px] leading-none">❤️</div>
+              )}
+              {realtimeToast.iconType === 'haha' && (
+                <div className="p-1 bg-yellow-500/10 text-yellow-500 rounded-full text-[10px] leading-none">😆</div>
+              )}
+              {realtimeToast.iconType === 'wow' && (
+                <div className="p-1 bg-yellow-500/10 text-yellow-500 rounded-full text-[10px] leading-none">😮</div>
+              )}
+              {realtimeToast.iconType === 'sad' && (
+                <div className="p-1 bg-blue-500/10 text-blue-500 rounded-full text-[10px] leading-none">😢</div>
+              )}
+              {realtimeToast.iconType === 'angry' && (
+                <div className="p-1 bg-red-500/10 text-red-500 rounded-full text-[10px] leading-none">😡</div>
               )}
               {realtimeToast.iconType === 'comment' && (
                 <div className="p-1 bg-blue-500 text-white rounded-full"><MessageCircle className="w-3 h-3" /></div>

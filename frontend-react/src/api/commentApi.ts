@@ -24,6 +24,9 @@ export const commentApi = {
       params: { page, size, ...(targetUrl ? { targetUrl } : {}) }
     });
   },
+  getCommentById: (id: string) => {
+    return axiosClient.get<CommentResponse>(`/comments/${id}`);
+  },
   createComment: (data: CreateCommentRequest) => {
     return axiosClient.post<CommentResponse>('/comments', data);
   },
