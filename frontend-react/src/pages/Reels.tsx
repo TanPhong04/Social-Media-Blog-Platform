@@ -27,6 +27,9 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
   const [likeCount, setLikeCount] = useState(0);
   const [author, setAuthor] = useState<any>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
 
   // Extract video URL
   let videoUrl = '';
@@ -53,6 +56,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
     userApi.getUserById(article.authorId).then((res: any) => setAuthor(res.data || res)).catch(() => {});
     articleApi.getArticleInteraction(article.id).then((res: any) => {
       setLiked(res.likedByCurrentUser);
+      setMyReaction(res.currentUserReactionType || (res.likedByCurrentUser ? 'LIKE' : null));
       setLikeCount(res.count);
     }).catch(() => {});
   }, [article.id, article.authorId]);
@@ -77,18 +81,30 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
     }
   };
 
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent, reactionType: string = 'LIKE') => {
     e.stopPropagation();
     if (!user) return navigate('/login');
-    const nextLiked = !liked;
+    setShowReactionPicker(false);
+    
+    const nextLiked = !liked || (liked && myReaction !== reactionType);
+    const wasLiked = liked;
+    
     setLiked(nextLiked);
-    setLikeCount(p => nextLiked ? p + 1 : p - 1);
+    setMyReaction(nextLiked ? reactionType : null);
+    if (!wasLiked && nextLiked) {
+      setLikeCount(p => p + 1);
+    } else if (wasLiked && !nextLiked) {
+      setLikeCount(p => p - 1);
+    }
+    
     try {
-      if (nextLiked) await articleApi.likeArticle(article.id, 'LIKE');
+      if (nextLiked) await articleApi.likeArticle(article.id, reactionType);
       else await articleApi.unlikeArticle(article.id);
     } catch (e) {
-      setLiked(!nextLiked);
-      setLikeCount(p => nextLiked ? p - 1 : p + 1);
+      setLiked(wasLiked);
+      setMyReaction(wasLiked ? (myReaction || 'LIKE') : null);
+      if (!wasLiked && nextLiked) setLikeCount(p => p - 1);
+      else if (wasLiked && !nextLiked) setLikeCount(p => p + 1);
     }
   };
 
@@ -138,14 +154,48 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           )}
         </button>
 
-        <button onClick={handleLike} className="flex flex-col items-center gap-1 group">
-          <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
-            <Heart className={`w-7 h-7 ${liked ? 'fill-error text-error scale-110' : 'text-white drop-shadow-md'} transition-transform duration-300`} />
-          </div>
-          <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
-        </button>
+        <div 
+          className="relative flex flex-col items-center gap-1"
+          onMouseEnter={() => setShowReactionPicker(true)}
+          onMouseLeave={() => setShowReactionPicker(false)}
+        >
+          {showReactionPicker && (
+            <div className="absolute right-full mr-2 bottom-0 bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out]">
+              {[
+                { type: 'LIKE', icon: '👍' },
+                { type: 'LOVE', icon: '❤️' },
+                { type: 'HAHA', icon: '😆' },
+                { type: 'WOW', icon: '😮' },
+                { type: 'SAD', icon: '😢' },
+                { type: 'ANGRY', icon: '😡' }
+              ].map((reaction) => (
+                <button
+                  key={reaction.type}
+                  onClick={(e) => handleLike(e, reaction.type)}
+                  className="text-2xl hover:scale-125 transition-transform origin-bottom cursor-pointer"
+                  title={reaction.type}
+                >
+                  {reaction.icon}
+                </button>
+              ))}
+            </div>
+          )}
+          <button onClick={(e) => handleLike(e, 'LIKE')} className="flex flex-col items-center gap-1 group">
+            <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
+              {myReaction === 'LOVE' ? <span className="text-2xl leading-none">❤️</span> :
+               myReaction === 'HAHA' ? <span className="text-2xl leading-none">😆</span> :
+               myReaction === 'WOW' ? <span className="text-2xl leading-none">😮</span> :
+               myReaction === 'SAD' ? <span className="text-2xl leading-none">😢</span> :
+               myReaction === 'ANGRY' ? <span className="text-2xl leading-none">😡</span> :
+               myReaction === 'LIKE' ? <span className="text-2xl leading-none text-primary">👍</span> :
+               <Heart className="w-7 h-7 text-white drop-shadow-md transition-transform duration-300" />
+              }
+            </div>
+            <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
+          </button>
+        </div>
 
-        <button onClick={() => navigate(`/article/${article.id}`, { state: { backgroundLocation: location } })} className="flex flex-col items-center gap-1 group">
+        <button onClick={() => navigate(`/article/${article.id}?mediaUrl=${encodeURIComponent(videoUrl)}`, { state: { backgroundLocation: location } })} className="flex flex-col items-center gap-1 group">
           <div className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center group-hover:bg-black/40 transition backdrop-blur-sm">
             <MessageCircle className="w-7 h-7 text-white drop-shadow-md" />
           </div>
@@ -176,9 +226,19 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           </div>
 
           {textContent && (
-            <p className="text-white text-[15px] line-clamp-2 mb-4 drop-shadow-md leading-snug font-medium pr-4">
-              {textContent}
-            </p>
+            <div className="mb-4 pr-4">
+              <p className={`text-white text-[15px] drop-shadow-md leading-snug font-medium whitespace-pre-wrap ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                {textContent}
+              </p>
+              {textContent.length > 80 && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                  className="text-white/80 font-bold text-[13px] hover:underline mt-1"
+                >
+                  {isExpanded ? 'Ẩn bớt' : '...xem thêm'}
+                </button>
+              )}
+            </div>
           )}
 
           <div className="flex items-center gap-2 text-white">
