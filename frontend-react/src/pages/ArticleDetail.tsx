@@ -479,6 +479,59 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     }
   };
 
+  const [reelsFeed, setReelsFeed] = useState<ArticleResponse[]>([]);
+  
+  useEffect(() => {
+    if (mediaUrlQuery) {
+      articleApi.getFeed(0, 100).then((res: any) => {
+         const data = res.content || res.data?.content || [];
+         const reels = data.filter((a: any) => {
+            if (a.tags && a.tags.includes('reel')) return true;
+            if (!a.content) return false;
+            const videoMatches = a.content.match(/<video src="([^"]+)"/g);
+            const imageMatches = a.content.match(/!\[image\]\(([^)]+)\)/g);
+            return (videoMatches?.length === 1) && (!imageMatches || imageMatches.length === 0);
+         });
+         setReelsFeed(reels);
+      }).catch(console.error);
+    }
+  }, [mediaUrlQuery]);
+
+  const goToNextReel = (direction: 'next' | 'prev') => {
+    if (!article || reelsFeed.length === 0) return;
+    const currentIndex = reelsFeed.findIndex(r => r.id === article.id);
+    if (currentIndex === -1) return;
+    
+    let targetIndex = currentIndex;
+    if (direction === 'next' && currentIndex < reelsFeed.length - 1) {
+       targetIndex = currentIndex + 1;
+    } else if (direction === 'prev' && currentIndex > 0) {
+       targetIndex = currentIndex - 1;
+    }
+    
+    if (targetIndex !== currentIndex) {
+       const targetReel = reelsFeed[targetIndex];
+       const srcMatch = targetReel.content?.match(/<video src="([^"]+)"/);
+       const targetVideoUrl = srcMatch ? srcMatch[1] : '';
+       navigate(`/article/${targetReel.id}?mediaUrl=${encodeURIComponent(targetVideoUrl)}`, { replace: true });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.deltaY > 50) goToNextReel('next');
+    else if (e.deltaY < -50) goToNextReel('prev');
+  };
+
+  const touchStartY = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const diff = touchStartY.current - e.changedTouches[0].clientY;
+    if (diff > 50) goToNextReel('next');
+    else if (diff < -50) goToNextReel('prev');
+  };
+
   useEffect(() => {
     if (slug) {
       fetchData();
@@ -673,7 +726,12 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   return (
     <div className={mediaUrlQuery ? "fixed inset-0 z-[9999] bg-black flex overflow-hidden" : "max-w-3xl mx-auto border-x border-gray-800 min-h-screen bg-background pb-20"}>
       {mediaUrlQuery && (
-        <div className="flex-1 relative flex items-center justify-center bg-black">
+        <div 
+          className="flex-1 relative flex items-center justify-center bg-black"
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           <button 
              onClick={handleCloseTheater} 
              className="absolute top-4 left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full z-[10000] text-white transition-colors"
