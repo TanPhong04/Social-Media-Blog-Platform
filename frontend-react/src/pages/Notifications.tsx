@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../api/userApi';
 import { notificationApi } from '../api/notificationApi';
+import { commentApi } from '../api/commentApi';
 import { Bell, Heart, MessageCircle, UserPlus, CheckCircle2, Repeat, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -103,13 +104,24 @@ const Notifications: React.FC = () => {
           articleId = meta.articleId;
         } else if (meta.targetId && notification.entityType === 'ARTICLE') {
           articleId = meta.targetId;
+        } else if (meta.targetId && notification.entityType === 'COMMENT') {
+          // If it's a LIKE on a COMMENT, fetch the comment to get articleId
+          try {
+            const commentRes = await commentApi.getCommentById(meta.targetId);
+            const comment = (commentRes as any).data || commentRes;
+            if (comment && comment.articleId) {
+              articleId = comment.articleId;
+            }
+          } catch (e) {
+            console.warn('Error fetching comment for articleId', e);
+          }
         }
       } catch (e) {
         console.warn('Error parsing notification metadata', e);
       }
       
       if (articleId) {
-        navigate(`/?articleId=${articleId}`);
+        navigate(`/article/${articleId}`);
       } else {
         navigate('/');
       }
@@ -118,15 +130,24 @@ const Notifications: React.FC = () => {
 
   const renderIcon = (notification: any) => {
     let isRepost = false;
+    let reactionType = 'LIKE';
     try {
       const meta = JSON.parse(notification.metadata);
       if (meta.content && meta.content.includes('[repost]')) {
         isRepost = true;
       }
+      if (meta.reactionType) {
+        reactionType = meta.reactionType;
+      }
     } catch (e) {}
 
     switch (notification.type) {
       case 'NEW_LIKE':
+        if (reactionType === 'LOVE') return <div className="p-2 bg-pink-500/10 text-pink-500 rounded-full text-sm leading-none">❤️</div>;
+        if (reactionType === 'HAHA') return <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-full text-sm leading-none">😆</div>;
+        if (reactionType === 'WOW') return <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-full text-sm leading-none">😮</div>;
+        if (reactionType === 'SAD') return <div className="p-2 bg-blue-500/10 text-blue-500 rounded-full text-sm leading-none">😢</div>;
+        if (reactionType === 'ANGRY') return <div className="p-2 bg-red-500/10 text-red-500 rounded-full text-sm leading-none">😡</div>;
         return <div className="p-2 bg-red-500/10 text-red-500 rounded-full"><Heart className="w-4 h-4 fill-current" /></div>;
       case 'NEW_COMMENT':
       case 'NEW_REPLY':
@@ -149,15 +170,24 @@ const Notifications: React.FC = () => {
     const actor = <span className="font-semibold text-text-primary">{actorName}</span>;
     
     let isRepost = false;
+    let reactionType = 'LIKE';
     try {
       const meta = JSON.parse(notification.metadata);
       if (meta.content && meta.content.includes('[repost]')) {
         isRepost = true;
       }
+      if (meta.reactionType) {
+        reactionType = meta.reactionType;
+      }
     } catch (e) {}
 
     switch (notification.type) {
       case 'NEW_LIKE': 
+        if (reactionType === 'LOVE') return <>{actor} đã yêu thích bài viết của bạn</>;
+        if (reactionType === 'HAHA') return <>{actor} đã bày tỏ cảm xúc Haha về bài viết của bạn</>;
+        if (reactionType === 'WOW') return <>{actor} đã bày tỏ cảm xúc Wow về bài viết của bạn</>;
+        if (reactionType === 'SAD') return <>{actor} đã bày tỏ cảm xúc Buồn về bài viết của bạn</>;
+        if (reactionType === 'ANGRY') return <>{actor} đã bày tỏ cảm xúc Phẫn nộ về bài viết của bạn</>;
         return <>{actor} đã thích bài viết của bạn</>;
       case 'NEW_COMMENT': 
         if (isRepost) {

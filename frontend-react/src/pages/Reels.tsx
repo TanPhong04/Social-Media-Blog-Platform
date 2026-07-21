@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
-import { Heart, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { userApi } from '../api/userApi';
@@ -160,7 +160,8 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           onMouseLeave={() => setShowReactionPicker(false)}
         >
           {showReactionPicker && (
-            <div className="absolute right-full mr-2 bottom-0 bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out]">
+            <div className="absolute right-full pr-2 bottom-0 py-4 flex items-center z-50">
+              <div className="bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl animate-[slideIn_0.2s_ease-out]">
               {[
                 { type: 'LIKE', icon: '👍' },
                 { type: 'LOVE', icon: '❤️' },
@@ -178,6 +179,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
                   {reaction.icon}
                 </button>
               ))}
+              </div>
             </div>
           )}
           <button onClick={(e) => handleLike(e, 'LIKE')} className="flex flex-col items-center gap-1 group">
@@ -188,7 +190,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
                myReaction === 'SAD' ? <span className="text-2xl leading-none">😢</span> :
                myReaction === 'ANGRY' ? <span className="text-2xl leading-none">😡</span> :
                myReaction === 'LIKE' ? <span className="text-2xl leading-none text-primary">👍</span> :
-               <Heart className="w-7 h-7 text-white drop-shadow-md transition-transform duration-300" />
+               <ThumbsUp className="w-7 h-7 text-white drop-shadow-md transition-transform duration-300" />
               }
             </div>
             <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
@@ -226,7 +228,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           </div>
 
           {textContent && (
-            <div className="mb-4 pr-4">
+            <div className="mb-4 pr-4 pointer-events-auto">
               <p className={`text-white text-[15px] drop-shadow-md leading-snug font-medium whitespace-pre-wrap ${!isExpanded ? 'line-clamp-2' : ''}`}>
                 {textContent}
               </p>

@@ -305,9 +305,6 @@ const RightSidebar = () => {
         )}
       </div>
 
-      <div className="mt-6 text-xs text-text-secondary text-center">
-        &copy; 2026 Social Blog Platform. All rights reserved.
-      </div>
     </aside>
   );
 };
