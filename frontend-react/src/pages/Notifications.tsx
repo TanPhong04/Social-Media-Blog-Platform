@@ -148,7 +148,7 @@ const Notifications: React.FC = () => {
         if (reactionType === 'WOW') return <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-full text-sm leading-none">😮</div>;
         if (reactionType === 'SAD') return <div className="p-2 bg-blue-500/10 text-blue-500 rounded-full text-sm leading-none">😢</div>;
         if (reactionType === 'ANGRY') return <div className="p-2 bg-red-500/10 text-red-500 rounded-full text-sm leading-none">😡</div>;
-        return <div className="p-2 bg-primary/10 text-primary rounded-full"><Heart className="w-4 h-4 fill-current" /></div>;
+        return <div className="p-2 bg-red-500/10 text-red-500 rounded-full"><Heart className="w-4 h-4 fill-current" /></div>;
       case 'NEW_COMMENT':
       case 'NEW_REPLY':
         if (isRepost) {
