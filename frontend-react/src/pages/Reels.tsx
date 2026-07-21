@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
-import { Heart, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Share2, Music, Film, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { userApi } from '../api/userApi';
@@ -188,7 +188,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
                myReaction === 'SAD' ? <span className="text-2xl leading-none">😢</span> :
                myReaction === 'ANGRY' ? <span className="text-2xl leading-none">😡</span> :
                myReaction === 'LIKE' ? <span className="text-2xl leading-none text-primary">👍</span> :
-               <Heart className="w-7 h-7 text-white drop-shadow-md transition-transform duration-300" />
+               <ThumbsUp className="w-7 h-7 text-white drop-shadow-md transition-transform duration-300" />
               }
             </div>
             <span className="text-white text-xs font-bold drop-shadow-md">{likeCount > 0 ? likeCount : 'Thích'}</span>
