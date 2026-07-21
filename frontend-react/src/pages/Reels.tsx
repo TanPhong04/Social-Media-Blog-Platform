@@ -160,7 +160,8 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           onMouseLeave={() => setShowReactionPicker(false)}
         >
           {showReactionPicker && (
-            <div className="absolute right-full mr-2 bottom-0 bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out]">
+            <div className="absolute right-full pr-2 bottom-0 py-4 flex items-center z-50">
+              <div className="bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl animate-[slideIn_0.2s_ease-out]">
               {[
                 { type: 'LIKE', icon: '👍' },
                 { type: 'LOVE', icon: '❤️' },
@@ -178,6 +179,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
                   {reaction.icon}
                 </button>
               ))}
+              </div>
             </div>
           )}
           <button onClick={(e) => handleLike(e, 'LIKE')} className="flex flex-col items-center gap-1 group">
