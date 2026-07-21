@@ -226,7 +226,7 @@ const ReelItem = ({ article, isActive }: { article: ArticleResponse, isActive: b
           </div>
 
           {textContent && (
-            <div className="mb-4 pr-4">
+            <div className="mb-4 pr-4 pointer-events-auto">
               <p className={`text-white text-[15px] drop-shadow-md leading-snug font-medium whitespace-pre-wrap ${!isExpanded ? 'line-clamp-2' : ''}`}>
                 {textContent}
               </p>

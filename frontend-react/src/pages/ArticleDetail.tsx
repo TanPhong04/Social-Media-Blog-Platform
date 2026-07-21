@@ -400,6 +400,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isReposted, setIsReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(0);
   const [newComment, setNewComment] = useState('');
@@ -765,9 +766,19 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                       {author?.displayName || author?.username || 'Đang tải...'}
                     </span>
                   </div>
-                  <p className="text-white text-[15px] drop-shadow-md leading-snug font-medium whitespace-pre-wrap line-clamp-3">
-                    {article.content?.replace(/<video src="([^"]+)"[^>]*>(?:<\/video>)?/g, '').replace(/!\[image\]\(([^)]+)\)/g, '').trim()}
-                  </p>
+                  <div className="mb-4 pr-4 pointer-events-auto">
+                    <p className={`text-white text-[15px] drop-shadow-md leading-snug font-medium whitespace-pre-wrap ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                      {article.content?.replace(/<video src="([^"]+)"[^>]*>(?:<\/video>)?/g, '').replace(/!\[image\]\(([^)]+)\)/g, '').trim()}
+                    </p>
+                    {(article.content?.replace(/<video src="([^"]+)"[^>]*>(?:<\/video>)?/g, '').replace(/!\[image\]\(([^)]+)\)/g, '').trim().length || 0) > 80 && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                        className="text-white/80 font-bold text-[13px] hover:underline mt-1"
+                      >
+                        {isExpanded ? 'Ẩn bớt' : '...xem thêm'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
