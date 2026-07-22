@@ -21,7 +21,10 @@ const Notifications: React.FC = () => {
     try {
       setLoading(true);
       const data: any = await notificationApi.getNotifications(0, 50);
-      const list = data.content || [];
+      let list = data.content || [];
+      
+      // Lọc bỏ các thông báo tin nhắn để tránh rác (spam) trang thông báo
+      list = list.filter((n: any) => n.type !== 'NEW_MESSAGE');
       
       const actorIds = Array.from(new Set(list.map((n: any) => n.actorId))) as string[];
       const profileMap: { [id: string]: any } = {};

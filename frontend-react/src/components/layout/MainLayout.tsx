@@ -45,6 +45,10 @@ const MainLayout = () => {
           actorName = `Người dùng ${notification.actorId.substring(0, 4)}`;
         }
 
+        if (notification.type === 'NEW_MESSAGE') {
+          return; // Ignore chat notifications completely from the Notification system to avoid spam
+        }
+
         // Bắn sự kiện toàn cục để các trang đang hiển thị (như trang Notifications, Sidebar) cập nhật dữ liệu ngay lập tức
         window.dispatchEvent(new CustomEvent('new-notification-received', { detail: notification }));
 
