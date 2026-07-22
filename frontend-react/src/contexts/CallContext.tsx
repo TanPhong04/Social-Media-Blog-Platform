@@ -46,7 +46,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const ringAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = new Audio('https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg');
+    const audio = new Audio('/sounds/nhac-chuong.mp3');
     audio.loop = true;
     ringAudioRef.current = audio;
   }, []);
