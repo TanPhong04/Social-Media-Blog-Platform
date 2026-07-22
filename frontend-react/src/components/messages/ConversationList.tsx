@@ -39,6 +39,20 @@ const formatConversationTime = (dateString: string) => {
   }
 };
 
+const renderLastMessage = (msg: string) => {
+  if (!msg) return '';
+  if (msg.startsWith('![chat_image]')) return '🖼️ Hình ảnh';
+  if (msg.startsWith('[CALL_LOG]:')) {
+    try {
+      const payload = JSON.parse(msg.replace('[CALL_LOG]:', ''));
+      if (payload.type === 'MISSED') return '📞 Cuộc gọi nhỡ';
+      if (payload.type === 'REJECTED') return '📞 Cuộc gọi bị từ chối';
+      if (payload.type === 'ENDED') return payload.isVideo ? '📹 Cuộc gọi video' : '📞 Cuộc gọi thoại';
+    } catch(e) {}
+  }
+  return msg;
+};
+
 export const ConversationList: React.FC<ConversationListProps> = ({
   contacts, contactProfiles, loading, searchQuery, setSearchQuery,
   showSuggestions, setShowSuggestions, filteredSuggestions, selectContact, activeContactId
@@ -136,7 +150,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                     </span>
                   </div>
                   <p className={`text-xs truncate ${c.unreadCount > 0 ? 'text-text-primary font-bold' : isActive ? 'text-primary/80' : 'text-text-secondary'}`}>
-                    {c.lastMessage.startsWith('![chat_image]') ? '🖼️ Hình ảnh' : c.lastMessage}
+                    {renderLastMessage(c.lastMessage)}
                   </p>
                 </div>
 

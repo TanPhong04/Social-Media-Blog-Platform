@@ -134,6 +134,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
            endCall(false);
         }
       }, 60000);
+
+      call.on('close', () => {
+        if (statusRef.current === 'connected' && isCallerRef.current) {
+           sendCallLog('ENDED');
+        }
+        endCall(false);
+      });
     });
 
     setPeer(newPeer);
