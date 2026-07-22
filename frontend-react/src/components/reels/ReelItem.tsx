@@ -221,7 +221,21 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
 
       {/* Bottom Info Overlay */}
       <div className="absolute left-4 bottom-8 right-20 z-20 flex items-end justify-between">
-        <div className="flex-1 pointer-events-none">
+        <div className="flex-1 pointer-events-none flex flex-col items-start">
+          <button 
+            className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm flex items-center justify-center text-white pointer-events-auto transition-colors mb-3 border border-white/20"
+            onClick={togglePlay}
+          >
+            {!isPlaying ? (
+              <Play className="w-5 h-5 fill-current ml-0.5" />
+            ) : (
+              <div className="w-4 h-4 flex justify-between items-center px-0.5">
+                <div className="w-1 h-full bg-white rounded-sm" />
+                <div className="w-1 h-full bg-white rounded-sm" />
+              </div>
+            )}
+          </button>
+
           <div className="flex items-center gap-3 mb-2.5 pointer-events-auto">
             <span 
               className="text-white font-bold text-base cursor-pointer hover:underline drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
@@ -278,7 +292,18 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
       </div>
       
       {/* Progress Bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-30">
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30 z-30 cursor-pointer hover:h-2.5 transition-all"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (videoRef.current) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percent = x / rect.width;
+            videoRef.current.currentTime = percent * videoRef.current.duration;
+          }
+        }}
+      >
         <div 
           className="h-full bg-primary transition-all duration-75 ease-linear rounded-r-full shadow-[0_0_10px_rgba(var(--color-primary),1)]"
           style={{ width: `${progress}%` }}

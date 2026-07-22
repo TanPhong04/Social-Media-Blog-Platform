@@ -14,7 +14,10 @@ const extractVideoUrl = (content: string): string | null => {
 const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
   const navigate = useNavigate();
   const [author, setAuthor] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
   const videoUrl = extractVideoUrl(article.content);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     userApi.getUserById(article.authorId).then((res: any) => {
@@ -22,48 +25,121 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
     }).catch(() => {});
   }, [article.authorId]);
 
+  const handleMouseEnter = () => {
+    if (videoRef.current) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const current = videoRef.current.currentTime;
+      const total = videoRef.current.duration;
+      setProgress((current / total) * 100 || 0);
+    }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      videoRef.current.currentTime = percent * videoRef.current.duration;
+    }
+  };
+
   return (
     <div 
-      className="relative shrink-0 w-[140px] sm:w-[200px] md:w-[180px] h-56 sm:h-72 rounded-xl overflow-hidden cursor-pointer group snap-start bg-surface-elevated border border-border-default shadow-sm hover:shadow-md transition-shadow"
+      className="relative shrink-0 w-[140px] sm:w-[200px] md:w-[180px] h-56 sm:h-72 rounded-xl overflow-hidden cursor-pointer group snap-start bg-surface-elevated border border-border-default shadow-sm hover:shadow-md transition-shadow flex flex-col"
       onClick={() => navigate('/reels/' + article.id, { state: { initialReel: article } })}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      {videoUrl ? (
-        <video 
-          src={videoUrl} 
-          className="w-full h-full object-cover"
-          preload="metadata"
-        />
-      ) : (
-        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-purple-500/20" />
-      )}
+      <div className="flex-1 relative overflow-hidden">
+        {videoUrl ? (
+          <video 
+            ref={videoRef}
+            src={videoUrl} 
+            className="w-full h-full object-cover"
+            preload="metadata"
+            muted
+            loop
+            playsInline
+            onTimeUpdate={handleTimeUpdate}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-purple-500/20" />
+        )}
       
-      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-      
-      <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-md px-1.5 py-0.5 rounded text-white text-[10px] font-bold">
-        <Film className="w-3 h-3" />
-        Reels
-      </div>
-
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white">
-          <Play className="w-5 h-5 fill-current ml-0.5" />
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors pointer-events-none" />
+        
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-md px-1.5 py-0.5 rounded text-white text-[10px] font-bold pointer-events-none z-10">
+          <Film className="w-3 h-3" />
+          Reels
         </div>
-      </div>
 
-      <div className="absolute bottom-2 left-2 right-2 flex flex-col">
-        <div className="flex items-center gap-1.5">
-          <div className="w-6 h-6 rounded-full overflow-hidden bg-primary shrink-0 border border-white/20">
-            {author?.avatarUrl ? (
-              <img src={author.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+          <button 
+            className="w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm flex items-center justify-center text-white pointer-events-auto transition-colors"
+            onClick={togglePlay}
+          >
+            {!isPlaying ? (
+              <Play className="w-6 h-6 fill-current ml-1" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-white text-[10px] font-bold">
-                {(author?.displayName || 'U').charAt(0).toUpperCase()}
+              <div className="w-5 h-5 flex justify-between items-center px-0.5">
+                <div className="w-1.5 h-full bg-white rounded-sm" />
+                <div className="w-1.5 h-full bg-white rounded-sm" />
               </div>
             )}
+          </button>
+        </div>
+
+        <div className="absolute bottom-3 left-2 right-2 flex flex-col pointer-events-none z-10">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-full overflow-hidden bg-primary shrink-0 border border-white/20">
+              {author?.avatarUrl ? (
+                <img src={author.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white text-[10px] font-bold">
+                  {(author?.displayName || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <span className="text-white text-xs font-semibold truncate drop-shadow-md">
+              {author?.displayName || 'Người dùng'}
+            </span>
           </div>
-          <span className="text-white text-xs font-semibold truncate drop-shadow-md">
-            {author?.displayName || 'Người dùng'}
-          </span>
+        </div>
+
+        {/* Progress Bar */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30 cursor-pointer z-20 hover:h-2.5 transition-all"
+          onClick={handleSeek}
+        >
+          <div 
+            className="h-full bg-primary transition-all duration-75 ease-linear rounded-r-full shadow-[0_0_10px_rgba(var(--color-primary),1)]"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
     </div>

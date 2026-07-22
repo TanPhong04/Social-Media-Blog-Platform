@@ -7,7 +7,7 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Film, Play, Sparkles } from 'lucide-react';
+import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Play, Sparkles } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
 import AiChatDrawer from './AiChatDrawer';
@@ -69,14 +69,11 @@ const MediaItem: React.FC<{
       onClick={onClick}
     >
       {isVideo ? (
-        <>
-          <video src={url} className="w-full h-full object-contain bg-black" />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none transition-transform group-hover/media:scale-110">
-            <div className="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl">
-               <Play className="w-6 h-6 text-white fill-white ml-1" />
-            </div>
-          </div>
-        </>
+        <AutoPlayVideo 
+          src={url} 
+          containerClassName="w-full h-full"
+          className="w-full h-auto max-h-[450px] object-contain" 
+        />
       ) : (
         <img 
           src={url} 
@@ -84,6 +81,107 @@ const MediaItem: React.FC<{
           className="w-full h-full object-cover hover:opacity-95 transition-opacity" 
         />
       )}
+    </div>
+  );
+};
+
+const AutoPlayVideo: React.FC<{ src: string; className?: string; containerClassName?: string }> = ({ src, className, containerClassName }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          } else {
+            video.pause();
+            setIsPlaying(false);
+          }
+        });
+      },
+      { threshold: 0.6 }
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [src]);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const current = videoRef.current.currentTime;
+      const total = videoRef.current.duration;
+      setProgress((current / total) * 100 || 0);
+    }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = x / rect.width;
+      videoRef.current.currentTime = percent * videoRef.current.duration;
+    }
+  };
+
+  return (
+    <div className={`relative group/video bg-black overflow-hidden flex justify-center items-center ${containerClassName || 'w-full h-full'}`}>
+      <video
+        ref={videoRef}
+        src={src}
+        className={className}
+        preload="metadata"
+        muted
+        loop
+        playsInline
+        onTimeUpdate={handleTimeUpdate}
+      />
+      
+      {/* Play/Pause Button */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-opacity pointer-events-none z-10">
+        <button 
+          className="w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md flex items-center justify-center text-white pointer-events-auto transition-colors border border-white/20 shadow-xl"
+          onClick={togglePlay}
+        >
+          {!isPlaying ? (
+            <Play className="w-6 h-6 fill-current ml-1" />
+          ) : (
+            <div className="w-6 h-6 flex justify-between items-center px-0.5">
+              <div className="w-1.5 h-full bg-white rounded-sm" />
+              <div className="w-1.5 h-full bg-white rounded-sm" />
+            </div>
+          )}
+        </button>
+      </div>
+
+      {/* Progress Bar */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30 cursor-pointer z-20 hover:h-2.5 transition-all"
+        onClick={handleSeek}
+      >
+        <div 
+          className="h-full bg-primary transition-all duration-75 ease-linear shadow-[0_0_10px_rgba(var(--color-primary),1)]"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
     </div>
   );
 };
@@ -109,52 +207,52 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
     }
     if (count === 2) {
       return (
-        <div className="grid grid-cols-2 gap-1 mt-2">
+        <div className="grid grid-cols-2 gap-1 mt-2 overflow-hidden rounded-app border border-border-default">
           {items.map((item, idx) => (
-            <MediaItem key={idx} url={item.url} isVideo={item.isVideo} articleId={articleId} className={`w-full aspect-[4/5] border border-border-default cursor-pointer ${idx === 0 ? 'rounded-l-app rounded-r-none' : 'rounded-r-app rounded-l-none'}`} onClick={(e) => handleImageClick(e, idx)} />
+            <MediaItem key={idx} url={item.url} isVideo={item.isVideo} articleId={articleId} className="w-full aspect-[4/5] cursor-pointer" onClick={(e) => handleImageClick(e, idx)} />
           ))}
         </div>
       );
     }
     if (count === 3) {
       return (
-        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
-          <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-l-app rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px] overflow-hidden rounded-app border border-border-default">
+          <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
           <div className="grid grid-rows-2 gap-1 h-full">
-            <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none rounded-tr-app cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
-            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none rounded-br-app cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+            <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
           </div>
         </div>
       );
     }
     if (count === 4) {
       return (
-        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
+        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px] overflow-hidden rounded-app border border-border-default">
           <div className="grid grid-rows-2 gap-1 h-full">
-             <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
-             <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+             <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+             <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
           </div>
           <div className="grid grid-rows-2 gap-1 h-full">
-             <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tr-app rounded-br-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
-             <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-br-app rounded-tr-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+             <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+             <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
           </div>
         </div>
       );
     }
     // count >= 5
     return (
-      <div className="grid grid-cols-2 gap-1 mt-2 h-[450px]">
+      <div className="grid grid-cols-2 gap-1 mt-2 h-[450px] overflow-hidden rounded-app border border-border-default">
         <div className="grid grid-rows-2 gap-1 h-full">
-           <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
-           <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+           <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+           <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
         </div>
         <div className="grid grid-rows-3 gap-1 h-full">
-           <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tr-app rounded-b-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
-           <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+           <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+           <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
            <div className="relative w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 4)}>
-             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-br-app rounded-t-none rounded-l-none" />
+             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full" />
              {count > 5 && (
-               <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-br-app text-white text-2xl font-bold">
+               <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xl font-bold">
                  +{count - 5}
                </div>
              )}
@@ -648,19 +746,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
         {isReel ? (
           <div 
-            className="relative w-full max-w-[320px] mx-auto rounded-xl overflow-hidden bg-black cursor-pointer group border border-border-default shadow-lg"
+            className="relative w-full rounded-xl overflow-hidden bg-black cursor-pointer group border border-border-default shadow-lg flex justify-center max-h-[85vh]"
             onClick={(e) => { e.stopPropagation(); navigate('/reels', { state: { initialReel: article } }); }}
           >
-            <video src={videos[0]} className="w-full aspect-[9/16] object-contain opacity-90 group-hover:opacity-100 transition" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 group-hover:bg-black/10 transition">
-              <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-md border border-white/20">
-                <Play className="w-6 h-6 text-white fill-white ml-1" />
-              </div>
-            </div>
-            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded flex items-center gap-1.5 border border-border-default">
-              <Film className="w-3.5 h-3.5 text-white" />
-              <span className="text-[11px] text-white font-bold uppercase tracking-widest">Reel</span>
-            </div>
+            <AutoPlayVideo 
+              src={videos[0]} 
+              containerClassName="w-full max-h-[85vh]"
+              className="w-full h-auto max-h-[85vh] object-contain opacity-90 group-hover:opacity-100 transition" 
+            />
           </div>
         ) : (
           <MediaGallery items={mediaItems} articleId={article.id} />
