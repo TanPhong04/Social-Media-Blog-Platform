@@ -459,7 +459,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
             <X className="w-6 h-6" />
           </button>
           {article?.content?.includes(`<video src="${mediaUrlQuery}"`) ? (
-            <div className="relative w-full max-w-[420px] h-[calc(100vh-4rem)] mx-auto flex items-center justify-center">
+            <div className="relative w-full h-full flex items-center justify-center">
               <video src={mediaUrlQuery} controls autoPlay className="w-full h-full object-contain outline-none" />
               
               {/* Right Actions Overlay */}
