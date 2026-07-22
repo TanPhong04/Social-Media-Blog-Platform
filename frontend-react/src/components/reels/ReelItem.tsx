@@ -3,7 +3,7 @@ import { articleApi, type ArticleResponse } from '../../api/articleApi';
 import { userApi } from '../../api/userApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ThumbsUp, MessageCircle, Share2, Music, Play } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Share2, Music, Play, Volume2, VolumeX } from 'lucide-react';
 import ShareModal from '../ShareModal';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
@@ -28,6 +28,9 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   let videoUrl = '';
   const content = article.content || '';
@@ -72,9 +75,34 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const current = videoRef.current.currentTime;
-      const total = videoRef.current.duration;
+      const total = videoRef.current.duration || 1;
       setProgress((current / total) * 100);
+      setCurrentTime(current);
+      setDuration(videoRef.current.duration || 0);
     }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      const val = parseFloat(e.target.value);
+      const newTime = (val / 100) * (videoRef.current.duration || 1);
+      videoRef.current.currentTime = newTime;
+      setProgress(val);
+      setCurrentTime(newTime);
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMuted(!isMuted);
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '00:00';
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   const handleLike = async (e: React.MouseEvent, reactionType: string = 'LIKE') => {
@@ -120,8 +148,10 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
         className="w-full h-full object-contain cursor-pointer"
         loop
         playsInline
+        muted={isMuted}
         onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
       />
 
       {/* Play Icon Overlay */}
@@ -136,6 +166,15 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
       {/* Gradient Bottom Overlay */}
       <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none z-10" />
       <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-10" />
+
+      {/* Mute Toggle */}
+      <button 
+        className="absolute top-6 right-6 p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white z-20 pointer-events-auto border border-white/20 transition-all hover:scale-110"
+        onClick={toggleMute}
+        title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+      >
+        {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+      </button>
 
       {/* Right Actions */}
       <div className="absolute right-4 bottom-20 flex flex-col items-center gap-5 z-20">
@@ -291,23 +330,25 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
         </div>
       </div>
       
-      {/* Progress Bar */}
+      {/* Progress Bar & Time */}
       <div 
-        className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30 z-30 cursor-pointer hover:h-2.5 transition-all"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (videoRef.current) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const percent = x / rect.width;
-            videoRef.current.currentTime = percent * videoRef.current.duration;
-          }
-        }}
+        className="absolute bottom-0 left-0 right-0 px-4 py-2 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-3 z-30 pointer-events-auto"
+        onClick={e => e.stopPropagation()}
       >
-        <div 
-          className="h-full bg-primary transition-all duration-75 ease-linear rounded-r-full shadow-[0_0_10px_rgba(var(--color-primary),1)]"
-          style={{ width: `${progress}%` }}
+        <span className="text-white text-[13px] font-medium w-10 text-right drop-shadow-md">{formatTime(currentTime)}</span>
+        
+        <input 
+          type="range"
+          min="0"
+          max="100"
+          step="0.1"
+          value={progress}
+          onChange={handleSeek}
+          className="flex-1 h-1.5 bg-white/30 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg focus:outline-none"
+          style={{ background: `linear-gradient(to right, var(--color-primary) ${progress}%, rgba(255,255,255,0.3) ${progress}%)` }}
         />
+        
+        <span className="text-white/90 text-[13px] font-medium w-10 drop-shadow-md">{formatTime(duration)}</span>
       </div>
       
       <ShareModal

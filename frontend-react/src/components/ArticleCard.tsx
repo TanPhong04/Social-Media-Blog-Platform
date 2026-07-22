@@ -7,7 +7,7 @@ import { commentApi } from '../api/commentApi';
 import type { CommentResponse } from '../api/commentApi';
 import { mediaApi } from '../api/mediaApi';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Play, Sparkles } from 'lucide-react';
+import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3, Trash2, X, Check, Image as ImageIcon, Repeat, Send, Edit2, Smile, Play, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
 import AiChatDrawer from './AiChatDrawer';
@@ -89,6 +89,9 @@ const AutoPlayVideo: React.FC<{ src: string; className?: string; containerClassN
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   
   useEffect(() => {
     const video = videoRef.current;
@@ -127,19 +130,34 @@ const AutoPlayVideo: React.FC<{ src: string; className?: string; containerClassN
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const current = videoRef.current.currentTime;
-      const total = videoRef.current.duration;
-      setProgress((current / total) * 100 || 0);
+      const total = videoRef.current.duration || 1;
+      setProgress((current / total) * 100);
+      setCurrentTime(current);
+      setDuration(videoRef.current.duration || 0);
     }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     if (videoRef.current) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const percent = x / rect.width;
-      videoRef.current.currentTime = percent * videoRef.current.duration;
+      const percent = parseFloat(e.target.value);
+      const newTime = (percent / 100) * (videoRef.current.duration || 1);
+      videoRef.current.currentTime = newTime;
+      setProgress(percent);
+      setCurrentTime(newTime);
     }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMuted(!isMuted);
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '00:00';
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   return (
@@ -149,10 +167,11 @@ const AutoPlayVideo: React.FC<{ src: string; className?: string; containerClassN
         src={src}
         className={className}
         preload="metadata"
-        muted
+        muted={isMuted}
         loop
         playsInline
         onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
       />
       
       {/* Play/Pause Button */}
@@ -172,15 +191,34 @@ const AutoPlayVideo: React.FC<{ src: string; className?: string; containerClassN
         </button>
       </div>
 
-      {/* Progress Bar */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30 cursor-pointer z-20 hover:h-2.5 transition-all"
-        onClick={handleSeek}
+      {/* Mute Toggle */}
+      <button 
+        className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full text-white opacity-0 group-hover/video:opacity-100 transition-opacity z-20 pointer-events-auto border border-white/20"
+        onClick={toggleMute}
+        title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
       >
-        <div 
-          className="h-full bg-primary transition-all duration-75 ease-linear shadow-[0_0_10px_rgba(var(--color-primary),1)]"
-          style={{ width: `${progress}%` }}
+        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+      </button>
+
+      {/* Progress Bar & Time */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-3 opacity-0 group-hover/video:opacity-100 transition-opacity z-20 pointer-events-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <span className="text-white text-[11px] font-medium w-9 text-right drop-shadow-md">{formatTime(currentTime)}</span>
+        
+        <input 
+          type="range"
+          min="0"
+          max="100"
+          step="0.1"
+          value={progress}
+          onChange={handleSeek}
+          className="flex-1 h-1.5 bg-white/30 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg focus:outline-none"
+          style={{ background: `linear-gradient(to right, var(--color-primary) ${progress}%, rgba(255,255,255,0.3) ${progress}%)` }}
         />
+        
+        <span className="text-white/90 text-[11px] font-medium w-9 drop-shadow-md">{formatTime(duration)}</span>
       </div>
     </div>
   );

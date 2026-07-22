@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { articleApi, type ArticleResponse } from '../../api/articleApi';
 import { userApi } from '../../api/userApi';
-import { Play, ChevronLeft, ChevronRight, Film } from 'lucide-react';
+import { Play, ChevronLeft, ChevronRight, Film, Volume2, VolumeX } from 'lucide-react';
 
 import { isReel } from '../../utils/feedMixer';
 
@@ -16,6 +16,9 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
   const [author, setAuthor] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const videoUrl = extractVideoUrl(article.content);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -53,19 +56,34 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const current = videoRef.current.currentTime;
-      const total = videoRef.current.duration;
-      setProgress((current / total) * 100 || 0);
+      const total = videoRef.current.duration || 1;
+      setProgress((current / total) * 100);
+      setCurrentTime(current);
+      setDuration(videoRef.current.duration || 0);
     }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     if (videoRef.current) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const percent = x / rect.width;
-      videoRef.current.currentTime = percent * videoRef.current.duration;
+      const val = parseFloat(e.target.value);
+      const newTime = (val / 100) * (videoRef.current.duration || 1);
+      videoRef.current.currentTime = newTime;
+      setProgress(val);
+      setCurrentTime(newTime);
     }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMuted(!isMuted);
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '00:00';
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   return (
@@ -82,10 +100,11 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
             src={videoUrl} 
             className="w-full h-full object-cover"
             preload="metadata"
-            muted
+            muted={isMuted}
             loop
             playsInline
             onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/20 to-purple-500/20" />
@@ -114,7 +133,17 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
           </button>
         </div>
 
-        <div className="absolute bottom-3 left-2 right-2 flex flex-col pointer-events-none z-10">
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto z-20">
+          <button 
+            className="p-1.5 bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full text-white border border-white/20"
+            onClick={toggleMute}
+            title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+          >
+            {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+
+        <div className="absolute bottom-6 left-2 right-2 flex flex-col pointer-events-none z-10">
           <div className="flex items-center gap-1.5">
             <div className="w-6 h-6 rounded-full overflow-hidden bg-primary shrink-0 border border-white/20">
               {author?.avatarUrl ? (
@@ -131,15 +160,25 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
           </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar & Time */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30 cursor-pointer z-20 hover:h-2.5 transition-all"
-          onClick={handleSeek}
+          className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-auto"
+          onClick={e => e.stopPropagation()}
         >
-          <div 
-            className="h-full bg-primary transition-all duration-75 ease-linear rounded-r-full shadow-[0_0_10px_rgba(var(--color-primary),1)]"
-            style={{ width: `${progress}%` }}
+          <span className="text-white text-[10px] font-medium w-7 text-right drop-shadow-md">{formatTime(currentTime)}</span>
+          
+          <input 
+            type="range"
+            min="0"
+            max="100"
+            step="0.1"
+            value={progress}
+            onChange={handleSeek}
+            className="flex-1 h-1 bg-white/30 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full focus:outline-none"
+            style={{ background: `linear-gradient(to right, var(--color-primary) ${progress}%, rgba(255,255,255,0.3) ${progress}%)` }}
           />
+          
+          <span className="text-white/90 text-[10px] font-medium w-7 drop-shadow-md">{formatTime(duration)}</span>
         </div>
       </div>
     </div>
