@@ -117,7 +117,7 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
       <video
         ref={videoRef}
         src={videoUrl}
-        className="w-full h-full object-cover cursor-pointer"
+        className="w-full h-full object-contain cursor-pointer"
         loop
         playsInline
         onClick={togglePlay}

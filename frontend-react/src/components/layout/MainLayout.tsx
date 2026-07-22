@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Navbar from '../Navbar';
 import Sidebar from './Sidebar';
@@ -8,6 +8,7 @@ import { userApi } from '../../api/userApi';
 import { notificationApi } from '../../api/notificationApi';
 import { commentApi } from '../../api/commentApi';
 import { Bell, Heart, MessageCircle, UserPlus, Repeat, X, MessageSquare } from 'lucide-react';
+import { Spinner } from '../ui/Spinner';
 
 const MainLayout = () => {
   const { isAuthenticated, user } = useAuth();
@@ -247,7 +248,9 @@ const MainLayout = () => {
 
         {/* Center Content */}
         <main className="flex-1 w-full min-w-0 pb-12">
-          <Outlet />
+          <Suspense fallback={<div className="flex h-[50vh] items-center justify-center"><Spinner size="lg" /></div>}>
+            <Outlet />
+          </Suspense>
         </main>
         
         {/* Right Sidebar */}

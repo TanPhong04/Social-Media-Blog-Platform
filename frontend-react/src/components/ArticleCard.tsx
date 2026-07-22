@@ -651,7 +651,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             className="relative w-full max-w-[320px] mx-auto rounded-xl overflow-hidden bg-black cursor-pointer group border border-border-default shadow-lg"
             onClick={(e) => { e.stopPropagation(); navigate('/reels', { state: { initialReel: article } }); }}
           >
-            <video src={videos[0]} className="w-full aspect-[9/16] object-cover opacity-90 group-hover:opacity-100 transition" />
+            <video src={videos[0]} className="w-full aspect-[9/16] object-contain opacity-90 group-hover:opacity-100 transition" />
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 group-hover:bg-black/10 transition">
               <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-md border border-white/20">
                 <Play className="w-6 h-6 text-white fill-white ml-1" />

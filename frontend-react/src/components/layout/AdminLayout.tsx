@@ -57,7 +57,7 @@ const AdminLayout = () => {
                   clsx(
                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden',
                     isActive
-                      ? 'bg-primary/15 text-primary font-medium shadow-sm'
+                      ? 'bg-primary/15 text-primary font-medium shadow-sm pointer-events-none'
                       : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                   )
                 }

@@ -79,7 +79,7 @@ const Sidebar = () => {
                 clsx(
                   'flex items-center gap-4 px-4 py-3 rounded-app transition-all duration-300 group',
                   isActive
-                    ? 'bg-primary/10 text-primary font-medium'
+                    ? 'bg-primary/10 text-primary font-medium pointer-events-none'
                     : 'text-text-secondary hover:bg-surface hover:text-text-primary'
                 )
               }

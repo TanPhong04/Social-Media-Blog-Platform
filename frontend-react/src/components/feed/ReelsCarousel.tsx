@@ -104,11 +104,11 @@ export const ReelsCarousel: React.FC = () => {
   if (loading) {
     return (
       <div className="py-4 border-b border-border-default bg-surface/30">
-        <div className="px-4 sm:px-6 mb-3 flex items-center gap-2">
+        <div className="px-4 mb-3 flex items-center gap-2">
           <Film className="w-5 h-5 text-text-primary" />
           <h2 className="font-heading font-bold text-lg text-text-primary">Reels</h2>
         </div>
-        <div className="flex gap-3 overflow-hidden px-4 sm:px-6">
+        <div className="flex gap-3 overflow-hidden px-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="shrink-0 w-[140px] sm:w-[200px] md:w-[180px] h-56 sm:h-72 bg-surface-elevated animate-pulse rounded-xl" />
           ))}
@@ -121,7 +121,7 @@ export const ReelsCarousel: React.FC = () => {
 
   return (
     <div className="py-4 border-b border-border-default bg-surface/30">
-      <div className="px-4 sm:px-6 mb-3 flex items-center justify-between">
+      <div className="px-4 mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Film className="w-5 h-5 text-primary" />
           <h2 className="font-heading font-bold text-lg text-text-primary">Reels</h2>
@@ -138,7 +138,7 @@ export const ReelsCarousel: React.FC = () => {
 
         <div 
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 sm:px-6 pb-2 scrollbar-hide"
+          className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {reels.map(reel => (

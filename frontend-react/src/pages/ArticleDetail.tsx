@@ -89,6 +89,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [isReposted, setIsReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(0);
   const [newComment, setNewComment] = useState('');
@@ -110,7 +111,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  // Nạp trạng thái đăng lại (repost)
+  // Nạp trạng thái đăng lại (repost) và lưu bài viết (bookmark)
   useEffect(() => {
     if (user && article) {
       try {
@@ -118,6 +119,12 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
         setIsReposted(reposts.some((b: any) => b.id === article.id));
       } catch (e) {
         setIsReposted(false);
+      }
+      try {
+        const bookmarks = JSON.parse(localStorage.getItem(`bookmarks_${user.id}`) || '[]');
+        setIsBookmarked(bookmarks.some((b: any) => b.id === article.id));
+      } catch (e) {
+        setIsBookmarked(false);
       }
     }
   }, [article, user]);
@@ -131,6 +138,28 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
       setCommentImage(url);
     } catch (err) {
       console.error('Error uploading comment image:', err);
+    }
+  };
+
+  const handleBookmarkToggle = () => {
+    if (!user) return navigate('/login');
+    if (!article) return;
+
+    try {
+      const storageKey = `bookmarks_${user.id}`;
+      const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      let newBookmarks;
+
+      if (isBookmarked) {
+        newBookmarks = bookmarks.filter((b: any) => b.id !== article.id);
+      } else {
+        newBookmarks = [...bookmarks, article];
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(newBookmarks));
+      setIsBookmarked(!isBookmarked);
+    } catch (err) {
+      console.error('Error handling bookmark', err);
     }
   };
 
@@ -158,7 +187,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
           content: `[repost] đã đăng lại bài viết này`
         });
         const reposts = JSON.parse(localStorage.getItem(`reposts_${user.id}`) || '[]');
-        reposts.push({ id: article.id });
+        reposts.push(article);
         localStorage.setItem(`reposts_${user.id}`, JSON.stringify(reposts));
         setIsReposted(true);
         setRepostCount(prev => prev + 1);
@@ -431,7 +460,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
           </button>
           {article?.content?.includes(`<video src="${mediaUrlQuery}"`) ? (
             <div className="relative w-full max-w-[420px] h-[calc(100vh-4rem)] mx-auto flex items-center justify-center">
-              <video src={mediaUrlQuery} controls autoPlay className="w-full h-full object-cover outline-none" />
+              <video src={mediaUrlQuery} controls autoPlay className="w-full h-full object-contain outline-none" />
               
               {/* Right Actions Overlay */}
               <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-20">
@@ -656,7 +685,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
               <ArticleActions
                 isLiked={isLiked}
                 likeCount={likeCount}
-                isBookmarked={false}
+                isBookmarked={isBookmarked}
                 bookmarkCount={0}
                 isReposted={isReposted}
                 repostCount={repostCount}
@@ -664,7 +693,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                 isOwnArticle={user?.id === article.authorId}
                 myReaction={myReaction}
                 onLike={(e, reactionType) => handleLike(e, reactionType)}
-                onBookmark={() => {}}
+                onBookmark={handleBookmarkToggle}
                 onRepost={handleRepostToggle}
                 onCommentClick={() => { document.querySelector<HTMLInputElement>('input[placeholder="Post your reply"]')?.focus(); }}
                 onShareClick={() => setShowShareModal(true)}
