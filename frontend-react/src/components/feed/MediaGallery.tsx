@@ -60,52 +60,52 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({ items, articleId }) 
     }
     if (count === 2) {
       return (
-        <div className="grid grid-cols-2 gap-1 mt-2">
+        <div className="grid grid-cols-2 gap-1 mt-2 overflow-hidden rounded-app border border-border-default">
           {items.map((item, idx) => (
-            <MediaItem key={idx} url={item.url} isVideo={item.isVideo} articleId={articleId} className={`w-full aspect-[4/5] border border-border-default cursor-pointer ${idx === 0 ? 'rounded-l-app rounded-r-none' : 'rounded-r-app rounded-l-none'}`} onClick={(e) => handleImageClick(e, idx)} />
+            <MediaItem key={idx} url={item.url} isVideo={item.isVideo} articleId={articleId} className="w-full aspect-[4/5] cursor-pointer" onClick={(e) => handleImageClick(e, idx)} />
           ))}
         </div>
       );
     }
     if (count === 3) {
       return (
-        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
-          <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-l-app rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px] overflow-hidden rounded-app border border-border-default">
+          <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
           <div className="grid grid-rows-2 gap-1 h-full">
-            <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none rounded-tr-app cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
-            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none rounded-br-app cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+            <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
           </div>
         </div>
       );
     }
     if (count === 4) {
       return (
-        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
+        <div className="grid grid-cols-2 gap-1 mt-2 h-[400px] overflow-hidden rounded-app border border-border-default">
           <div className="grid grid-rows-2 gap-1 h-full">
-             <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
-             <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+             <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+             <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
           </div>
           <div className="grid grid-rows-2 gap-1 h-full">
-             <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tr-app rounded-br-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
-             <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-br-app rounded-tr-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+             <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+             <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
           </div>
         </div>
       );
     }
     // count >= 5
     return (
-      <div className="grid grid-cols-2 gap-1 mt-2 h-[450px]">
+      <div className="grid grid-cols-2 gap-1 mt-2 h-[450px] overflow-hidden rounded-app border border-border-default">
         <div className="grid grid-rows-2 gap-1 h-full">
-           <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
-           <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+           <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+           <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
         </div>
         <div className="grid grid-rows-3 gap-1 h-full">
-           <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tr-app rounded-b-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
-           <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+           <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+           <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
            <div className="relative w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 4)}>
-             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-br-app rounded-t-none rounded-l-none" />
+             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full" />
              {count > 5 && (
-               <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-br-app text-white text-2xl font-bold">
+               <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xl font-bold">
                  +{count - 5}
                </div>
              )}
