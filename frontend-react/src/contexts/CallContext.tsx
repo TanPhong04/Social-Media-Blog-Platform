@@ -53,9 +53,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const remoteIdRef = useRef<string | null>(null);
   const ringTimeoutRef = useRef<any>(null);
 
-  useEffect(() => {
-    statusRef.current = callStatus;
-  }, [callStatus]);
+  const updateStatus = (status: 'idle' | 'outgoing' | 'incoming' | 'connected') => {
+    statusRef.current = status;
+    setCallStatus(status);
+  };
 
   useEffect(() => {
     durationRef.current = callDuration;
@@ -125,7 +126,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setIsVideo(call.metadata?.isVideo || false);
-      setCallStatus('incoming');
+      updateStatus('incoming');
       playRing();
       
       ringTimeoutRef.current = setTimeout(() => {
@@ -177,7 +178,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     isCallerRef.current = true;
     remoteIdRef.current = contactId;
-    setCallStatus('outgoing');
+    updateStatus('outgoing');
     playRing();
     
     ringTimeoutRef.current = setTimeout(() => {
@@ -190,7 +191,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const stream = await getMedia(video);
     if (!stream) {
       stopRing();
-      setCallStatus('idle');
+      updateStatus('idle');
       return;
     }
 
@@ -200,7 +201,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     call.on('stream', (remoteStreamData) => {
       stopRing();
       setRemoteStream(remoteStreamData);
-      setCallStatus('connected');
+      updateStatus('connected');
     });
 
     call.on('close', () => {
@@ -219,7 +220,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       connectionRef.current.on('stream', (remoteStreamData) => {
         setRemoteStream(remoteStreamData);
-        setCallStatus('connected');
+        updateStatus('connected');
       });
 
       connectionRef.current.on('close', () => {
@@ -256,7 +257,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       connectionRef.current.close();
     }
     stopMedia();
-    setCallStatus('idle');
+    updateStatus('idle');
     setRemoteProfile(null);
   };
 
