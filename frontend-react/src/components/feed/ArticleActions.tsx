@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ThumbsUp } from 'lucide-react';
 
 interface ArticleActionsProps {
   isLiked: boolean;
@@ -8,7 +9,9 @@ interface ArticleActionsProps {
   isReposted: boolean;
   repostCount: number;
   commentCount: number;
-  onLike: () => void;
+  isOwnArticle?: boolean;
+  myReaction?: string | null;
+  onLike: (e: React.MouseEvent, reactionType: string) => void;
   onBookmark: () => void;
   onRepost: () => void;
   onCommentClick: () => void;
@@ -23,14 +26,66 @@ export const ArticleActions: React.FC<ArticleActionsProps> = ({
   isReposted,
   repostCount,
   commentCount,
+  isOwnArticle,
+  myReaction,
   onLike,
   onBookmark,
   onRepost,
   onCommentClick,
   onShareClick
 }) => {
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+
   return (
     <div className="flex items-center justify-between text-text-secondary mt-3 px-1 border-t border-border-default pt-3">
+      {/* Like Button */}
+      <div 
+        className="flex items-center relative"
+        onMouseEnter={() => setShowReactionPicker(true)}
+        onMouseLeave={() => setShowReactionPicker(false)}
+      >
+        {showReactionPicker && (
+          <div className="absolute bottom-full left-0 mb-2 bg-background border border-border-default rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out] after:content-[''] after:absolute after:w-full after:h-4 after:top-full after:left-0">
+            {[
+              { type: 'LIKE', icon: '👍' },
+              { type: 'LOVE', icon: '❤️' },
+              { type: 'HAHA', icon: '😂' },
+              { type: 'SAD', icon: '😢' },
+              { type: 'ANGRY', icon: '😡' }
+            ].map((reaction) => (
+              <button
+                key={reaction.type}
+                onClick={(e) => {
+                  setShowReactionPicker(false);
+                  onLike(e, reaction.type);
+                }}
+                className="text-2xl hover:scale-125 transition-transform origin-bottom cursor-pointer"
+                title={reaction.type}
+              >
+                {reaction.icon}
+              </button>
+            ))}
+          </div>
+        )}
+        
+        <button 
+          onClick={(e) => onLike(e, 'LIKE')}
+          className={`flex items-center gap-1.5 group transition-colors ${isLiked ? 'text-primary' : 'hover:text-primary'}`}
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isLiked ? 'bg-primary/10' : 'group-hover:bg-primary/10'}`}>
+            {myReaction === 'LOVE' ? <span className="text-xl leading-none">❤️</span> :
+             myReaction === 'HAHA' ? <span className="text-xl leading-none">😂</span> :
+             myReaction === 'WOW' ? <span className="text-xl leading-none">😮</span> :
+             myReaction === 'SAD' ? <span className="text-xl leading-none">😢</span> :
+             myReaction === 'ANGRY' ? <span className="text-xl leading-none">😡</span> :
+             myReaction === 'LIKE' ? <span className="text-xl leading-none text-primary">👍</span> :
+             <ThumbsUp className={`w-5 h-5 group-hover:scale-110 transition-transform ${isLiked ? 'fill-current text-primary' : ''}`} />
+            }
+          </div>
+          <span className="text-[13px]">{likeCount > 0 ? likeCount : ''}</span>
+        </button>
+      </div>
+
       {/* Comment Button */}
       <button 
         onClick={onCommentClick}
@@ -46,28 +101,16 @@ export const ArticleActions: React.FC<ArticleActionsProps> = ({
 
       {/* Repost Button */}
       <button 
-        onClick={onRepost}
-        className={`flex items-center gap-1.5 group transition-colors ${isReposted ? 'text-success' : 'hover:text-success'}`}
+        onClick={() => { if (!isOwnArticle) onRepost(); }}
+        disabled={isOwnArticle}
+        className={`flex items-center gap-1.5 group transition-colors ${isOwnArticle ? 'opacity-50 cursor-not-allowed' : isReposted ? 'text-success' : 'hover:text-success'}`}
       >
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isReposted ? 'bg-success/10' : 'group-hover:bg-success/10'}`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOwnArticle ? '' : isReposted ? 'bg-success/10' : 'group-hover:bg-success/10'}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </div>
         <span className="text-[13px]">{repostCount > 0 ? repostCount : ''}</span>
-      </button>
-
-      {/* Like Button */}
-      <button 
-        onClick={onLike}
-        className={`flex items-center gap-1.5 group transition-colors ${isLiked ? 'text-error' : 'hover:text-error'}`}
-      >
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isLiked ? 'bg-error/10' : 'group-hover:bg-error/10'}`}>
-          <svg viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isLiked ? 0 : 2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </div>
-        <span className="text-[13px]">{likeCount > 0 ? likeCount : ''}</span>
       </button>
 
       {/* Bookmark Button */}

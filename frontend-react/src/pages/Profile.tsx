@@ -266,7 +266,7 @@ const Profile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background flex flex-col items-center justify-center p-8">
+      <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background flex flex-col items-center justify-center p-8">
         <Spinner size="lg" className="text-primary mb-4" />
         <p className="text-text-secondary text-sm font-medium">Đang tải hồ sơ...</p>
       </div>
@@ -275,7 +275,7 @@ const Profile: React.FC = () => {
 
   if (error || !profile) {
     return (
-      <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background p-8 flex flex-col items-center justify-center">
+      <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background p-8 flex flex-col items-center justify-center">
         <EmptyState 
           title="Hồ sơ không khả dụng" 
           description={error || "Người dùng này không tồn tại hoặc đã bị khóa."}
@@ -287,7 +287,7 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-12">
+    <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-12">
       {/* Header bar */}
       <div className="px-4 py-3 border-b border-border-default sticky top-16 bg-background/80 backdrop-blur-xl z-40 flex items-center gap-6">
         <button

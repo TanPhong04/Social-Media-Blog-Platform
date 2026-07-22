@@ -18,14 +18,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine, c
     }
 
     return (
-      <div className="space-y-2 max-w-full">
-        {text.trim() && <p className="whitespace-pre-wrap break-words">{text.trim()}</p>}
+      <div className="space-y-2.5 max-w-full">
+        {text.trim() && <p className="whitespace-pre-wrap break-words leading-[1.6]">{text.trim()}</p>}
         {imageSrc && (
-          <div className="rounded-lg overflow-hidden border border-border-subtle bg-black/25">
+          <div className="rounded-xl overflow-hidden bg-black/5 shadow-inner border border-white/5">
             <img 
               src={imageSrc} 
-              alt="Sent attachment" 
-              className="max-h-52 w-auto max-w-full object-contain cursor-pointer hover:opacity-95 transition-opacity" 
+              alt="Attachment" 
+              className="max-h-64 w-auto max-w-full object-contain cursor-pointer hover:scale-[1.02] transition-transform duration-300" 
               onClick={() => window.open(imageSrc, '_blank')} 
             />
           </div>
@@ -35,31 +35,36 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine, c
   };
 
   return (
-    <div className={`flex gap-3 ${isMine ? 'justify-end' : 'justify-start'} group animate-fade-in`}>
+    <div className={`flex gap-2.5 ${isMine ? 'justify-end' : 'justify-start'} group animate-fade-in`}>
       {!isMine && (
         <div className="shrink-0 self-end mb-1">
           <Avatar 
             src={contactProfile?.avatarUrl} 
             fallback={contactProfile?.displayName?.charAt(0).toUpperCase() || 'U'} 
             size="sm" 
+            className="shadow-sm"
           />
         </div>
       )}
       
-      <div className={`flex flex-col max-w-[75%] ${isMine ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col max-w-[78%] ${isMine ? 'items-end' : 'items-start'}`}>
         <div 
-          className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+          className={`px-4 py-3 text-[14.5px] shadow-sm relative ${
             isMine 
-              ? 'bg-primary text-white rounded-br-none' 
-              : 'bg-surface-elevated border border-border-default text-text-primary rounded-bl-none'
+              ? 'bg-gradient-to-br from-primary to-primary-hover text-white rounded-[22px] rounded-br-[4px] shadow-primary/20' 
+              : 'bg-surface-elevated border border-border-subtle text-text-primary rounded-[22px] rounded-bl-[4px] hover:shadow-md transition-shadow'
           }`}
         >
           {renderContent(message.content)}
         </div>
-        <span className="text-[10px] text-text-secondary/60 font-medium mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          {new Date(message.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-          {isMine && message.isRead && <span className="text-green-500">✓ Đã đọc</span>}
-        </span>
+        <div className={`flex items-center gap-1.5 mt-1.5 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+          <span className="text-[10px] text-text-secondary/80 font-semibold tracking-wide uppercase">
+            {new Date(message.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          {isMine && message.isRead && (
+            <span className="text-[10px] text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded-full">Đã đọc</span>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -56,7 +56,7 @@ const Bookmarks: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="max-w-2xl mx-auto border-x border-border-default min-h-screen bg-background p-8 flex items-center justify-center">
+      <div className="w-full max-w-[840px] mx-auto border-x border-border-default min-h-screen bg-background p-8 flex items-center justify-center">
         <EmptyState 
           icon={<AlertCircle className="w-12 h-12 text-primary" />}
           title="Yêu cầu đăng nhập"
@@ -68,7 +68,7 @@ const Bookmarks: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto border-x border-border-default min-h-screen bg-background">
+    <div className="w-full max-w-[840px] mx-auto border-x border-border-default min-h-screen bg-background">
       {/* Header trang */}
       <div className="p-4 border-b border-border-default sticky top-[64px] sm:top-16 bg-surface/80 backdrop-blur-md z-40 flex items-center justify-between">
         <div className="flex items-center gap-3">

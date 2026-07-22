@@ -106,7 +106,7 @@ const Following: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="max-w-2xl mx-auto border-x border-border-default min-h-screen bg-background p-8 text-center flex flex-col items-center justify-center">
+      <div className="w-full max-w-[840px] mx-auto border-x border-border-default min-h-screen bg-background p-8 text-center flex flex-col items-center justify-center">
         <AlertCircle className="w-12 h-12 text-primary mb-4" />
         <h3 className="text-xl font-bold text-text-primary mb-2">Yêu cầu đăng nhập</h3>
         <p className="text-text-secondary text-sm">Vui lòng đăng nhập để xem và quản lý kết nối của bạn.</p>
@@ -118,7 +118,7 @@ const Following: React.FC = () => {
   const listToRender = activeTab === 'suggestions' ? suggestions : followingList;
 
   return (
-    <div className="max-w-2xl mx-auto border-x border-border-default min-h-screen bg-background pb-20">
+    <div className="w-full max-w-[840px] mx-auto border-x border-border-default min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="p-4 border-b border-border-default sticky top-16 bg-background/85 backdrop-blur-md z-40 flex items-center gap-3">
         <div className="p-2.5 bg-surface text-primary rounded-app border border-border-default shadow-md">

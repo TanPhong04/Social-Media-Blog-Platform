@@ -139,7 +139,7 @@ const RightSidebar = () => {
   };
 
   return (
-    <aside className="hidden xl:block w-80 h-[calc(100vh-4rem)] sticky top-16 py-6 px-4 overflow-y-auto custom-scrollbar">
+    <aside className="hidden xl:block w-[350px] h-[calc(100vh-4rem)] sticky top-16 py-6 px-4 overflow-y-auto custom-scrollbar">
       
       {isAuthenticated && (
         <div className="bg-surface rounded-app p-5 border border-border-default shadow-sm mb-6">

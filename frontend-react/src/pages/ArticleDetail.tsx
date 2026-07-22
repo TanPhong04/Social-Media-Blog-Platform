@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { articleApi, type ArticleResponse } from '../api/articleApi';
 import { commentApi, type CommentResponse } from '../api/commentApi';
@@ -137,6 +137,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
   const handleRepostToggle = async () => {
     if (!user) return navigate('/login');
     if (!article) return;
+    if (user.id === article.authorId) return; // Không cho phép tác giả tự đăng lại bài của mình
 
     try {
       if (isReposted) {
@@ -220,11 +221,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     else if (diff < -50) goToNextReel('prev');
   };
 
-  useEffect(() => {
-    if (slug) {
-      fetchData();
-    }
-  }, [slug, user?.id]);
+
 
   useEffect(() => {
     if (user && article) {
@@ -242,9 +239,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
         }).catch(() => {});
       }
     }
-  }, [mediaUrlQuery, article?.id, user]);
+  }, [mediaUrlQuery, article?.id, user, article]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch article (Supports both friendly slug and raw article UUID)
@@ -270,7 +267,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
              try {
                 await followerApi.status(art.authorId);
                 setIsFollowing(true);
-             } catch(err) {
+             } catch (err) {
                 setIsFollowing(false);
              }
            }
@@ -302,7 +299,13 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug, mediaUrlQuery, user?.id]);
+
+  useEffect(() => {
+    if (slug) {
+      fetchData();
+    }
+  }, [slug, user?.id, fetchData]);
 
   const handleFollowToggle = async () => {
     if (!user) return navigate('/login');
@@ -392,7 +395,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
 
   if (loading) {
       return (
-        <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background p-8 flex items-center justify-center">
+        <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background p-8 flex items-center justify-center">
            <Spinner size="lg" className="text-primary" />
         </div>
       );
@@ -400,7 +403,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
 
   if (!article) {
       return (
-        <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background p-8 flex items-center justify-center">
+        <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background p-8 flex items-center justify-center">
           <EmptyState 
             title="Không tìm thấy bài viết" 
             description="Bài viết này không tồn tại hoặc đã bị xóa." 
@@ -412,7 +415,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
     }
 
   return (
-    <div className={mediaUrlQuery ? "fixed inset-0 z-[9999] bg-black flex overflow-hidden" : "max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-20"}>
+    <div className={mediaUrlQuery ? "fixed inset-0 z-[9999] bg-black flex overflow-hidden" : "w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-20"}>
       {mediaUrlQuery && (
         <div 
           className="flex-1 relative flex items-center justify-center bg-black"
@@ -538,7 +541,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
       <div className={mediaUrlQuery ? "w-[400px] flex-shrink-0 bg-background border-l border-border-subtle flex flex-col h-full overflow-y-auto" : "w-full"}>
         {/* Header */}
         {!mediaUrlQuery && (
-          <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-xl border-b border-border-default px-4 py-3 flex items-center gap-4">
+          <div className={`sticky ${onClose ? 'top-0' : 'top-16'} z-40 bg-background/80 backdrop-blur-xl border-b border-border-default px-4 py-3 flex items-center gap-4`}>
             <button onClick={onClose || (() => navigate('/'))} className="p-2 hover:bg-surface-elevated rounded-full transition-colors">
                <ArrowLeft className="w-5 h-5" />
             </button>
@@ -597,12 +600,12 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
              let videos: string[] = [];
 
              // Tìm TẤT CẢ ảnh nhúng
-             const imgRegex = /!\[image\]\(([^\)]+)\)/g;
+             const imgRegex = /!\[image\]\(([^)]+)\)/g;
              let imgMatch;
              while ((imgMatch = imgRegex.exec(textToShow)) !== null) {
                images.push(imgMatch[1]);
              }
-             textToShow = textToShow.replace(/!\[image\]\(([^\)]+)\)/g, '');
+             textToShow = textToShow.replace(/!\[image\]\(([^)]+)\)/g, '');
 
              // Tìm TẤT CẢ video nhúng
              const videoRegex = /<video src="([^"]+)"/g;
@@ -658,7 +661,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, onClose, initi
                 isReposted={isReposted}
                 repostCount={repostCount}
                 commentCount={comments.length}
-                onLike={() => handleLike({ stopPropagation: () => {} } as any, 'LIKE')}
+                isOwnArticle={user?.id === article.authorId}
+                myReaction={myReaction}
+                onLike={(e, reactionType) => handleLike(e, reactionType)}
                 onBookmark={() => {}}
                 onRepost={handleRepostToggle}
                 onCommentClick={() => { document.querySelector<HTMLInputElement>('input[placeholder="Post your reply"]')?.focus(); }}

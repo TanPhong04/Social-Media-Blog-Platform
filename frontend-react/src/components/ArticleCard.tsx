@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { ArticleResponse } from '../api/articleApi';
 import { articleApi } from '../api/articleApi';
@@ -235,13 +235,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
   const [showMapModal, setShowMapModal] = useState(false);
 
-  useEffect(() => {
-    if (showLikersModal) {
-      loadLikers();
-    }
-  }, [showLikersModal]);
-
-  const loadLikers = async () => {
+  const loadLikers = useCallback(async () => {
     try {
       setLoadingLikers(true);
       const res: any = await articleApi.getArticleLikers(article.id, 0, 50);
@@ -264,7 +258,13 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     } finally {
       setLoadingLikers(false);
     }
-  };
+  }, [article.id]);
+
+  useEffect(() => {
+    if (showLikersModal) {
+      loadLikers();
+    }
+  }, [showLikersModal, loadLikers]);
   
   // Trạng thái bình luận hình ảnh
   const [commentImage, setCommentImage] = useState<string | null>(null);
@@ -400,7 +400,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       let fileData: any = null;
 
       // Tìm ảnh nhúng (Base64 hoặc URL Cloudinary)
-      const imgMatch = article.content.match(/!\[image\]\(([^\)]+)\)/);
+      const imgMatch = article.content.match(/!\[image\]\(([^)]+)\)/);
       if (imgMatch) {
         const url = imgMatch[1];
         fileData = {
@@ -431,7 +431,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       }
       setEditFile(null);
     }
-  }, [isEditing, article.content]);
+  }, [isEditing, article.content, editFile]);
 
   // Đọc trạng thái like và follow của tác giả bài viết
   useEffect(() => {
@@ -486,12 +486,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     }
   }, [article.id, user]);
 
-  // Tải danh sách bình luận ngay khi mount để hiển thị số lượng thực tế
-  useEffect(() => {
-    fetchComments();
-  }, [article.id]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     setLoadingComments(true);
     try {
       const res: any = await commentApi.getComments(article.id);
@@ -551,7 +546,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     } finally {
       setLoadingComments(false);
     }
-  };
+  }, [article.id, user]);
+
+  // Tải danh sách bình luận ngay khi mount để hiển thị số lượng thực tế
+  useEffect(() => {
+    fetchComments();
+  }, [article.id, fetchComments]);
 
   // Click ra ngoài đóng dropdown menu & emoji pickers
   useEffect(() => {
@@ -616,12 +616,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     let videos: string[] = [];
 
     // Tìm TẤT CẢ ảnh nhúng
-    const imgRegex = /!\[image\]\(([^\)]+)\)/g;
+    const imgRegex = /!\[image\]\(([^)]+)\)/g;
     let imgMatch;
     while ((imgMatch = imgRegex.exec(textToShow)) !== null) {
       images.push(imgMatch[1]);
     }
-    textToShow = textToShow.replace(/!\[image\]\(([^\)]+)\)/g, '');
+    textToShow = textToShow.replace(/!\[image\]\(([^)]+)\)/g, '');
 
     // Tìm TẤT CẢ video nhúng
     const videoRegex = /<video src="([^"]+)"[^>]*><\/video>/g;
@@ -675,7 +675,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
     let textToShow = content;
     let imageSrc = '';
 
-    const imgMatch = content.match(/!\[comment_image\]\(([^\)]+)\)/);
+    const imgMatch = content.match(/!\[comment_image\]\(([^)]+)\)/);
     if (imgMatch) {
       imageSrc = imgMatch[1];
       textToShow = textToShow.replace(imgMatch[0], '');
@@ -1030,7 +1030,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       const oldComment = comments.find(c => c.id === commentId);
       let imagePart = '';
       if (oldComment) {
-        const imgMatch = oldComment.content.match(/!\[comment_image\]\(([^\)]+)\)/);
+        const imgMatch = oldComment.content.match(/!\[comment_image\]\(([^)]+)\)/);
         if (imgMatch) {
           imagePart = `\n\n${imgMatch[0]}`;
         }
@@ -1433,7 +1433,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   onClick={() => {
                     setEditingCommentId(comment.id);
                     let text = comment.content;
-                    const imgMatch = comment.content.match(/!\[comment_image\]\(([^\)]+)\)/);
+                    const imgMatch = comment.content.match(/!\[comment_image\]\(([^)]+)\)/);
                     if (imgMatch) {
                       text = text.replace(imgMatch[0], '');
                     }

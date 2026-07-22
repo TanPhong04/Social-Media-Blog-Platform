@@ -65,7 +65,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="hidden lg:block w-64 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto py-6 px-4 bg-background border-r border-border-default">
+    <aside className="hidden lg:block w-[280px] h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto py-6 px-4 bg-background border-r border-border-default">
       <nav className="space-y-2">
         {navItems.map((item) => {
           if (item.requiresAuth && !isAuthenticated) return null;

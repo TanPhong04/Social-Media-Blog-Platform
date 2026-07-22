@@ -47,7 +47,7 @@ const Search: React.FC = () => {
 
   if (!query) {
     return (
-      <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background flex flex-col items-center justify-center p-8">
+      <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background flex flex-col items-center justify-center p-8">
         <EmptyState
           icon={<SearchIcon className="w-12 h-12 mb-4 opacity-50" />}
           title="Tìm kiếm trên Axion"
@@ -59,7 +59,7 @@ const Search: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-12">
+    <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-12">
       {/* Header */}
       <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-xl border-b border-border-default">
         <div className="px-4 py-3">

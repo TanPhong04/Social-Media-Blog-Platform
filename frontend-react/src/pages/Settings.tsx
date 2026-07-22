@@ -26,7 +26,7 @@ const Settings: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto border-x border-border-default min-h-screen bg-background pb-12 transition-colors duration-300">
+    <div className="w-full max-w-[840px] mx-auto border-x border-border-default min-h-screen bg-background pb-12 transition-colors duration-300">
       {/* Header */}
       <div className="p-4 border-b border-border-default sticky top-[64px] sm:top-16 bg-surface/80 backdrop-blur-md z-40 flex items-center gap-3">
         <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20 shadow-sm">

@@ -6,13 +6,7 @@ import { ReelItem } from '../components/reels/ReelItem';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 
-const isReel = (article: ArticleResponse): boolean => {
-  if (article.tags && article.tags.includes('reel')) return true;
-  if (!article.content) return false;
-  const videoMatches = article.content.match(/<video src="([^"]+)"/g);
-  const imageMatches = article.content.match(/!\[image\]\([^)]+\)/g);
-  return (videoMatches?.length === 1) && (!imageMatches || imageMatches.length === 0);
-};
+import { isReel } from '../utils/feedMixer';
 
 const Reels = () => {
   const location = useLocation();

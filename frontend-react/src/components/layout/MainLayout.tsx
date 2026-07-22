@@ -241,7 +241,7 @@ const MainLayout = () => {
       <Navbar />
 
       {/* Main Content Area with Sidebar */}
-      <div className="flex-1 max-w-7xl mx-auto w-full flex">
+      <div className="flex-1 max-w-[1440px] mx-auto w-full flex">
         {/* Left Sidebar */}
         <Sidebar />
 

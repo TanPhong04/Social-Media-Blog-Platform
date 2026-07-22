@@ -3,7 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { articleApi } from '../api/articleApi';
 import { userApi } from '../api/userApi';
 import type { ArticleResponse } from '../api/articleApi';
+import { mixFeed } from '../utils/feedMixer';
 import ArticleCard from '../components/ArticleCard';
+import { ReelsCarousel } from '../components/feed/ReelsCarousel';
 import { useAuth } from '../contexts/AuthContext';
 import { Image, Smile, Globe, AlertCircle } from 'lucide-react';
 import { mediaApi } from '../api/mediaApi';
@@ -258,7 +260,9 @@ const Home: React.FC = () => {
       } else {
         response = await articleApi.getFeed(0, 20);
       }
-      setArticles(response.content || []);
+      const fetchedArticles = response.content || [];
+      const mixedArticles = mixFeed(fetchedArticles, { minPostsBetweenReels: 2 });
+      setArticles(mixedArticles);
     } catch (err) {
       console.error('Failed to fetch articles', err);
       setError('Không thể tải danh sách bài viết. Vui lòng thử lại sau.');
@@ -284,7 +288,7 @@ const Home: React.FC = () => {
   }, [isAuthenticated]);
 
   return (
-    <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-20">
+    <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-20">
       {/* Header Tabs */}
       <div 
         role="tablist"
@@ -356,8 +360,11 @@ const Home: React.FC = () => {
           />
         ) : (
           <div className="flex flex-col">
-            {articles.map((art) => (
-              <ArticleCard key={art.id} article={art} onRefresh={fetchArticles} />
+            {articles.map((art, index) => (
+              <React.Fragment key={art.id}>
+                <ArticleCard article={art} onRefresh={fetchArticles} />
+                {index === 2 && <ReelsCarousel />}
+              </React.Fragment>
             ))}
           </div>
         )}

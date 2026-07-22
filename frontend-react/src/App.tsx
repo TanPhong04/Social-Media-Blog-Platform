@@ -99,7 +99,7 @@ function App() {
                 onClick={(e) => { if (e.target === e.currentTarget) navigate(-1); }}
                 onKeyDown={(e) => { if (e.key === 'Escape') navigate(-1); }}
               >
-                <div className="max-w-3xl mx-auto my-4 min-h-[calc(100vh-2rem)]" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full max-w-[840px] mx-auto my-4 min-h-[calc(100vh-2rem)]" onClick={(e) => e.stopPropagation()}>
                   <ArticleDetail onClose={() => navigate(-1)} />
                 </div>
               </div>

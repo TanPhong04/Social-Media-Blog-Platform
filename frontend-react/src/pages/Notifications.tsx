@@ -144,7 +144,7 @@ const Notifications: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background flex flex-col items-center justify-center p-8">
+      <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background flex flex-col items-center justify-center p-8">
         <EmptyState 
           icon={<Bell className="w-12 h-12 mb-4 text-primary" />}
           title="Yêu cầu đăng nhập"
@@ -158,7 +158,7 @@ const Notifications: React.FC = () => {
   const grouped = groupNotifications(notifications);
 
   return (
-    <div className="max-w-2xl mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-20">
+    <div className="w-full max-w-[840px] mx-auto border-x-0 sm:border-x border-border-default min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border-default sticky top-16 bg-background/80 backdrop-blur-xl z-40 flex items-center justify-between">
         <div className="flex items-center gap-3">

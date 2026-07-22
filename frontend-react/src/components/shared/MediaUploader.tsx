@@ -135,10 +135,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       />
 
       {/* Trigger Button */}
-      {triggerButton ? (
-        <div onClick={() => !disabled && fileInputRef.current?.click()}>
-          {triggerButton}
-        </div>
+      {triggerButton !== undefined ? (
+        triggerButton ? (
+          <div onClick={() => !disabled && fileInputRef.current?.click()} className="inline-block">
+            {triggerButton}
+          </div>
+        ) : null
       ) : (
         <button
           type="button"
