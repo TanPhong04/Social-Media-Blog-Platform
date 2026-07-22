@@ -6,7 +6,7 @@ import { Spinner } from '../ui/Spinner';
 import { MessageBubble } from './MessageBubble';
 import { EmojiPicker } from '../shared/EmojiPicker';
 import { mediaApi } from '../../api/mediaApi';
-import { CallModal } from './CallModal';
+import { useCall } from '../../contexts/CallContext';
 
 interface ChatAreaProps {
   activeContactId: string | null;
@@ -32,12 +32,12 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const [sending, setSending] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [isVideoCall, setIsVideoCall] = useState(false);
+  const { startCall } = useCall();
 
-  const startCall = (video: boolean) => {
-    setIsVideoCall(video);
-    setIsCallModalOpen(true);
+  const handleStartCall = (video: boolean) => {
+    if (activeContactId) {
+      startCall(activeContactId, activeContactProfile, video);
+    }
   };
 
   useEffect(() => {
@@ -162,14 +162,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         {/* Mock Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
           <button 
-            onClick={() => startCall(false)}
-            className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors" 
+            onClick={() => handleStartCall(false)}
+            className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors hidden sm:flex" 
             title="Cuộc gọi thoại"
           >
             <Phone className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => startCall(true)}
+            onClick={() => handleStartCall(true)}
             className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors hidden sm:flex" 
             title="Cuộc gọi video"
           >
@@ -303,13 +303,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           </div>
         </form>
       </div>
-
-      <CallModal 
-        isOpen={isCallModalOpen} 
-        onClose={() => setIsCallModalOpen(false)} 
-        contactProfile={activeContactProfile}
-        isVideo={isVideoCall}
-      />
     </div>
   );
 };

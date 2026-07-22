@@ -1,0 +1,215 @@
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import Peer, { type MediaConnection } from 'peerjs';
+import { useAuth } from './AuthContext';
+import { userApi } from '../api/userApi';
+
+interface CallContextType {
+  startCall: (contactId: string, contactProfile: any, isVideo: boolean) => void;
+  endCall: () => void;
+  acceptCall: () => void;
+  rejectCall: () => void;
+  toggleMute: () => void;
+  toggleVideo: () => void;
+  callStatus: 'idle' | 'outgoing' | 'incoming' | 'connected';
+  remoteProfile: any;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  isVideo: boolean;
+  isMuted: boolean;
+  isVideoOff: boolean;
+  callDuration: number;
+}
+
+const CallContext = createContext<CallContextType | null>(null);
+
+export const useCall = () => {
+  const ctx = useContext(CallContext);
+  if (!ctx) throw new Error('useCall must be used within CallProvider');
+  return ctx;
+};
+
+export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [peer, setPeer] = useState<Peer | null>(null);
+  
+  const [callStatus, setCallStatus] = useState<'idle' | 'outgoing' | 'incoming' | 'connected'>('idle');
+  const [remoteProfile, setRemoteProfile] = useState<any>(null);
+  const [isVideo, setIsVideo] = useState(false);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+
+  const connectionRef = useRef<MediaConnection | null>(null);
+  const ringAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const audio = new Audio('https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg');
+    audio.loop = true;
+    ringAudioRef.current = audio;
+  }, []);
+
+  const playRing = () => ringAudioRef.current?.play().catch(() => {});
+  const stopRing = () => {
+    if (ringAudioRef.current) {
+      ringAudioRef.current.pause();
+      ringAudioRef.current.currentTime = 0;
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      if (peer) {
+        peer.destroy();
+        setPeer(null);
+      }
+      return;
+    }
+    
+    const newPeer = new Peer(`axion-user-${user.id}`);
+    
+    newPeer.on('open', (id) => {
+      console.log('Peer connected with ID: ', id);
+    });
+
+    newPeer.on('call', async (call) => {
+      connectionRef.current = call;
+      
+      const callerId = call.peer.replace('axion-user-', '');
+      try {
+        const res: any = await userApi.getUserById(callerId);
+        setRemoteProfile(res.data || res);
+      } catch (e) {
+        setRemoteProfile({ displayName: 'Người dùng', id: callerId });
+      }
+
+      setIsVideo(call.metadata?.isVideo || false);
+      setCallStatus('incoming');
+      playRing();
+    });
+
+    setPeer(newPeer);
+    return () => newPeer.destroy();
+  }, [user]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (callStatus === 'connected') {
+      interval = setInterval(() => setCallDuration(p => p + 1), 1000);
+    } else {
+      setCallDuration(0);
+    }
+    return () => clearInterval(interval);
+  }, [callStatus]);
+
+  const getMedia = async (video: boolean) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
+      setLocalStream(stream);
+      return stream;
+    } catch (e) {
+      console.error("No media devices", e);
+      return null;
+    }
+  };
+
+  const stopMedia = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      setLocalStream(null);
+    }
+    setRemoteStream(null);
+  };
+
+  const startCall = async (contactId: string, contactProfile: any, video: boolean) => {
+    if (!peer) return;
+    setRemoteProfile(contactProfile);
+    setIsVideo(video);
+    setIsMuted(false);
+    setIsVideoOff(false);
+    setCallStatus('outgoing');
+    playRing();
+
+    const stream = await getMedia(video);
+    if (!stream) {
+      stopRing();
+      setCallStatus('idle');
+      return;
+    }
+
+    const call = peer.call(`axion-user-${contactId}`, stream, { metadata: { isVideo: video } });
+    connectionRef.current = call;
+
+    call.on('stream', (remoteStreamData) => {
+      stopRing();
+      setRemoteStream(remoteStreamData);
+      setCallStatus('connected');
+    });
+
+    call.on('close', () => {
+      endCall();
+    });
+  };
+
+  const acceptCall = async () => {
+    stopRing();
+    const stream = await getMedia(isVideo);
+    if (connectionRef.current && stream) {
+      connectionRef.current.answer(stream);
+      
+      connectionRef.current.on('stream', (remoteStreamData) => {
+        setRemoteStream(remoteStreamData);
+        setCallStatus('connected');
+      });
+
+      connectionRef.current.on('close', () => {
+        endCall();
+      });
+    } else {
+      endCall();
+    }
+  };
+
+  const rejectCall = () => {
+    stopRing();
+    if (connectionRef.current) {
+      connectionRef.current.close();
+    }
+    endCall();
+  };
+
+  const endCall = () => {
+    stopRing();
+    if (connectionRef.current) {
+      connectionRef.current.close();
+    }
+    stopMedia();
+    setCallStatus('idle');
+    setRemoteProfile(null);
+  };
+
+  const toggleMute = () => {
+    if (localStream) {
+      localStream.getAudioTracks().forEach(t => t.enabled = isMuted);
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localStream) {
+      localStream.getVideoTracks().forEach(t => t.enabled = isVideoOff);
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  return (
+    <CallContext.Provider value={{
+      startCall, endCall, acceptCall, rejectCall, toggleMute, toggleVideo,
+      callStatus, remoteProfile, localStream, remoteStream, isVideo, isMuted, isVideoOff, callDuration
+    }}>
+      {children}
+    </CallContext.Provider>
+  );
+};

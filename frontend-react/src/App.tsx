@@ -21,6 +21,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Following = lazy(() => import('./pages/Following'));
 const ArticleDetail = lazy(() => import('./pages/ArticleDetail'));
 const Messages = lazy(() => import('./pages/Messages'));
+import { GlobalCallModal } from './components/messages/GlobalCallModal';
 
 function App() {
   const location = useLocation();
@@ -108,6 +109,9 @@ function App() {
         </Routes>
         </Suspense>
       )}
+
+      {/* Global WebRTC Call Modal */}
+      <GlobalCallModal />
     </>
   );
 }
