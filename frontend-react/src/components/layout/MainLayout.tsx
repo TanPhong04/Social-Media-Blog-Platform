@@ -136,19 +136,35 @@ const MainLayout = () => {
           }
 
           let textContent = msg.content;
+          let shouldShowToast = false;
+
           if (textContent.startsWith('![chat_image]')) {
-            textContent = '[Hình ảnh]';
+            textContent = 'Đã gửi một hình ảnh';
+          } else if (textContent.startsWith('[CALL_LOG]:')) {
+            try {
+              const payload = JSON.parse(textContent.replace('[CALL_LOG]:', ''));
+              if (payload.type === 'MISSED') {
+                textContent = 'Cuộc gọi nhỡ';
+                shouldShowToast = true;
+              }
+            } catch(e) {}
+          } else {
+            // Do not show toast for normal chat messages to avoid spam
+            // Rely on the sidebar unread badge instead
+            shouldShowToast = false;
           }
 
-          setRealtimeToast({
-            id: msg.id,
-            message: `${senderName}: ${textContent}`,
-            iconType: 'chat',
-            avatarUrl,
-            actorName: senderName,
-            isChat: true,
-            senderId: msg.senderId
-          });
+          if (shouldShowToast) {
+            setRealtimeToast({
+              id: msg.id,
+              message: `${senderName}: ${textContent}`,
+              iconType: 'chat',
+              avatarUrl,
+              actorName: senderName,
+              isChat: true,
+              senderId: msg.senderId
+            });
+          }
         }
       } catch (err) {
         console.error('Error parsing realtime chat message', err);
