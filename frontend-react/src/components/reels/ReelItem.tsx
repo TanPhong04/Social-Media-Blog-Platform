@@ -141,7 +141,7 @@ export const ReelItem: React.FC<ReelItemProps> = ({ article, isActive }) => {
   if (!videoUrl) return null;
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] sm:h-screen bg-black flex items-center justify-center snap-start snap-always shrink-0 overflow-hidden shadow-2xl">
+    <div className="relative w-full h-[calc(100dvh-4rem)] sm:h-screen bg-black flex items-center justify-center snap-start snap-always shrink-0 overflow-hidden shadow-2xl">
       <video
         ref={videoRef}
         src={videoUrl}

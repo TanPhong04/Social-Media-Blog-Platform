@@ -89,7 +89,7 @@ const AutoPlayVideo: React.FC<{ src: string; className?: string; containerClassN
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   
@@ -101,7 +101,15 @@ const AutoPlayVideo: React.FC<{ src: string; className?: string; containerClassN
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            video.play().then(() => setIsPlaying(true)).catch((err) => {
+              if (err.name === 'NotAllowedError') {
+                setIsMuted(true);
+                video.muted = true;
+                video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+              } else {
+                setIsPlaying(false);
+              }
+            });
           } else {
             video.pause();
             setIsPlaying(false);

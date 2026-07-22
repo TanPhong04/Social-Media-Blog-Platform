@@ -108,7 +108,7 @@ const Reels = () => {
   };
 
   return (
-    <div className="bg-black sm:bg-background/90 w-full h-[calc(100vh-4rem)] sm:h-screen flex justify-center overflow-hidden">
+    <div className="bg-black sm:bg-background/90 w-full h-[calc(100dvh-4rem)] sm:h-screen flex justify-center overflow-hidden">
       <style>{`
         .animate-marquee {
           animation: marquee 5s linear infinite;

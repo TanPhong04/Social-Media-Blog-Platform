@@ -1,5 +1,5 @@
 import { useEffect, useState, Suspense } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../Navbar';
 import Sidebar from './Sidebar';
 import RightSidebar from './RightSidebar';
@@ -13,7 +13,10 @@ import { Spinner } from '../ui/Spinner';
 const MainLayout = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [realtimeToast, setRealtimeToast] = useState<any>(null);
+
+  const isReelsPage = location.pathname.startsWith('/reels');
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -247,7 +250,7 @@ const MainLayout = () => {
         <Sidebar />
 
         {/* Center Content */}
-        <main className="flex-1 w-full min-w-0 pb-12">
+        <main className={`flex-1 w-full min-w-0 ${isReelsPage ? '' : 'pb-12'}`}>
           <Suspense fallback={<div className="flex h-[50vh] items-center justify-center"><Spinner size="lg" /></div>}>
             <Outlet />
           </Suspense>

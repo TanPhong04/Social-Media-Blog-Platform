@@ -16,7 +16,7 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
   const [author, setAuthor] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoUrl = extractVideoUrl(article.content);
@@ -30,7 +30,15 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
 
   const handleMouseEnter = () => {
     if (videoRef.current) {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      videoRef.current.play().then(() => setIsPlaying(true)).catch((err) => {
+        if (err.name === 'NotAllowedError') {
+          setIsMuted(true);
+          videoRef.current!.muted = true;
+          videoRef.current!.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        } else {
+          setIsPlaying(false);
+        }
+      });
     }
   };
 
