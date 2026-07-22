@@ -20,7 +20,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div 
-        className="bg-surface border border-gray-800 rounded-xl p-6 max-w-sm w-full shadow-2xl animate-[slideIn_0.2s_ease-out]"
+        className="bg-surface border border-border-default rounded-xl p-6 max-w-sm w-full shadow-2xl animate-[slideIn_0.2s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-xl font-semibold mb-3 text-white">{title}</h3>
@@ -29,7 +29,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg font-medium text-text-secondary hover:bg-gray-800 transition-colors"
+            className="px-4 py-2 rounded-lg font-medium text-text-secondary hover:bg-surface-elevated transition-colors"
           >
             Hủy
           </button>

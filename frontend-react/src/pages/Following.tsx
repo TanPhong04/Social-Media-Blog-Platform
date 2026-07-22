@@ -106,7 +106,7 @@ const Following: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background p-8 text-center flex flex-col items-center justify-center">
+      <div className="max-w-2xl mx-auto border-x border-border-default min-h-screen bg-background p-8 text-center flex flex-col items-center justify-center">
         <AlertCircle className="w-12 h-12 text-primary mb-4" />
         <h3 className="text-xl font-bold text-text-primary mb-2">Yêu cầu đăng nhập</h3>
         <p className="text-text-secondary text-sm">Vui lòng đăng nhập để xem và quản lý kết nối của bạn.</p>
@@ -118,10 +118,10 @@ const Following: React.FC = () => {
   const listToRender = activeTab === 'suggestions' ? suggestions : followingList;
 
   return (
-    <div className="max-w-2xl mx-auto border-x border-gray-800 min-h-screen bg-background pb-20">
+    <div className="max-w-2xl mx-auto border-x border-border-default min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="p-4 border-b border-gray-800 sticky top-16 bg-background/85 backdrop-blur-md z-40 flex items-center gap-3">
-        <div className="p-2.5 bg-surface text-primary rounded-app border border-white/10 shadow-md">
+      <div className="p-4 border-b border-border-default sticky top-16 bg-background/85 backdrop-blur-md z-40 flex items-center gap-3">
+        <div className="p-2.5 bg-surface text-primary rounded-app border border-border-default shadow-md">
           <Users className="w-5 h-5" />
         </div>
         <div>
@@ -135,7 +135,7 @@ const Following: React.FC = () => {
       </div>
 
       {/* Tabs tương tự X */}
-      <div className="flex border-b border-gray-800">
+      <div className="flex border-b border-border-default">
         <button
           onClick={() => setActiveTab('suggestions')}
           className="flex-1 py-4 text-center font-bold text-sm relative hover:bg-white/[0.02] transition-colors cursor-pointer"
@@ -164,19 +164,19 @@ const Following: React.FC = () => {
       {loading ? (
         <div className="p-6 space-y-4">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="flex items-center gap-3 animate-pulse p-3 rounded-xl border border-gray-800/20">
-              <div className="w-11 h-11 rounded-full bg-white/5 shrink-0" />
+            <div key={n} className="flex items-center gap-3 animate-pulse p-3 rounded-xl border border-border-default/20">
+              <div className="w-11 h-11 rounded-full bg-surface-elevated shrink-0" />
               <div className="flex-1 space-y-2">
-                <div className="w-1/3 h-4 bg-white/5 rounded" />
-                <div className="w-2/3 h-3 bg-white/5 rounded" />
+                <div className="w-1/3 h-4 bg-surface-elevated rounded" />
+                <div className="w-2/3 h-3 bg-surface-elevated rounded" />
               </div>
-              <div className="w-20 h-8 bg-white/5 rounded-full" />
+              <div className="w-20 h-8 bg-surface-elevated rounded-full" />
             </div>
           ))}
         </div>
       ) : listToRender.length === 0 ? (
         <div className="p-16 text-center flex flex-col items-center justify-center">
-          <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+          <div className="w-14 h-14 rounded-full bg-surface-elevated border border-border-default flex items-center justify-center mb-4">
             <Users className="w-6 h-6 text-text-secondary" />
           </div>
           <h3 className="text-lg font-bold text-text-primary mb-1">
@@ -189,7 +189,7 @@ const Following: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-800/80 px-2">
+        <div className="divide-y divide-border-default/80 px-2">
           {listToRender.map((item) => {
             // Normalise key name của 2 API khác nhau
             const uid = item.id || item.userId;
@@ -231,7 +231,7 @@ const Following: React.FC = () => {
                       onClick={(e) => handleFollowToggle(uid, displayName, e)}
                       className={`px-4 py-1.5 font-bold text-xs rounded-full transition-all cursor-pointer shadow-sm ${
                         isFollowing
-                          ? 'border border-gray-700 text-text-primary hover:border-red-500 hover:text-red-500 hover:bg-red-500/10'
+                          ? 'border border-border-default text-text-primary hover:border-red-500 hover:text-red-500 hover:bg-red-500/10'
                           : 'bg-primary text-white hover:bg-primary/95'
                       }`}
                     >
@@ -250,7 +250,7 @@ const Following: React.FC = () => {
 
       {/* TOAST SYSTEM */}
       {toast && (
-        <div className="fixed bottom-5 right-5 bg-surface border border-gray-800 text-text-primary px-4 py-3.5 rounded-app shadow-2xl flex items-center gap-2.5 animate-fade-in z-50 min-w-[200px]">
+        <div className="fixed bottom-5 right-5 bg-surface border border-border-default text-text-primary px-4 py-3.5 rounded-app shadow-2xl flex items-center gap-2.5 animate-fade-in z-50 min-w-[200px]">
           <div className={`p-1 rounded-full ${toast.type === 'success' ? 'bg-primary/10 text-primary' : 'bg-error/10 text-error'}`}>
             {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
           </div>

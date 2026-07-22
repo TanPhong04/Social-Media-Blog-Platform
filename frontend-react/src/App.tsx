@@ -1,25 +1,26 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
+import { Spinner } from './components/ui/Spinner';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
-import Home from './pages/Home';
-import Search from './pages/Search';
-import Reels from './pages/Reels';
-import Login from './pages/Login';
-import Register from './pages/Register';
+const Home = lazy(() => import('./pages/Home'));
+const Search = lazy(() => import('./pages/Search'));
+const Reels = lazy(() => import('./pages/Reels'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminLayout from './components/layout/AdminLayout';
-import Dashboard from './pages/admin/Dashboard';
-import UserManagement from './pages/admin/UserManagement';
-import ArticleManagement from './pages/admin/ArticleManagement';
-import MyArticles from './pages/MyArticles';
-import Bookmarks from './pages/Bookmarks';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
-import Notifications from './pages/Notifications';
-import Following from './pages/Following';
-import ArticleDetail from './pages/ArticleDetail';
-import Messages from './pages/Messages';
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const ArticleManagement = lazy(() => import('./pages/admin/ArticleManagement'));
+const MyArticles = lazy(() => import('./pages/MyArticles'));
+const Bookmarks = lazy(() => import('./pages/Bookmarks'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Following = lazy(() => import('./pages/Following'));
+const ArticleDetail = lazy(() => import('./pages/ArticleDetail'));
+const Messages = lazy(() => import('./pages/Messages'));
 
 function App() {
   const location = useLocation();
@@ -47,6 +48,7 @@ function App() {
 
   return (
     <>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center"><Spinner size="lg" /></div>}>
       <Routes location={backgroundLocation || location}>
         {/* Auth routes without MainLayout */}
         <Route path="/login" element={<Login />} />
@@ -83,9 +85,11 @@ function App() {
           </Route>
         </Route>
       </Routes>
+      </Suspense>
 
       {/* Modal Route Overlay */}
       {backgroundLocation && (
+        <Suspense fallback={<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"><Spinner size="lg" /></div>}>
         <Routes>
           <Route 
             path="/article/:slug" 
@@ -102,6 +106,7 @@ function App() {
             } 
           />
         </Routes>
+        </Suspense>
       )}
     </>
   );

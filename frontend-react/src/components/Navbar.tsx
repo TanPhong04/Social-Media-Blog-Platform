@@ -6,7 +6,7 @@ const Navbar = () => {
   const { user, isAuthenticated } = useAuth();
 
   return (
-    <nav className="bg-surface border-b border-gray-800 sticky top-0 z-50">
+    <nav className="bg-surface border-b border-border-default sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo & Search */}
@@ -33,7 +33,7 @@ const Navbar = () => {
                 name="q"
                 defaultValue={new URLSearchParams(window.location.search).get('q') || ''}
                 placeholder="Tìm kiếm trên Axion"
-                className="bg-background border border-gray-800 rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary placeholder-text-secondary transition-all"
+                className="bg-background border border-border-default rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary placeholder-text-secondary transition-all"
               />
             </form>
           </div>
@@ -50,7 +50,7 @@ const Navbar = () => {
 
                 <Link 
                   to="/profile" 
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-background border border-gray-800 text-primary hover:bg-gray-800 transition-colors"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-background border border-border-default text-primary hover:bg-surface-elevated transition-colors"
                 >
                   {user?.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />

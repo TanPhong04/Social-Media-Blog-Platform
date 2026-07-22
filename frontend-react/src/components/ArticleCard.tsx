@@ -65,7 +65,7 @@ const MediaItem: React.FC<{
 }> = ({ url, isVideo, className, onClick }) => {
   return (
     <div 
-      className={`relative group/media overflow-hidden flex items-center justify-center ${className || 'rounded-app border border-gray-800 bg-black/20 max-h-[450px]'}`}
+      className={`relative group/media overflow-hidden flex items-center justify-center ${className || 'rounded-app border border-border-default bg-black/20 max-h-[450px]'}`}
       onClick={onClick}
     >
       {isVideo ? (
@@ -105,13 +105,13 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
 
   const renderGrid = () => {
     if (count === 1) {
-      return <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full max-h-[500px] border border-gray-800 rounded-app cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />;
+      return <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full max-h-[500px] border border-border-default rounded-app cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />;
     }
     if (count === 2) {
       return (
         <div className="grid grid-cols-2 gap-1 mt-2">
           {items.map((item, idx) => (
-            <MediaItem key={idx} url={item.url} isVideo={item.isVideo} articleId={articleId} className={`w-full aspect-[4/5] border border-gray-800 cursor-pointer ${idx === 0 ? 'rounded-l-app rounded-r-none' : 'rounded-r-app rounded-l-none'}`} onClick={(e) => handleImageClick(e, idx)} />
+            <MediaItem key={idx} url={item.url} isVideo={item.isVideo} articleId={articleId} className={`w-full aspect-[4/5] border border-border-default cursor-pointer ${idx === 0 ? 'rounded-l-app rounded-r-none' : 'rounded-r-app rounded-l-none'}`} onClick={(e) => handleImageClick(e, idx)} />
           ))}
         </div>
       );
@@ -119,10 +119,10 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
     if (count === 3) {
       return (
         <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
-          <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-l-app rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+          <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-l-app rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
           <div className="grid grid-rows-2 gap-1 h-full">
-            <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-none rounded-tr-app cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
-            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-none rounded-br-app cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+            <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none rounded-tr-app cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+            <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none rounded-br-app cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
           </div>
         </div>
       );
@@ -131,12 +131,12 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
       return (
         <div className="grid grid-cols-2 gap-1 mt-2 h-[400px]">
           <div className="grid grid-rows-2 gap-1 h-full">
-             <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
-             <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+             <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+             <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
           </div>
           <div className="grid grid-rows-2 gap-1 h-full">
-             <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tr-app rounded-br-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
-             <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-br-app rounded-tr-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+             <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tr-app rounded-br-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+             <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-br-app rounded-tr-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
           </div>
         </div>
       );
@@ -145,14 +145,14 @@ const MediaGallery: React.FC<{ items: {url: string, isVideo: boolean}[], article
     return (
       <div className="grid grid-cols-2 gap-1 mt-2 h-[450px]">
         <div className="grid grid-rows-2 gap-1 h-full">
-           <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
-           <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
+           <MediaItem url={items[0].url} isVideo={items[0].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tl-app rounded-bl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 0)} />
+           <MediaItem url={items[1].url} isVideo={items[1].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-bl-app rounded-tl-none rounded-r-none cursor-pointer" onClick={(e) => handleImageClick(e, 1)} />
         </div>
         <div className="grid grid-rows-3 gap-1 h-full">
-           <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-tr-app rounded-b-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
-           <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
+           <MediaItem url={items[2].url} isVideo={items[2].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-tr-app rounded-b-none rounded-l-none cursor-pointer" onClick={(e) => handleImageClick(e, 2)} />
+           <MediaItem url={items[3].url} isVideo={items[3].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-none cursor-pointer" onClick={(e) => handleImageClick(e, 3)} />
            <div className="relative w-full h-full cursor-pointer" onClick={(e) => handleImageClick(e, 4)}>
-             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full border border-gray-800 rounded-br-app rounded-t-none rounded-l-none" />
+             <MediaItem url={items[4].url} isVideo={items[4].isVideo} articleId={articleId} className="w-full h-full border border-border-default rounded-br-app rounded-t-none rounded-l-none" />
              {count > 5 && (
                <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-br-app text-white text-2xl font-bold">
                  +{count - 5}
@@ -648,7 +648,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
         {isReel ? (
           <div 
-            className="relative w-full max-w-[320px] mx-auto rounded-xl overflow-hidden bg-black cursor-pointer group border border-gray-800 shadow-lg"
+            className="relative w-full max-w-[320px] mx-auto rounded-xl overflow-hidden bg-black cursor-pointer group border border-border-default shadow-lg"
             onClick={(e) => { e.stopPropagation(); navigate('/reels', { state: { initialReel: article } }); }}
           >
             <video src={videos[0]} className="w-full aspect-[9/16] object-cover opacity-90 group-hover:opacity-100 transition" />
@@ -657,7 +657,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                 <Play className="w-6 h-6 text-white fill-white ml-1" />
               </div>
             </div>
-            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded flex items-center gap-1.5 border border-white/10">
+            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded flex items-center gap-1.5 border border-border-default">
               <Film className="w-3.5 h-3.5 text-white" />
               <span className="text-[11px] text-white font-bold uppercase tracking-widest">Reel</span>
             </div>
@@ -689,7 +689,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           </p>
         )}
         {imageSrc && (
-          <div className="rounded-lg overflow-hidden border border-gray-800 bg-black/10 max-h-36 flex items-center justify-start mt-1">
+          <div className="rounded-lg overflow-hidden border border-border-default bg-black/10 max-h-36 flex items-center justify-start mt-1">
             <img src={imageSrc} alt="Comment Attachment" className="max-h-36 max-w-[200px] object-contain rounded-lg" />
           </div>
         )}
@@ -1265,7 +1265,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       : EMOJI_CATEGORIES[activeTab].emojis;
 
     return (
-      <div className="absolute right-0 top-10 bg-[#15181c] border border-gray-800 rounded-2xl p-3.5 shadow-2xl z-50 w-72 flex flex-col gap-2">
+      <div className="absolute right-0 top-10 bg-[#15181c] border border-border-default rounded-2xl p-3.5 shadow-2xl z-50 w-72 flex flex-col gap-2">
         {/* Search */}
         <div className="relative">
           <input
@@ -1279,7 +1279,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         </div>
 
         {/* Tabs */}
-        <div className="flex justify-between border-b border-gray-800 pb-1.5 overflow-x-auto">
+        <div className="flex justify-between border-b border-border-default pb-1.5 overflow-x-auto">
           {EMOJI_CATEGORIES.map((cat, idx) => (
             <button
               key={idx}
@@ -1288,7 +1288,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                 setActiveTab(idx);
                 setSearchVal('');
               }}
-              className={`text-lg p-1.5 rounded transition-all cursor-pointer ${searchVal === '' && activeTab === idx ? 'bg-primary/20 scale-110 font-bold border-b-2 border-primary' : 'hover:bg-white/5 opacity-70 hover:opacity-100'}`}
+              className={`text-lg p-1.5 rounded transition-all cursor-pointer ${searchVal === '' && activeTab === idx ? 'bg-primary/20 scale-110 font-bold border-b-2 border-primary' : 'hover:bg-surface-elevated opacity-70 hover:opacity-100'}`}
               title={cat.title}
             >
               {cat.icon}
@@ -1319,7 +1319,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-gray-800 pt-2 mt-1">
+        <div className="flex items-center justify-between border-t border-border-default pt-2 mt-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{hoveredEmoji || '😊'}</span>
             <span className="text-[10px] text-text-secondary font-medium">Chèn</span>
@@ -1380,7 +1380,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
         </div>
 
         {/* Nội dung bình luận */}
-        <div className="flex-1 min-w-0 bg-white/[0.012] rounded-2xl px-4 py-2.5 border border-gray-800/40 relative">
+        <div className="flex-1 min-w-0 bg-white/[0.012] rounded-2xl px-4 py-2.5 border border-border-default/40 relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Tên bình luận - Click để xem Profile */}
@@ -1466,7 +1466,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   type="text"
                   value={editCommentText}
                   onChange={(e) => setEditCommentText(e.target.value)}
-                  className="flex-1 bg-background border border-gray-700 text-text-primary text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-primary"
+                  className="flex-1 bg-background border border-border-default text-text-primary text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-primary"
                 />
                 <button
                   type="submit"
@@ -1524,7 +1524,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
   return (
     <div 
-      className="bg-surface p-4 border-b border-gray-800 hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative cursor-pointer"
+      className="bg-surface p-4 border-b border-border-default hover:bg-white/[0.01] transition-colors duration-200 flex flex-col gap-3 animate-fade-in text-[15px] relative cursor-pointer"
       onClick={() => navigate(`/article/${article.id}`, { state: { backgroundLocation: location } })}
     >
       {/* Khung nội dung chính của Post */}
@@ -1592,7 +1592,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                       showToastMessage('Thao tác thất bại.', 'error');
                     }
                   }}
-                  className={`px-3 py-1 font-bold text-xs rounded-full transition-all cursor-pointer ${isAuthorFollowing ? 'border border-gray-700 text-text-primary hover:border-red-500 hover:text-red-500 hover:bg-red-500/10' : 'bg-primary text-white hover:bg-primary/95'}`}
+                  className={`px-3 py-1 font-bold text-xs rounded-full transition-all cursor-pointer ${isAuthorFollowing ? 'border border-border-default text-text-primary hover:border-red-500 hover:text-red-500 hover:bg-red-500/10' : 'bg-primary text-white hover:bg-primary/95'}`}
                 >
                   {isAuthorFollowing ? 'Following' : 'Follow'}
                 </button>
@@ -1610,11 +1610,11 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-1 w-48 bg-surface border border-gray-800 rounded-lg shadow-xl py-1.5 z-30 animate-fade-in text-sm">
+                  <div className="absolute right-0 mt-1 w-48 bg-surface border border-border-default rounded-lg shadow-xl py-1.5 z-30 animate-fade-in text-sm">
                     {/* Hành động Bookmark */}
                     <button
                       onClick={handleBookmark}
-                      className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-white/5 text-text-primary transition-colors cursor-pointer"
+                      className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-surface-elevated text-text-primary transition-colors cursor-pointer"
                     >
                       <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-primary text-primary' : 'text-text-secondary'}`} />
                       <span>{bookmarked ? 'Bỏ lưu bài viết' : 'Thêm vào đã lưu'}</span>
@@ -1629,12 +1629,12 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                             setIsEditing(true);
                             setShowDropdown(false);
                           }}
-                          className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-white/5 text-text-primary transition-colors cursor-pointer"
+                          className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-surface-elevated text-text-primary transition-colors cursor-pointer"
                         >
                           <Edit3 className="w-4 h-4 text-text-secondary" />
                           <span>Chỉnh sửa bài đăng</span>
                         </button>
-                        <div className="border-t border-gray-800/80 my-1" />
+                        <div className="border-t border-border-default/80 my-1" />
                         <button
                           onClick={handleDelete}
                           className="flex items-center gap-2.5 w-full text-left px-4 py-2 hover:bg-red-500/5 text-red-500 hover:text-red-400 transition-colors cursor-pointer"
@@ -1670,7 +1670,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             >
               {/* Bảng chọn cảm xúc (Reaction Picker) */}
               {showReactionPicker && (
-                <div className="absolute bottom-full left-0 mb-2 bg-background border border-gray-800 rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out] after:content-[''] after:absolute after:w-full after:h-4 after:top-full after:left-0">
+                <div className="absolute bottom-full left-0 mb-2 bg-background border border-border-default rounded-full px-3 py-2 flex items-center gap-2 shadow-xl z-50 animate-[slideIn_0.2s_ease-out] after:content-[''] after:absolute after:w-full after:h-4 after:top-full after:left-0">
                   {[
                     { type: 'LIKE', icon: '👍' },
                     { type: 'LOVE', icon: '❤️' },
@@ -1776,7 +1776,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       {showComments && (
         <div 
           onClick={(e) => e.stopPropagation()}
-          className="mt-2 border-t border-gray-800/80 pt-3 pl-12 space-y-4"
+          className="mt-2 border-t border-border-default/80 pt-3 pl-12 space-y-4"
         >
           
           {/* Ô nhập bình luận gốc */}
@@ -1790,14 +1790,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   onChange={(e) => setCommentText(e.target.value)}
                   disabled={postingComment}
                   placeholder="Viết phản hồi..."
-                  className="flex-1 bg-background border border-gray-700 text-text-primary text-sm rounded-full px-4 py-2 focus:outline-none focus:border-primary transition-colors"
+                  className="flex-1 bg-background border border-border-default text-text-primary text-sm rounded-full px-4 py-2 focus:outline-none focus:border-primary transition-colors"
                 />
                 
                 {/* Nút chọn ảnh bình luận */}
                 <button
                   type="button"
                   onClick={() => commentImageInputRef.current?.click()}
-                  className={`p-2 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${commentImage ? 'text-primary' : 'text-text-secondary'}`}
+                  className={`p-2 rounded-full hover:bg-surface-elevated transition-colors cursor-pointer ${commentImage ? 'text-primary' : 'text-text-secondary'}`}
                   title="Thêm hình ảnh vào bình luận"
                 >
                   <ImageIcon className="w-4.5 h-4.5" />
@@ -1816,7 +1816,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                     type="button"
                     onClick={() => setShowCommentEmojiPicker(!showCommentEmojiPicker)}
                     disabled={postingComment}
-                    className={`p-2 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${showCommentEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
+                    className={`p-2 rounded-full hover:bg-surface-elevated transition-colors cursor-pointer ${showCommentEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
                     title="Biểu cảm"
                   >
                     <Smile className="w-4.5 h-4.5" />
@@ -1835,7 +1835,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
               {/* Preview ảnh đính kèm bình luận cha */}
               {commentImage && (
-                <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-gray-800 max-h-24 overflow-hidden">
+                <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-border-default max-h-24 overflow-hidden">
                   <img src={commentImage || undefined} alt="Comment Preview" className="max-h-24 max-w-[150px] object-contain rounded-lg" />
                   <button
                     type="button"
@@ -1878,14 +1878,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                             onChange={(e) => setReplyText(e.target.value)}
                             disabled={postingComment}
                             placeholder="Viết phản hồi..."
-                            className="flex-1 bg-background border border-gray-700 text-text-primary text-xs rounded-full px-3.5 py-1.5 focus:outline-none focus:border-primary"
+                            className="flex-1 bg-background border border-border-default text-text-primary text-xs rounded-full px-3.5 py-1.5 focus:outline-none focus:border-primary"
                           />
                           
                           {/* Nút chọn ảnh phản hồi */}
                           <button
                             type="button"
                             onClick={() => replyImageInputRef.current?.click()}
-                            className={`p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${replyImage ? 'text-primary' : 'text-text-secondary'}`}
+                            className={`p-1.5 rounded-full hover:bg-surface-elevated transition-colors cursor-pointer ${replyImage ? 'text-primary' : 'text-text-secondary'}`}
                             title="Thêm hình ảnh"
                           >
                             <ImageIcon className="w-4 h-4" />
@@ -1904,7 +1904,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                               type="button"
                               onClick={() => setShowReplyEmojiPicker(!showReplyEmojiPicker)}
                               disabled={postingComment}
-                              className={`p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer ${showReplyEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
+                              className={`p-1.5 rounded-full hover:bg-surface-elevated transition-colors cursor-pointer ${showReplyEmojiPicker ? 'text-primary' : 'text-text-secondary'}`}
                               title="Biểu cảm"
                             >
                               <Smile className="w-4 h-4" />
@@ -1923,7 +1923,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
                         {/* Preview ảnh phản hồi */}
                         {replyImage && (
-                          <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-gray-800 max-h-20 overflow-hidden">
+                          <div className="relative inline-block mt-1 bg-black/35 rounded-lg border border-border-default max-h-20 overflow-hidden">
                             <img src={replyImage || undefined} alt="Reply Preview" className="max-h-20 max-w-[120px] object-contain rounded-lg" />
                             <button
                               type="button"
@@ -1942,7 +1942,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
                     {/* Render danh sách bình luận con (Thụt lề) */}
                     {childReplies.length > 0 && (
-                      <div className="ml-10 space-y-3 mt-1 pl-3 border-l-2 border-gray-800/60">
+                      <div className="ml-10 space-y-3 mt-1 pl-3 border-l-2 border-border-default/60">
                         {childReplies.map((reply) => renderSingleComment(reply, true))}
                       </div>
                     )}
@@ -1958,16 +1958,16 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
       {/* MODAL CHỈNH SỬA BÀI VIẾT (EDIT MODAL - NÂNG CẤP CHỌN FILE) */}
       {isEditing && (
         <div className="fixed inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-surface w-full max-w-lg rounded-app border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-surface w-full max-w-lg rounded-app border border-border-default shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border-default">
               <h2 className="text-lg font-bold text-text-primary">Chỉnh sửa bài đăng</h2>
               <button
                 type="button"
                 onClick={() => {
                   setIsEditing(false);
                 }}
-                className="text-text-secondary hover:text-text-primary p-1.5 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
+                className="text-text-secondary hover:text-text-primary p-1.5 rounded-full hover:bg-surface-elevated transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1980,13 +1980,13 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                 onChange={(e) => setEditContent(e.target.value)}
                 disabled={updating}
                 rows={5}
-                className="w-full bg-background border border-gray-700 text-text-primary rounded-lg p-3 text-[15px] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary"
+                className="w-full bg-background border border-border-default text-text-primary rounded-lg p-3 text-[15px] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-text-secondary"
                 placeholder="Nội dung bài đăng..."
               />
 
               {/* Khung hiển thị Preview tệp đính kèm trong Modal */}
               {editFile && (
-                <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-800 bg-black/40 max-h-56 flex items-center justify-center">
+                <div className="relative mt-2 rounded-lg overflow-hidden border border-border-default bg-black/40 max-h-56 flex items-center justify-center">
                   <img
                     src={editFile.url}
                     alt="Preview"
@@ -2013,7 +2013,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
             />
 
             {/* Modal Footer với nút công cụ chọn file */}
-            <div className="flex justify-between items-center px-6 py-4 bg-background border-t border-gray-800/80">
+            <div className="flex justify-between items-center px-6 py-4 bg-background border-t border-border-default/80">
               {/* Nút chọn hình ảnh/video mới */}
               <div>
                 <button
@@ -2034,7 +2034,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
                   onClick={() => {
                     setIsEditing(false);
                   }}
-                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-text-primary text-sm font-semibold rounded-full transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 bg-surface-elevated hover:bg-white/10 text-text-primary text-sm font-semibold rounded-full transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Hủy
                 </button>
@@ -2054,7 +2054,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
 
       {/* TOAST SYSTEM */}
       {toast && (
-        <div className="fixed bottom-5 right-5 bg-surface border border-gray-800 text-text-primary px-4 py-3.5 rounded-app shadow-2xl flex items-center gap-2.5 animate-fade-in z-50 min-w-[200px]">
+        <div className="fixed bottom-5 right-5 bg-surface border border-border-default text-text-primary px-4 py-3.5 rounded-app shadow-2xl flex items-center gap-2.5 animate-fade-in z-50 min-w-[200px]">
           <div className={`p-1 rounded-full ${toast.type === 'success' ? 'bg-primary/10 text-primary' : 'bg-error/10 text-error'}`}>
             {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
           </div>
@@ -2083,10 +2083,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
           onClick={(e) => { e.stopPropagation(); setShowLikersModal(false); }}
         >
           <div 
-            className="bg-background border border-gray-800 rounded-2xl w-full max-w-sm overflow-hidden relative shadow-2xl animate-[slideIn_0.2s_ease-out]"
+            className="bg-background border border-border-default rounded-2xl w-full max-w-sm overflow-hidden relative shadow-2xl animate-[slideIn_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+            <div className="flex items-center justify-between p-4 border-b border-border-default">
               <h3 className="font-bold text-lg text-text-primary">Đã thích</h3>
               <button 
                 onClick={() => setShowLikersModal(false)}
@@ -2108,7 +2108,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               ) : (
                 <div className="flex flex-col gap-1">
                   {likers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors cursor-pointer" onClick={() => window.location.href = `/?userId=${user.id}`}>
+                    <div key={user.id} className="flex items-center justify-between p-2 hover:bg-surface-elevated rounded-xl transition-colors cursor-pointer" onClick={() => window.location.href = `/?userId=${user.id}`}>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold shadow-md overflow-hidden shrink-0">
                           {user.avatarUrl ? (
@@ -2179,4 +2179,4 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   );
 };
 
-export default ArticleCard;
+export default React.memo(ArticleCard);

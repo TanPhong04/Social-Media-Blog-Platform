@@ -30,9 +30,9 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-background text-text-primary font-sans flex">
       {/* Sidebar */}
-      <aside className="w-72 min-h-screen bg-surface/50 backdrop-blur-xl border-r border-white/5 flex flex-col fixed left-0 top-0 bottom-0 z-40">
+      <aside className="w-72 min-h-screen bg-surface/50 backdrop-blur-xl border-r border-border-default flex flex-col fixed left-0 top-0 bottom-0 z-40">
         {/* Admin Header */}
-        <div className="p-6 border-b border-white/5">
+        <div className="p-6 border-b border-border-default">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/25">
               <Shield className="w-5 h-5 text-white" />
@@ -58,7 +58,7 @@ const AdminLayout = () => {
                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden',
                     isActive
                       ? 'bg-primary/15 text-primary font-medium shadow-sm'
-                      : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
+                      : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                   )
                 }
               >
@@ -90,10 +90,10 @@ const AdminLayout = () => {
         </nav>
 
         {/* Bottom section */}
-        <div className="p-4 border-t border-white/5 space-y-2">
+        <div className="p-4 border-t border-border-default space-y-2">
           <Link
             to="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:bg-white/5 hover:text-text-primary transition-all duration-300 group"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-all duration-300 group"
           >
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
             <span>Về trang chính</span>
@@ -108,7 +108,7 @@ const AdminLayout = () => {
         </div>
 
         {/* User info */}
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 border-t border-border-default">
           <div className="flex items-center gap-3 px-2">
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-md">
               {user?.displayName?.charAt(0).toUpperCase() || 'A'}
@@ -128,7 +128,7 @@ const AdminLayout = () => {
       {/* Main Content */}
       <div className="flex-1 ml-72">
         {/* Top bar */}
-        <header className="h-16 bg-surface/30 backdrop-blur-md border-b border-white/5 sticky top-0 z-30 flex items-center px-8">
+        <header className="h-16 bg-surface/30 backdrop-blur-md border-b border-border-default sticky top-0 z-30 flex items-center px-8">
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <Shield className="w-4 h-4 text-primary" />
             <span>Admin Panel</span>

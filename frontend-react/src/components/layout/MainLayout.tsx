@@ -258,7 +258,7 @@ const MainLayout = () => {
       {realtimeToast && (
         <div 
           onClick={handleToastClick}
-          className="fixed bottom-5 right-5 z-[9999] max-w-sm w-full bg-surface border border-white/10 rounded-app shadow-2xl p-4 flex gap-3 toast-animate cursor-pointer hover:bg-white/[0.02] active:scale-[0.98] transition-all"
+          className="fixed bottom-5 right-5 z-[9999] max-w-sm w-full bg-surface border border-border-default rounded-app shadow-2xl p-4 flex gap-3 toast-animate cursor-pointer hover:bg-white/[0.02] active:scale-[0.98] transition-all"
         >
           <div className="shrink-0 relative">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden flex items-center justify-center text-white font-bold shadow">
@@ -316,7 +316,7 @@ const MainLayout = () => {
               e.stopPropagation();
               setRealtimeToast(null);
             }}
-            className="shrink-0 text-text-secondary hover:text-text-primary self-start p-0.5 rounded-full hover:bg-white/5 transition-colors"
+            className="shrink-0 text-text-secondary hover:text-text-primary self-start p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </button>

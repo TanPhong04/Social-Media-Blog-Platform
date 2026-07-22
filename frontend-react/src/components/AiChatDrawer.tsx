@@ -103,10 +103,10 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
       />
 
       {/* Container Drawer trượt từ bên phải */}
-      <div className="fixed top-0 right-0 h-screen w-full sm:w-[420px] z-50 bg-surface border-l border-gray-800 shadow-2xl flex flex-col animate-slide-in">
+      <div className="fixed top-0 right-0 h-screen w-full sm:w-[420px] z-50 bg-surface border-l border-border-default shadow-2xl flex flex-col animate-slide-in">
         
         {/* Header */}
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-white/[0.01]">
+        <div className="p-4 border-b border-border-default flex items-center justify-between bg-white/[0.01]">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-primary/10 text-primary rounded-lg border border-primary/20">
               <Sparkles className="w-5 h-5 fill-primary/10" />
@@ -118,7 +118,7 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/5 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -144,7 +144,7 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
                 <div 
                   className={`p-3 rounded-2xl text-[14px] leading-relaxed shadow-sm whitespace-pre-wrap break-words ${
                     isModel 
-                      ? 'bg-surface border border-gray-800 text-text-primary rounded-tl-xs' 
+                      ? 'bg-surface border border-border-default text-text-primary rounded-tl-xs' 
                       : 'bg-primary text-white rounded-tr-xs'
                   }`}
                   dangerouslySetInnerHTML={{ __html: formatMessageText(msg.text) }}
@@ -159,7 +159,7 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
               <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white shrink-0 animate-pulse">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <div className="bg-surface border border-gray-800 rounded-2xl rounded-tl-xs p-3 flex gap-1.5 items-center justify-center">
+              <div className="bg-surface border border-border-default rounded-2xl rounded-tl-xs p-3 flex gap-1.5 items-center justify-center">
                 <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -180,23 +180,23 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
 
         {/* Khung gợi ý câu hỏi nhanh (chỉ hiển thị khi không trong trạng thái loading) */}
         {!loading && messages.length === 1 && (
-          <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-gray-800 bg-background/5">
+          <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-border-default bg-background/5">
             <button
               onClick={() => handleSend('Tóm tắt bài viết này')}
-              className="px-3 py-1.5 text-xs rounded-full border border-gray-800 hover:border-primary/40 bg-surface text-text-primary hover:bg-white/5 transition-all text-left flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-xs rounded-full border border-border-default hover:border-primary/40 bg-surface text-text-primary hover:bg-surface-elevated transition-all text-left flex items-center gap-1.5 cursor-pointer"
             >
               📝 Tóm tắt bài đăng
             </button>
             <button
               onClick={() => handleSend('Các từ khóa chính và nội dung quan trọng của bài viết này là gì?')}
-              className="px-3 py-1.5 text-xs rounded-full border border-gray-800 hover:border-primary/40 bg-surface text-text-primary hover:bg-white/5 transition-all text-left flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-xs rounded-full border border-border-default hover:border-primary/40 bg-surface text-text-primary hover:bg-surface-elevated transition-all text-left flex items-center gap-1.5 cursor-pointer"
             >
               💡 Nội dung cốt lõi
             </button>
             {hasImages && (
               <button
                 onClick={() => handleSend('Hình ảnh trong bài viết này mô tả hoặc nói về điều gì?')}
-                className="px-3 py-1.5 text-xs rounded-full border border-gray-800 hover:border-primary/40 bg-surface text-text-primary hover:bg-white/5 transition-all text-left flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-1.5 text-xs rounded-full border border-border-default hover:border-primary/40 bg-surface text-text-primary hover:bg-surface-elevated transition-all text-left flex items-center gap-1.5 cursor-pointer"
               >
                 🖼️ Phân tích hình ảnh
               </button>
@@ -210,7 +210,7 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
             e.preventDefault();
             handleSend(input);
           }}
-          className="p-4 border-t border-gray-800 flex gap-2 bg-surface"
+          className="p-4 border-t border-border-default flex gap-2 bg-surface"
         >
           <input
             type="text"
@@ -218,7 +218,7 @@ const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ isOpen, onClose, articleId,
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
             placeholder="Hỏi AI bất kỳ điều gì về bài đăng này..."
-            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-800 focus:border-primary focus:outline-none bg-background text-text-primary text-[14px] disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-border-default focus:border-primary focus:outline-none bg-background text-text-primary text-[14px] disabled:opacity-50"
           />
           <button
             type="submit"
