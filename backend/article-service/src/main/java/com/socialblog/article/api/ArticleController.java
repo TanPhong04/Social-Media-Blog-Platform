@@ -25,6 +25,16 @@ public class ArticleController {
         return ResponseEntity.ok(service.feed(PageRequests.of(page, size, 50)));
     }
 
+    @GetMapping("/trending")
+    java.util.List<TrendingTagResponse> trending(@RequestParam(defaultValue = "5") int limit) {
+        return service.getTrendingTags(limit);
+    }
+
+    @GetMapping("/search")
+    ResponseEntity<Page<Response>> search(@RequestParam("query") String query, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(service.searchArticles(query, PageRequests.of(page, size, 50)));
+    }
+
     @GetMapping("/following")
     Page<Response> following(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return service.followingFeed(user(jwt), PageRequests.of(page, size, 50));
@@ -35,9 +45,19 @@ public class ArticleController {
         return service.publicBySlug(slug);
     }
 
+    @GetMapping("/{id}")
+    Response getById(@PathVariable UUID id) {
+        return service.getById(id);
+    }
+
     @GetMapping("/mine")
     Page<Response> mine(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return service.mine(user(jwt), PageRequests.of(page, size, 50));
+    }
+
+    @GetMapping("/users/{authorId}")
+    Page<Response> byAuthor(@PathVariable UUID authorId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return service.mine(authorId, PageRequests.of(page, size, 50));
     }
 
     @PostMapping
@@ -64,6 +84,14 @@ public class ArticleController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void delete(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         service.delete(id, user(jwt));
+    }
+
+    @PostMapping("/{id}/ask-ai")
+    public ResponseEntity<com.socialblog.article.api.AiDtos.AiChatResponse> askAi(
+            @PathVariable UUID id,
+            @Valid @RequestBody com.socialblog.article.api.AiDtos.AiChatRequest r
+    ) {
+        return ResponseEntity.ok(service.askAi(id, r));
     }
 
     private UUID user(Jwt jwt) {

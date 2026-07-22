@@ -10,11 +10,13 @@ public final class ArticleDtos {
     }
 
     public record WriteRequest(@NotBlank @Size(max = 200) String title, @Size(max = 500) String summary,
-                               @NotBlank @Size(max = 50000) String content,
+                               @NotBlank @Size(max = 10000000) String content,
                                @Size(max = 10) Set<@NotBlank @Size(max = 50) String> tags) {
     }
 
     public record Response(UUID id, UUID authorId, String title, String slug, String summary, String content,
                            String status, Set<String> tags, Instant createdAt, Instant updatedAt, Instant publishedAt) {
     }
+
+    public record TrendingTagResponse(String tag, long posts) {}
 }

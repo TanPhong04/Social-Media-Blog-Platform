@@ -21,3 +21,6 @@ HUONG_DAN_NOP_BAI_CLASSROOM.md
 frontend/android/build/
 frontend/android/.gradle/
 **/.gradle/
+
+# AI configs
+.cursorrules

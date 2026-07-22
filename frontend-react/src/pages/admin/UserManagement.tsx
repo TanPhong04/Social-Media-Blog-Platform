@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { AdminUser, PageResponse } from '../../api/adminApi';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
   ACTIVE: { label: 'Hoạt động', color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle },
@@ -31,6 +32,7 @@ export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -48,26 +50,51 @@ export default function UserManagement() {
 
   const handleSuspend = async (userId: string) => {
     setActionLoading(userId);
-    await adminApi.suspendUser(userId);
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'SUSPENDED' } : u));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.suspendUser(userId);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'SUSPENDED' } : u));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi tạm ngưng tài khoản');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const handleActivate = async (userId: string) => {
     setActionLoading(userId);
-    await adminApi.activateUser(userId);
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'ACTIVE' } : u));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.activateUser(userId);
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'ACTIVE' } : u));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi kích hoạt tài khoản');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const handleDelete = async (userId: string) => {
-    setActionLoading(userId);
-    await adminApi.deleteUser(userId);
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'DELETED' } : u));
-    setActionLoading(null);
-    setActionMenuId(null);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xóa tài khoản',
+      message: 'Bạn có chắc muốn xóa tài khoản này không?',
+      onConfirm: async () => {
+        setActionLoading(userId);
+        try {
+          await adminApi.deleteUser(userId);
+          setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'DELETED' } : u));
+        } catch (err) {
+          console.error(err);
+          alert('Lỗi xóa tài khoản');
+        } finally {
+          setActionLoading(null);
+          setActionMenuId(null);
+        }
+      }
+    });
   };
 
   const filteredUsers = searchQuery
@@ -118,7 +145,7 @@ export default function UserManagement() {
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto pb-32 min-h-[50vh]">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/5">
@@ -245,6 +272,19 @@ export default function UserManagement() {
           </div>
         )}
       </div>
+
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={() => {
+            confirmModal.onConfirm();
+            setConfirmModal(null);
+          }}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
     </div>
   );
 }

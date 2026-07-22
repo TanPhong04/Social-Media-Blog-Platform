@@ -72,8 +72,8 @@ class CommentServicePostgresIntegrationTest {
         assertThat(articles.existsByArticleIdAndActiveTrue(articleId)).isTrue();
         assertThat(articles.findById(articleId)).get().extracting(ArticleProjection::getAuthorId).isEqualTo(authorId);
 
-        Comment root = comments.saveAndFlush(new Comment(articleId, authorId, null, "Root"));
-        Comment reply = comments.saveAndFlush(new Comment(articleId, UUID.randomUUID(), root.getId(), "Reply"));
+        Comment root = comments.saveAndFlush(new Comment(articleId, authorId, null, null, "Root"));
+        Comment reply = comments.saveAndFlush(new Comment(articleId, UUID.randomUUID(), root.getId(), null, "Reply"));
 
         assertThat(comments.findByArticleIdOrderByCreatedAtAsc(articleId, PageRequest.of(0, 10)))
                 .extracting(Comment::getId)

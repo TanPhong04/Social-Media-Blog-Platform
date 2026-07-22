@@ -1,26 +1,41 @@
-import { Home as HomeIcon, User, LogIn, LogOut, UserPlus } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Home as HomeIcon, User, LogIn, Settings as SettingsIcon, UserPlus, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <nav className="bg-surface border-b border-gray-800 sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo & Left Links */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary font-heading">
+          {/* Logo & Search */}
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              onClick={(e) => {
+                if (window.location.pathname === '/') {
+                  e.preventDefault();
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-2 font-bold text-xl text-primary font-heading"
+            >
               <HomeIcon className="w-6 h-6" />
-              <span>Axion</span>
+              <span className="hidden sm:inline">Axion</span>
             </Link>
+
+            {/* Search Bar */}
+            <form action="/search" method="GET" className="relative hidden md:flex items-center">
+              <Search className="w-4 h-4 absolute left-3 text-text-secondary" />
+              <input
+                type="text"
+                name="q"
+                defaultValue={new URLSearchParams(window.location.search).get('q') || ''}
+                placeholder="Tìm kiếm trên Axion"
+                className="bg-background border border-gray-800 rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text-primary placeholder-text-secondary transition-all"
+              />
+            </form>
           </div>
 
           {/* Right Actions */}
@@ -31,6 +46,8 @@ const Navbar = () => {
                   <span>Xin chào,</span>
                   <span className="font-medium text-text-primary">{user?.displayName}</span>
                 </div>
+
+
                 <Link 
                   to="/profile" 
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-background border border-gray-800 text-primary hover:bg-gray-800 transition-colors"
@@ -41,13 +58,13 @@ const Navbar = () => {
                     <User className="w-5 h-5" />
                   )}
                 </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-text-secondary hover:text-red-400 font-medium transition-colors ml-2"
+                <Link 
+                  to="/settings"
+                  className="flex items-center gap-2 text-text-secondary hover:text-primary font-medium transition-colors ml-2 cursor-pointer"
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span className="hidden sm:inline">Đăng xuất</span>
-                </button>
+                  <SettingsIcon className="w-5 h-5" />
+                  <span className="hidden sm:inline">Cài đặt</span>
+                </Link>
               </>
             ) : (
               <>

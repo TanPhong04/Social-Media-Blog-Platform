@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { AdminArticle, PageResponse } from '../../api/adminApi';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
   PUBLISHED: { label: 'Đã đăng', color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle },
@@ -30,6 +31,7 @@ export default function ArticleManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -47,18 +49,37 @@ export default function ArticleManagement() {
 
   const handleArchive = async (articleId: string) => {
     setActionLoading(articleId);
-    await adminApi.archiveArticle(articleId);
-    setArticles(prev => prev.map(a => a.id === articleId ? { ...a, status: 'ARCHIVED' } : a));
-    setActionLoading(null);
-    setActionMenuId(null);
+    try {
+      await adminApi.archiveArticle(articleId);
+      setArticles(prev => prev.map(a => a.id === articleId ? { ...a, status: 'ARCHIVED' } : a));
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi lưu trữ bài viết');
+    } finally {
+      setActionLoading(null);
+      setActionMenuId(null);
+    }
   };
 
   const handleDelete = async (articleId: string) => {
-    setActionLoading(articleId);
-    await adminApi.deleteArticle(articleId);
-    setArticles(prev => prev.filter(a => a.id !== articleId));
-    setActionLoading(null);
-    setActionMenuId(null);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xóa bài viết',
+      message: 'Bạn có chắc muốn xóa bài viết này không?',
+      onConfirm: async () => {
+        setActionLoading(articleId);
+        try {
+          await adminApi.deleteArticle(articleId);
+          setArticles(prev => prev.filter(a => a.id !== articleId));
+        } catch (err) {
+          console.error(err);
+          alert('Lỗi xóa bài viết');
+        } finally {
+          setActionLoading(null);
+          setActionMenuId(null);
+        }
+      }
+    });
   };
 
   const filteredArticles = searchQuery
@@ -108,7 +129,7 @@ export default function ArticleManagement() {
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto pb-32 min-h-[50vh]">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/5">
@@ -235,6 +256,19 @@ export default function ArticleManagement() {
           </div>
         )}
       </div>
+
+      {confirmModal && (
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={() => {
+            confirmModal.onConfirm();
+            setConfirmModal(null);
+          }}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
     </div>
   );
 }

@@ -14,6 +14,13 @@ export interface ArticleResponse {
   publishedAt: string;
 }
 
+export interface ArticleWriteRequest {
+  title: string;
+  summary: string;
+  content: string;
+  tags: string[];
+}
+
 export interface Page<T> {
   content: T[];
   pageable: {
@@ -27,10 +34,85 @@ export interface Page<T> {
   empty: boolean;
 }
 
+export interface TrendingTagResponse {
+  tag: string;
+  posts: number;
+}
+
 export const articleApi = {
   getFeed: (page: number = 0, size: number = 20) => {
     return axiosClient.get<Page<ArticleResponse>>('/articles', {
       params: { page, size }
     });
+  },
+  getFollowingFeed: (page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>('/articles/following', {
+      params: { page, size }
+    });
+  },
+  getTrendingTags: async (limit: number = 5) => {
+    return axiosClient.get<TrendingTagResponse[]>(`/articles/trending?limit=${limit}`);
+  },
+  searchArticles: async (query: string, page: number = 0, size: number = 20) => {
+    return axiosClient.get(`/articles/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
+  },
+
+  getBySlug: (slug: string) => {
+    return axiosClient.get<ArticleResponse>(`/articles/by-slug/${slug}`);
+  },
+  getById: (id: string) => {
+    return axiosClient.get<ArticleResponse>(`/articles/${id}`);
+  },
+  getMine: (page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>('/articles/mine', {
+      params: { page, size }
+    });
+  },
+  getByAuthor: (authorId: string, page: number = 0, size: number = 20) => {
+    return axiosClient.get<Page<ArticleResponse>>(`/articles/users/${authorId}`, {
+      params: { page, size }
+    });
+  },
+  createArticle: (data: ArticleWriteRequest) => {
+    return axiosClient.post<ArticleResponse>('/articles', data);
+  },
+  updateArticle: (id: string, data: ArticleWriteRequest) => {
+    return axiosClient.put<ArticleResponse>(`/articles/${id}`, data);
+  },
+  deleteArticle: (id: string) => {
+    return axiosClient.delete(`/articles/${id}`);
+  },
+  publishArticle: (id: string) => {
+    return axiosClient.post<ArticleResponse>(`/articles/${id}/publish`);
+  },
+  unpublishArticle: (id: string) => {
+    return axiosClient.post<ArticleResponse>(`/articles/${id}/unpublish`);
+  },
+  likeArticle: (id: string, reaction: string = 'LIKE') => {
+    return axiosClient.put(`/interactions/ARTICLE/${id}/like?reaction=${reaction}`);
+  },
+  unlikeArticle: (id: string) => {
+    return axiosClient.delete(`/interactions/ARTICLE/${id}/like`);
+  },
+  getArticleInteraction: (id: string) => {
+    return axiosClient.get(`/interactions/ARTICLE/${id}`);
+  },
+  getArticleLikers: async (id: string, page = 0, size = 20) => {
+    const res: any = await axiosClient.get(`/interactions/ARTICLE/${id}/users`, {
+      params: { page, size }
+    });
+    return res;
+  },
+  likeMedia: (url: string, articleId: string, reaction: string = 'LIKE') => {
+    const b64Url = btoa(url);
+    return axiosClient.put(`/interactions/MEDIA/url/like?b64Url=${b64Url}&articleId=${articleId}&reaction=${reaction}`);
+  },
+  unlikeMedia: (url: string) => {
+    const b64Url = btoa(url);
+    return axiosClient.delete(`/interactions/MEDIA/url/like?b64Url=${b64Url}`);
+  },
+  getMediaInteraction: (url: string) => {
+    const b64Url = btoa(url);
+    return axiosClient.get(`/interactions/MEDIA/url?b64Url=${b64Url}`);
   }
 };

@@ -32,10 +32,10 @@ axiosClient.interceptors.response.use(
   (error) => {
     // Handle global errors here (e.g. 401 Unauthorized -> redirect to login)
     if (error.response && error.response.status === 401) {
-      // TODO: Handle token refresh or logout
       console.error('Unauthorized, please login again.');
-      // localStorage.removeItem('accessToken');
-      // window.location.href = '/login';
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

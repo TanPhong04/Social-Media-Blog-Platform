@@ -1,0 +1,149 @@
+package com.socialblog.notification.application;
+
+import com.socialblog.notification.api.ApiException;
+import com.socialblog.notification.api.NotificationController;
+import com.socialblog.notification.domain.ChatMessage;
+import com.socialblog.notification.repository.ChatMessageRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class ChatService {
+
+    public record ChatMessageResponse(
+            UUID id,
+            UUID senderId,
+            UUID recipientId,
+            String content,
+            Instant createdAt,
+            boolean isRead
+    ) {}
+
+    public record ChatContactResponse(
+            UUID contactId,
+            String lastMessage,
+            Instant lastMessageTime,
+            long unreadCount,
+            boolean isOnline,
+            Instant lastOnlineTime
+    ) {}
+
+    private final ChatMessageRepository chatMessageRepository;
+    private final com.socialblog.notification.repository.NotificationRepository notificationRepository;
+
+    public ChatService(
+            ChatMessageRepository chatMessageRepository,
+            com.socialblog.notification.repository.NotificationRepository notificationRepository
+    ) {
+        this.chatMessageRepository = chatMessageRepository;
+        this.notificationRepository = notificationRepository;
+    }
+
+    @Transactional
+    public ChatMessageResponse sendMessage(UUID senderId, UUID recipientId, String content) {
+        if (senderId.equals(recipientId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "SELF_CHAT", "You cannot send messages to yourself");
+        }
+
+        ChatMessage message = new ChatMessage(senderId, recipientId, content);
+        ChatMessage saved = chatMessageRepository.save(message);
+
+        ChatMessageResponse response = map(saved);
+
+        try {
+            com.socialblog.notification.domain.Notification notification = new com.socialblog.notification.domain.Notification(
+                saved.getId(),
+                recipientId,
+                senderId,
+                com.socialblog.notification.domain.Notification.Type.NEW_MESSAGE,
+                "CHAT_MESSAGE",
+                saved.getId(),
+                "{\"messageId\":\"" + saved.getId() + "\",\"content\":\"" + saved.getContent().replaceAll("\"", "\\\"") + "\"}",
+                saved.getCreatedAt()
+            );
+            notificationRepository.save(notification);
+
+            NotificationController.sendRealtimeNotification(recipientId, new NotificationService.Response(
+                notification.getId(),
+                notification.getActorId(),
+                notification.getType().name(),
+                notification.getEntityType(),
+                notification.getEntityId(),
+                notification.getMetadata(),
+                notification.getCreatedAt(),
+                notification.getReadAt()
+            ));
+        } catch (Exception e) {
+            System.err.println("Failed to save chat message notification: " + e.getMessage());
+        }
+
+        NotificationController.sendRealtimeChatMessage(recipientId, response);
+        NotificationController.sendRealtimeChatMessage(senderId, response);
+
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ChatMessageResponse> getChatHistory(UUID userId, UUID contactId, Pageable pageable) {
+        return chatMessageRepository.findChatHistory(userId, contactId, pageable).map(this::map);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatContactResponse> getContacts(UUID userId) {
+        List<ChatMessage> recents = chatMessageRepository.findRecentMessages(userId);
+        
+        return recents.stream().map(msg -> {
+            UUID contactId = msg.getSenderId().equals(userId) ? msg.getRecipientId() : msg.getSenderId();
+            long unread = chatMessageRepository.countBySenderIdAndRecipientIdAndIsReadFalse(contactId, userId);
+            boolean isOnline = NotificationController.isUserOnline(contactId);
+            Instant lastOnlineTime = NotificationController.getLastOnlineTime(contactId);
+
+            return new ChatContactResponse(
+                    contactId,
+                    msg.getContent(),
+                    msg.getCreatedAt(),
+                    unread,
+                    isOnline,
+                    lastOnlineTime
+            );
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void markAsRead(UUID userId, UUID contactId) {
+        chatMessageRepository.markAsRead(contactId, userId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, Map<String, Object>> checkOnlineStatuses(List<UUID> userIds) {
+        Map<UUID, Map<String, Object>> statuses = new HashMap<>();
+        for (UUID uid : userIds) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("isOnline", NotificationController.isUserOnline(uid));
+            Instant lastOnline = NotificationController.getLastOnlineTime(uid);
+            if (lastOnline != null) {
+                info.put("lastOnlineTime", lastOnline.toString());
+            }
+            statuses.put(uid, info);
+        }
+        return statuses;
+    }
+
+    private ChatMessageResponse map(ChatMessage m) {
+        return new ChatMessageResponse(
+                m.getId(),
+                m.getSenderId(),
+                m.getRecipientId(),
+                m.getContent(),
+                m.getCreatedAt(),
+                m.isRead()
+        );
+    }
+}
