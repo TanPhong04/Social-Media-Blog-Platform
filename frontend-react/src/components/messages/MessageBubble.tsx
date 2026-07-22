@@ -1,5 +1,7 @@
 import React from 'react';
 import { Avatar } from '../ui/Avatar';
+import { useCall } from '../../contexts/CallContext';
+import { Phone, PhoneMissed, PhoneOff, Video } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: any;
@@ -8,7 +10,63 @@ interface MessageBubbleProps {
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine, contactProfile }) => {
+  const { startCall } = useCall();
+
+  const handleCallAgain = (isVideo: boolean) => {
+    // If we are calling back, the target is the other person
+    const targetId = isMine ? message.recipientId : message.senderId;
+    startCall(targetId, contactProfile, isVideo);
+  };
+
   const renderContent = (content: string) => {
+    if (content.startsWith('[CALL_LOG]:')) {
+      try {
+        const payload = JSON.parse(content.replace('[CALL_LOG]:', ''));
+        const { type, isVideo, duration } = payload;
+        
+        let icon = <Phone className="w-5 h-5 text-text-primary" />;
+        let text = 'Cuộc gọi thoại';
+        let subText = '';
+        
+        if (type === 'MISSED') {
+          icon = <PhoneMissed className="w-5 h-5 text-error" />;
+          text = 'Cuộc gọi nhỡ';
+        } else if (type === 'REJECTED') {
+          icon = <PhoneOff className="w-5 h-5 text-error" />;
+          text = 'Cuộc gọi bị từ chối';
+        } else if (type === 'ENDED') {
+          icon = isVideo ? <Video className="w-5 h-5 text-text-primary" /> : <Phone className="w-5 h-5 text-text-primary" />;
+          text = isVideo ? 'Cuộc gọi video' : 'Cuộc gọi thoại';
+          
+          const m = Math.floor(duration / 60);
+          const s = duration % 60;
+          subText = `${m} phút ${s} giây`;
+        }
+
+        return (
+          <div className="flex flex-col gap-2 min-w-[180px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-background rounded-full shrink-0 shadow-sm">
+                {icon}
+              </div>
+              <div>
+                <p className="font-semibold text-[15px] leading-tight">{text}</p>
+                {subText && <p className="text-[13px] opacity-80 mt-0.5">{subText}</p>}
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => handleCallAgain(isVideo)}
+              className="mt-2 w-full py-2 bg-surface text-text-primary hover:bg-surface-elevated font-medium rounded-xl text-sm transition-colors border border-border-default shadow-sm"
+            >
+              Gọi lại
+            </button>
+          </div>
+        );
+      } catch (e) {
+        // Fallback to normal text if JSON parse fails
+      }
+    }
     let text = content;
     let imageSrc = '';
     const imgMatch = content.match(/!\[(?:chat_image|comment_image)\]\(([^\)]+)\)/);

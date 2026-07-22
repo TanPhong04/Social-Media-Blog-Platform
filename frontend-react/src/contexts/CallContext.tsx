@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import Peer, { type MediaConnection } from 'peerjs';
 import { useAuth } from './AuthContext';
 import { userApi } from '../api/userApi';
+import { chatApi } from '../api/chatApi';
 
 interface CallContextType {
   startCall: (contactId: string, contactProfile: any, isVideo: boolean) => void;
@@ -44,6 +45,25 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const connectionRef = useRef<MediaConnection | null>(null);
   const ringAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+  const isCallerRef = useRef(false);
+  const statusRef = useRef<'idle' | 'outgoing' | 'incoming' | 'connected'>('idle');
+  const durationRef = useRef(0);
+  const isVideoRef = useRef(false);
+  const remoteIdRef = useRef<string | null>(null);
+  const ringTimeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    statusRef.current = callStatus;
+  }, [callStatus]);
+
+  useEffect(() => {
+    durationRef.current = callDuration;
+  }, [callDuration]);
+
+  useEffect(() => {
+    isVideoRef.current = isVideo;
+  }, [isVideo]);
 
   useEffect(() => {
     const audio = new Audio('/sounds/nhac-chuong.mp3');
@@ -56,6 +76,22 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (ringAudioRef.current) {
       ringAudioRef.current.pause();
       ringAudioRef.current.currentTime = 0;
+    }
+    if (ringTimeoutRef.current) {
+      clearTimeout(ringTimeoutRef.current);
+      ringTimeoutRef.current = null;
+    }
+  };
+
+  const sendCallLog = async (type: 'MISSED' | 'REJECTED' | 'ENDED') => {
+    const targetId = remoteIdRef.current;
+    if (!targetId) return;
+    try {
+      const payload = JSON.stringify({ type, isVideo: isVideoRef.current, duration: durationRef.current });
+      await chatApi.sendMessage(targetId, `[CALL_LOG]:${payload}`);
+      window.dispatchEvent(new CustomEvent('new-chat-message-received'));
+    } catch (e) {
+      console.warn('Failed to send call log', e);
     }
   };
 
@@ -76,8 +112,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     newPeer.on('call', async (call) => {
       connectionRef.current = call;
+      isCallerRef.current = false;
       
       const callerId = call.peer.replace('axion-user-', '');
+      remoteIdRef.current = callerId;
+      
       try {
         const res: any = await userApi.getUserById(callerId);
         setRemoteProfile(res.data || res);
@@ -88,6 +127,12 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsVideo(call.metadata?.isVideo || false);
       setCallStatus('incoming');
       playRing();
+      
+      ringTimeoutRef.current = setTimeout(() => {
+        if (statusRef.current === 'incoming') {
+           endCall(false);
+        }
+      }, 60000);
     });
 
     setPeer(newPeer);
@@ -129,8 +174,18 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsVideo(video);
     setIsMuted(false);
     setIsVideoOff(false);
+    
+    isCallerRef.current = true;
+    remoteIdRef.current = contactId;
     setCallStatus('outgoing');
     playRing();
+    
+    ringTimeoutRef.current = setTimeout(() => {
+      if (statusRef.current === 'outgoing') {
+         sendCallLog('MISSED');
+         endCall(false);
+      }
+    }, 60000);
 
     const stream = await getMedia(video);
     if (!stream) {
@@ -149,7 +204,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     call.on('close', () => {
-      endCall();
+      if (statusRef.current === 'connected' && isCallerRef.current) {
+         sendCallLog('ENDED');
+      }
+      endCall(false);
     });
   };
 
@@ -165,22 +223,34 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       connectionRef.current.on('close', () => {
-        endCall();
+        if (isCallerRef.current && statusRef.current === 'connected') {
+           sendCallLog('ENDED');
+        }
+        endCall(false);
       });
     } else {
-      endCall();
+      endCall(false);
     }
   };
 
   const rejectCall = () => {
+    sendCallLog('REJECTED');
     stopRing();
     if (connectionRef.current) {
       connectionRef.current.close();
     }
-    endCall();
+    endCall(false);
   };
 
-  const endCall = () => {
+  const endCall = (isUserInitiated: boolean = true) => {
+    if (isUserInitiated && isCallerRef.current) {
+      if (statusRef.current === 'outgoing') {
+        sendCallLog('MISSED');
+      } else if (statusRef.current === 'connected') {
+        sendCallLog('ENDED');
+      }
+    }
+    
     stopRing();
     if (connectionRef.current) {
       connectionRef.current.close();
