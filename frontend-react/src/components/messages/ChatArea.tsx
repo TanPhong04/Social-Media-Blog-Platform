@@ -6,6 +6,7 @@ import { Spinner } from '../ui/Spinner';
 import { MessageBubble } from './MessageBubble';
 import { EmojiPicker } from '../shared/EmojiPicker';
 import { mediaApi } from '../../api/mediaApi';
+import { CallModal } from './CallModal';
 
 interface ChatAreaProps {
   activeContactId: string | null;
@@ -30,6 +31,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sending, setSending] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [isVideoCall, setIsVideoCall] = useState(false);
+
+  const startCall = (video: boolean) => {
+    setIsVideoCall(video);
+    setIsCallModalOpen(true);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -152,10 +161,18 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
         {/* Mock Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
-          <button className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors" title="Cuộc gọi thoại">
+          <button 
+            onClick={() => startCall(false)}
+            className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors" 
+            title="Cuộc gọi thoại"
+          >
             <Phone className="w-5 h-5" />
           </button>
-          <button className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors hidden sm:flex" title="Cuộc gọi video">
+          <button 
+            onClick={() => startCall(true)}
+            className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors hidden sm:flex" 
+            title="Cuộc gọi video"
+          >
             <Video className="w-5 h-5" />
           </button>
           <button className="p-2 rounded-full hover:bg-primary/10 hover:text-primary transition-colors" title="Thông tin">
@@ -286,6 +303,13 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           </div>
         </form>
       </div>
+
+      <CallModal 
+        isOpen={isCallModalOpen} 
+        onClose={() => setIsCallModalOpen(false)} 
+        contactProfile={activeContactProfile}
+        isVideo={isVideoCall}
+      />
     </div>
   );
 };
