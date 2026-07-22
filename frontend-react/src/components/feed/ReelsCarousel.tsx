@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { articleApi, type ArticleResponse } from '../../api/articleApi';
 import { userApi } from '../../api/userApi';
-import { Play, ChevronLeft, ChevronRight, Film, Volume2, VolumeX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Film, Volume2, VolumeX } from 'lucide-react';
 
 import { isReel } from '../../utils/feedMixer';
 
@@ -14,7 +14,7 @@ const extractVideoUrl = (content: string): string | null => {
 const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
   const navigate = useNavigate();
   const [author, setAuthor] = useState<any>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+
   const [progress, setProgress] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -30,13 +30,12 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
 
   const handleMouseEnter = () => {
     if (videoRef.current) {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch((err) => {
+      videoRef.current.play().catch((err) => {
         if (err.name === 'NotAllowedError') {
           setIsMuted(true);
           videoRef.current!.muted = true;
-          videoRef.current!.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          videoRef.current!.play().catch(() => {});
         } else {
-          setIsPlaying(false);
         }
       });
     }
@@ -45,21 +44,10 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
   const handleMouseLeave = () => {
     if (videoRef.current) {
       videoRef.current.pause();
-      setIsPlaying(false);
     }
   };
 
-  const togglePlay = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
-    } else {
-      video.pause();
-      setIsPlaying(false);
-    }
-  };
+
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
@@ -125,21 +113,7 @@ const ReelCard: React.FC<{ article: ArticleResponse }> = ({ article }) => {
           Reels
         </div>
 
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-          <button 
-            className="w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm flex items-center justify-center text-white pointer-events-auto transition-colors"
-            onClick={togglePlay}
-          >
-            {!isPlaying ? (
-              <Play className="w-6 h-6 fill-current ml-1" />
-            ) : (
-              <div className="w-5 h-5 flex justify-between items-center px-0.5">
-                <div className="w-1.5 h-full bg-white rounded-sm" />
-                <div className="w-1.5 h-full bg-white rounded-sm" />
-              </div>
-            )}
-          </button>
-        </div>
+
 
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto z-20">
           <button 
