@@ -148,6 +148,21 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   useEffect(() => {
+    const handleRemoteCallAction = (e: Event) => {
+      const msg = (e as CustomEvent).detail;
+      if (!msg) return;
+      // If we are currently incoming a call from this sender, and they send MISSED, they cancelled it.
+      if (statusRef.current === 'incoming' && remoteIdRef.current === msg.senderId) {
+        if (msg.content?.includes('[CALL_LOG]') && msg.content?.includes('MISSED')) {
+          endCall(false);
+        }
+      }
+    };
+    window.addEventListener('new-chat-message-received', handleRemoteCallAction);
+    return () => window.removeEventListener('new-chat-message-received', handleRemoteCallAction);
+  }, []);
+
+  useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (callStatus === 'connected') {
       interval = setInterval(() => setCallDuration(p => p + 1), 1000);
