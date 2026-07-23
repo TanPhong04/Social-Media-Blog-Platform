@@ -107,7 +107,7 @@ const TweetBox: React.FC<{
         tags,
       });
       // Tự động publish ngay sau khi tạo để bài viết hiển thị trên bản tin
-      await articleApi.publishArticle(created.id);
+      await articleApi.publishArticle((created as any).id);
 
       setPostText('');
       setSelectedFiles([]);
