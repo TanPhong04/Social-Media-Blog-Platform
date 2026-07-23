@@ -9,11 +9,11 @@
 frontend/.dart_tool/
 frontend/build/
 frontend/.flutter-plugins*
-
+frontend
 # JWT keys - NEVER commit private keys
 *.pem
 jwt-key*
-
+.agents
 # Local Guides
 HUONG_DAN_NOP_BAI_CLASSROOM.md
 

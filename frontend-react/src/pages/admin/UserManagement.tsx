@@ -16,11 +16,17 @@ import {
 import { adminApi } from '../../api/adminApi';
 import type { AdminUser, PageResponse } from '../../api/adminApi';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Table } from '../../components/ui/Table';
+import type { Column } from '../../components/ui/Table';
+import { Badge } from '../../components/ui/Badge';
+import { Avatar } from '../../components/ui/Avatar';
+import { Button } from '../../components/ui/Button';
+import { Spinner } from '../../components/ui/Spinner';
 
-const statusConfig: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
-  ACTIVE: { label: 'Hoạt động', color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle },
-  SUSPENDED: { label: 'Tạm ngưng', color: 'text-amber-400', bg: 'bg-amber-500/10', icon: AlertTriangle },
-  DELETED: { label: 'Đã xóa', color: 'text-red-400', bg: 'bg-red-500/10', icon: XCircle },
+const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'error'; icon: typeof CheckCircle }> = {
+  ACTIVE: { label: 'Hoạt động', variant: 'success', icon: CheckCircle },
+  SUSPENDED: { label: 'Tạm ngưng', variant: 'warning', icon: AlertTriangle },
+  DELETED: { label: 'Đã xóa', variant: 'error', icon: XCircle },
 };
 
 export default function UserManagement() {
@@ -104,20 +110,113 @@ export default function UserManagement() {
       )
     : users;
 
+  const columns: Column<AdminUser>[] = [
+    {
+      key: 'user',
+      header: 'Người dùng',
+      render: (user) => (
+        <div className="flex items-center gap-3">
+          <Avatar src="" fallback={user.displayName.charAt(0).toUpperCase()} size="md" />
+          <div>
+            <p className="font-medium text-text-primary">{user.displayName}</p>
+            <p className="text-sm text-text-secondary">{user.email}</p>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'role',
+      header: 'Vai trò',
+      render: (user) => (
+        <Badge variant={user.role === 'ADMIN' ? 'primary' : 'default'} className="inline-flex items-center gap-1">
+          {user.role === 'ADMIN' && <Shield className="w-3 h-3" />}
+          {user.role === 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}
+        </Badge>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Trạng thái',
+      render: (user) => {
+        const status = statusConfig[user.status] || statusConfig.ACTIVE;
+        const StatusIcon = status.icon;
+        return (
+          <Badge variant={status.variant} className="inline-flex items-center gap-1">
+            <StatusIcon className="w-3 h-3" />
+            {status.label}
+          </Badge>
+        );
+      }
+    },
+    {
+      key: 'createdAt',
+      header: 'Ngày tạo',
+      render: (user) => (
+        <span className="text-sm text-text-secondary">
+          {new Date(user.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      header: 'Hành động',
+      className: 'text-right',
+      render: (user) => (
+        <div className="relative inline-block text-left">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActionMenuId(actionMenuId === user.id ? null : user.id)}
+            disabled={actionLoading === user.id}
+          >
+            {actionLoading === user.id ? <Spinner size="sm" /> : <MoreVertical className="w-5 h-5" />}
+          </Button>
+
+          {actionMenuId === user.id && (
+            <div className="absolute right-0 top-full mt-1 w-48 bg-surface-elevated border border-border-default rounded-xl shadow-2xl z-50 animate-fade-in py-1">
+              {user.status !== 'SUSPENDED' && (
+                <button
+                  onClick={() => handleSuspend(user.id)}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-amber-500 hover:bg-surface transition-colors"
+                >
+                  <UserX className="w-4 h-4" /> Tạm ngưng
+                </button>
+              )}
+              {user.status === 'SUSPENDED' && (
+                <button
+                  onClick={() => handleActivate(user.id)}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-emerald-500 hover:bg-surface transition-colors"
+                >
+                  <UserCheck className="w-4 h-4" /> Kích hoạt lại
+                </button>
+              )}
+              {user.status !== 'DELETED' && (
+                <button
+                  onClick={() => handleDelete(user.id)}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-surface transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> Xóa tài khoản
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+    <div className="space-y-6 animate-fade-in pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Users className="w-6 h-6 text-primary" />
-            <h1 className="text-3xl font-heading font-bold">Quản lý người dùng</h1>
+            <h1 className="text-2xl sm:text-3xl font-heading font-bold">Quản lý người dùng</h1>
           </div>
           <p className="text-text-secondary">Tổng cộng {totalElements} người dùng trong hệ thống</p>
         </div>
       </div>
 
-      {/* Search bar */}
       <div className="relative max-w-md">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
         <input
@@ -125,153 +224,44 @@ export default function UserManagement() {
           placeholder="Tìm kiếm theo tên hoặc email..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-surface/60 backdrop-blur-md border border-white/10 rounded-xl text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all duration-300"
+          className="w-full pl-12 pr-4 py-3 bg-surface border border-border-default rounded-xl text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25 transition-all duration-300"
         />
       </div>
 
-      {/* Table */}
-      <div className="bg-surface/60 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden">
-        {loading ? (
-          <div className="p-8 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-4 animate-pulse">
-                <div className="w-10 h-10 rounded-full bg-white/5" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-white/5 rounded w-1/3" />
-                  <div className="h-3 bg-white/5 rounded w-1/4" />
-                </div>
-                <div className="h-6 bg-white/5 rounded-full w-20" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-x-auto pb-32 min-h-[50vh]">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/5">
-                  <th className="text-left text-xs font-medium text-text-secondary uppercase tracking-wider px-6 py-4">Người dùng</th>
-                  <th className="text-left text-xs font-medium text-text-secondary uppercase tracking-wider px-6 py-4">Vai trò</th>
-                  <th className="text-left text-xs font-medium text-text-secondary uppercase tracking-wider px-6 py-4">Trạng thái</th>
-                  <th className="text-left text-xs font-medium text-text-secondary uppercase tracking-wider px-6 py-4">Ngày tạo</th>
-                  <th className="text-right text-xs font-medium text-text-secondary uppercase tracking-wider px-6 py-4">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredUsers.map((user) => {
-                  const status = statusConfig[user.status] || statusConfig.ACTIVE;
-                  const StatusIcon = status.icon;
-                  const date = new Date(user.createdAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'short', year: 'numeric' });
+      <Table
+        columns={columns}
+        data={filteredUsers}
+        keyExtractor={(user) => user.id}
+        loading={loading}
+        emptyIcon={<Users className="w-12 h-12 text-text-secondary opacity-50" />}
+        emptyTitle="Không tìm thấy người dùng"
+      />
 
-                  return (
-                    <tr key={user.id} className="hover:bg-white/[0.02] transition-colors duration-200 group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-md">
-                            {user.displayName.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-text-primary">{user.displayName}</p>
-                            <p className="text-sm text-text-secondary">{user.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          user.role === 'ADMIN'
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-white/5 text-text-secondary'
-                        }`}>
-                          {user.role === 'ADMIN' && <Shield className="w-3 h-3" />}
-                          {user.role === 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.color}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-text-secondary">{date}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="relative inline-block">
-                          <button
-                            onClick={() => setActionMenuId(actionMenuId === user.id ? null : user.id)}
-                            className="p-2 rounded-lg hover:bg-white/5 text-text-secondary hover:text-text-primary transition-colors duration-200"
-                            disabled={actionLoading === user.id}
-                          >
-                            {actionLoading === user.id ? (
-                              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <MoreVertical className="w-5 h-5" />
-                            )}
-                          </button>
-
-                          {actionMenuId === user.id && (
-                            <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-1 z-50 animate-fade-in">
-                              {user.status !== 'SUSPENDED' && (
-                                <button
-                                  onClick={() => handleSuspend(user.id)}
-                                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-amber-400 hover:bg-white/5 transition-colors"
-                                >
-                                  <UserX className="w-4 h-4" />
-                                  Tạm ngưng
-                                </button>
-                              )}
-                              {user.status === 'SUSPENDED' && (
-                                <button
-                                  onClick={() => handleActivate(user.id)}
-                                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-emerald-400 hover:bg-white/5 transition-colors"
-                                >
-                                  <UserCheck className="w-4 h-4" />
-                                  Kích hoạt lại
-                                </button>
-                              )}
-                              {user.status !== 'DELETED' && (
-                                <button
-                                  onClick={() => handleDelete(user.id)}
-                                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Xóa tài khoản
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 pt-2">
+          <p className="text-sm text-text-secondary">
+            Trang {page + 1} / {totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-white/5">
-            <p className="text-sm text-text-secondary">
-              Trang {page + 1} / {totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="p-2 rounded-lg border border-white/10 text-text-secondary hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1}
-                className="p-2 rounded-lg border border-white/10 text-text-secondary hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {confirmModal && (
         <ConfirmModal

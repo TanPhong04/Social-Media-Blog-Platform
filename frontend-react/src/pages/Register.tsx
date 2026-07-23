@@ -49,7 +49,7 @@ export default function Register() {
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-background px-4 py-8">
-      <div className="w-full max-w-md bg-surface p-8 rounded-app border border-gray-800 shadow-xl">
+      <div className="w-full max-w-md bg-surface p-8 rounded-app border border-border-default shadow-xl">
         <div className="flex justify-center mb-6">
           <div className="p-3 bg-primary/10 text-primary rounded-full">
             <UserPlus className="w-8 h-8" />
@@ -70,7 +70,7 @@ export default function Register() {
               <input
                 type="text"
                 required
-                className="w-full bg-background border border-gray-700 text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full bg-background border border-border-default text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Nguyễn Văn A"
@@ -83,7 +83,7 @@ export default function Register() {
               <input
                 type="email"
                 required
-                className="w-full bg-background border border-gray-700 text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full bg-background border border-border-default text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ban@example.com"
@@ -96,7 +96,7 @@ export default function Register() {
               <input
                 type="password"
                 required
-                className="w-full bg-background border border-gray-700 text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                className="w-full bg-background border border-border-default text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -115,9 +115,9 @@ export default function Register() {
             </button>
             
             <div className="mt-6 flex items-center justify-between">
-              <span className="border-b border-gray-700 w-1/5 lg:w-1/4"></span>
+              <span className="border-b border-border-default w-1/5 lg:w-1/4"></span>
               <span className="text-xs text-center text-text-secondary uppercase">hoặc đăng ký bằng</span>
-              <span className="border-b border-gray-700 w-1/5 lg:w-1/4"></span>
+              <span className="border-b border-border-default w-1/5 lg:w-1/4"></span>
             </div>
             
             <div className="mt-6 flex justify-center">
@@ -136,7 +136,7 @@ export default function Register() {
               <input
                 type="text"
                 required
-                className="w-full bg-background border border-gray-700 text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-center tracking-widest text-lg"
+                className="w-full bg-background border border-border-default text-text-primary rounded-md px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-center tracking-widest text-lg"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="000000"

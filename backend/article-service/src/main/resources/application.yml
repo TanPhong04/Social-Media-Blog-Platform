@@ -52,3 +52,6 @@ app:
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
+  srs:
+    rtmp-url: ${SRS_RTMP_URL:rtmp://localhost/live}
+    hls-url: ${SRS_HLS_URL:http://localhost:1980/live}

@@ -12,6 +12,11 @@ export interface ArticleResponse {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  isLivestream?: boolean;
+  liveStatus?: 'SCHEDULED' | 'LIVE' | 'ENDED';
+  liveStartedAt?: string;
+  liveEndedAt?: string;
+  hlsUrl?: string;
 }
 
 export interface ArticleWriteRequest {
@@ -73,8 +78,8 @@ export const articleApi = {
       params: { page, size }
     });
   },
-  createArticle: (data: ArticleWriteRequest) => {
-    return axiosClient.post<ArticleResponse>('/articles', data);
+  createArticle: async (data: ArticleWriteRequest): Promise<ArticleResponse> => {
+    return (await axiosClient.post<ArticleResponse>('/articles', data)) as any;
   },
   updateArticle: (id: string, data: ArticleWriteRequest) => {
     return axiosClient.put<ArticleResponse>(`/articles/${id}`, data);
