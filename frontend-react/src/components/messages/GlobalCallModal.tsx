@@ -28,13 +28,13 @@ export const GlobalCallModal: React.FC = () => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
     }
-  }, [localStream, callStatus]);
+  }, [localStream, callStatus, isMinimized]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
-  }, [remoteStream, callStatus]);
+  }, [remoteStream, callStatus, isMinimized]);
 
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60);
