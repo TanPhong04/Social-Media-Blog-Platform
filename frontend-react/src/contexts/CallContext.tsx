@@ -72,7 +72,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ringAudioRef.current = audio;
   }, []);
 
-  const playRing = () => ringAudioRef.current?.play().catch(() => {});
+  const playRing = () => {
+    ringAudioRef.current?.play().catch((err) => {
+      console.warn('Audio play blocked by browser autoplay policy:', err);
+    });
+  };
   const stopRing = () => {
     if (ringAudioRef.current) {
       ringAudioRef.current.pause();
@@ -105,46 +109,80 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
-    const newPeer = new Peer(`axion-user-${user.id}`);
-    
-    newPeer.on('open', (id) => {
-      console.log('Peer connected with ID: ', id);
-    });
+    let currentPeer: Peer | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout>;
 
-    newPeer.on('call', async (call) => {
-      connectionRef.current = call;
-      isCallerRef.current = false;
-      
-      const callerId = call.peer.replace('axion-user-', '');
-      remoteIdRef.current = callerId;
-      
-      try {
-        const res: any = await userApi.getUserById(callerId);
-        setRemoteProfile(res.data || res);
-      } catch (e) {
-        setRemoteProfile({ displayName: 'Người dùng', id: callerId });
+    const initPeer = () => {
+      if (currentPeer) {
+        currentPeer.destroy();
       }
-
-      setIsVideo(call.metadata?.isVideo || false);
-      updateStatus('incoming');
-      playRing();
       
-      ringTimeoutRef.current = setTimeout(() => {
-        if (statusRef.current === 'incoming') {
-           endCall(false);
-        }
-      }, 60000);
-
-      call.on('close', () => {
-        if (statusRef.current === 'connected' && isCallerRef.current) {
-           sendCallLog('ENDED');
-        }
-        endCall(false);
+      const newPeer = new Peer(`axion-user-${user.id}`);
+      currentPeer = newPeer;
+      
+      newPeer.on('open', (id) => {
+        console.log('Peer connected with ID: ', id);
       });
-    });
 
-    setPeer(newPeer);
-    return () => newPeer.destroy();
+      newPeer.on('error', (err: any) => {
+        console.error('PeerJS error:', err.type, err);
+        if (err.type === 'unavailable-id') {
+           retryTimeout = setTimeout(initPeer, 2000);
+        } else if (['network', 'disconnected', 'server-error'].includes(err.type)) {
+           retryTimeout = setTimeout(initPeer, 5000);
+        }
+      });
+
+      newPeer.on('disconnected', () => {
+        console.warn('PeerJS disconnected. Reconnecting...');
+        if (!newPeer.destroyed) {
+          newPeer.reconnect();
+        }
+      });
+
+      newPeer.on('call', async (call) => {
+        connectionRef.current = call;
+        isCallerRef.current = false;
+        
+        const callerId = call.peer.replace('axion-user-', '');
+        remoteIdRef.current = callerId;
+        
+        try {
+          const res: any = await userApi.getUserById(callerId);
+          setRemoteProfile(res.data || res);
+        } catch (e) {
+          setRemoteProfile({ displayName: 'Người dùng', id: callerId });
+        }
+
+        setIsVideo(call.metadata?.isVideo || false);
+        updateStatus('incoming');
+        playRing();
+        
+        ringTimeoutRef.current = setTimeout(() => {
+          if (statusRef.current === 'incoming') {
+             endCall(false);
+          }
+        }, 60000);
+
+        call.on('close', () => {
+          if (statusRef.current === 'connected' && isCallerRef.current) {
+             sendCallLog('ENDED');
+          }
+          endCall(false);
+        });
+      });
+
+      setPeer(newPeer);
+    };
+
+    initPeer();
+
+    return () => {
+      clearTimeout(retryTimeout);
+      if (currentPeer) {
+        currentPeer.destroy();
+      }
+    };
   }, [user]);
 
   useEffect(() => {
