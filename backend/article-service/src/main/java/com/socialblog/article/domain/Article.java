@@ -34,6 +34,17 @@ public class Article {
     private Instant updatedAt;
     @Column(name = "published_at")
     private Instant publishedAt;
+    @Column(name = "is_livestream")
+    private boolean isLivestream = false;
+    @Column(name = "stream_key", length = 100)
+    private String streamKey;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "live_status")
+    private LiveStatus liveStatus;
+    @Column(name = "live_started_at")
+    private Instant liveStartedAt;
+    @Column(name = "live_ended_at")
+    private Instant liveEndedAt;
 
     protected Article() {
     }
@@ -42,6 +53,17 @@ public class Article {
         id = UUID.randomUUID();
         this.authorId = authorId;
         status = Status.DRAFT;
+        createdAt = Instant.now();
+        update(title, summary, content, tags);
+    }
+
+    public Article(UUID authorId, String title, String summary, String content, Set<String> tags, boolean isLivestream, String streamKey) {
+        id = UUID.randomUUID();
+        this.authorId = authorId;
+        status = Status.PUBLISHED; // Mở cho mọi người xem ngay
+        this.isLivestream = isLivestream;
+        this.streamKey = streamKey;
+        this.liveStatus = LiveStatus.SCHEDULED;
         createdAt = Instant.now();
         update(title, summary, content, tags);
     }
@@ -132,5 +154,43 @@ public class Article {
         return publishedAt;
     }
 
+    public boolean isLivestream() {
+        return isLivestream;
+    }
+
+    public String getStreamKey() {
+        return streamKey;
+    }
+
+    public LiveStatus getLiveStatus() {
+        return liveStatus;
+    }
+
+    public Instant getLiveStartedAt() {
+        return liveStartedAt;
+    }
+
+    public Instant getLiveEndedAt() {
+        return liveEndedAt;
+    }
+
+    public void startLive() {
+        if (this.isLivestream) {
+            this.liveStatus = LiveStatus.LIVE;
+            this.liveStartedAt = Instant.now();
+            this.publishedAt = Instant.now();
+            this.updatedAt = Instant.now();
+        }
+    }
+
+    public void endLive() {
+        if (this.isLivestream) {
+            this.liveStatus = LiveStatus.ENDED;
+            this.liveEndedAt = Instant.now();
+            this.updatedAt = Instant.now();
+        }
+    }
+
     public enum Status {DRAFT, PUBLISHED, DELETED, ARCHIVED}
+    public enum LiveStatus {SCHEDULED, LIVE, ENDED}
 }

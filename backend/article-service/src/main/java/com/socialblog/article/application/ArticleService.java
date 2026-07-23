@@ -19,13 +19,25 @@ public class ArticleService {
     private final OutboxEventRepository outbox;
     private final DomainEventFactory events;
     private final GeminiClient gemini;
+    private final String srsRtmpUrl;
+    private final String srsHlsUrl;
 
-    public ArticleService(ArticleRepository articles, FollowProjectionRepository follows, OutboxEventRepository outbox, DomainEventFactory events, GeminiClient gemini) {
+    public ArticleService(
+            ArticleRepository articles,
+            FollowProjectionRepository follows,
+            OutboxEventRepository outbox,
+            DomainEventFactory events,
+            GeminiClient gemini,
+            @org.springframework.beans.factory.annotation.Value("${app.srs.rtmp-url:rtmp://localhost/live}") String srsRtmpUrl,
+            @org.springframework.beans.factory.annotation.Value("${app.srs.hls-url:http://localhost:1980/live}") String srsHlsUrl
+    ) {
         this.articles = articles;
         this.follows = follows;
         this.outbox = outbox;
         this.events = events;
         this.gemini = gemini;
+        this.srsRtmpUrl = srsRtmpUrl;
+        this.srsHlsUrl = srsHlsUrl;
     }
 
     @Transactional(readOnly = true)
@@ -153,7 +165,94 @@ public class ArticleService {
         return result;
     }
 
+    @Transactional
+    public LiveSessionResponse createLiveSession(UUID authorId, CreateLiveRequest r) {
+        String streamKey = UUID.randomUUID().toString().replace("-", "");
+        String content = "Livestream: " + r.title();
+        Article a = new Article(authorId, r.title(), r.summary(), content, clean(r.tags()), true, streamKey);
+        
+        Article saved = articles.save(a);
+        
+        outbox.save(events.articlePublished(saved));
+
+        String rtmpUrl = srsRtmpUrl;
+        String hlsUrl = srsHlsUrl + "/" + streamKey + ".m3u8";
+
+        return new LiveSessionResponse(saved.getId(), saved.getTitle(), rtmpUrl, streamKey, hlsUrl);
+    }
+
+    @Transactional
+    public void verifyStreamKey(String streamKey) {
+        Article a = articles.findByStreamKey(streamKey)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STREAM_KEY_NOT_FOUND", "Không tìm thấy phòng Livestream tương ứng."));
+        
+        if (a.getLiveStatus() != Article.LiveStatus.SCHEDULED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_STREAM_STATE", "Trạng thái phòng stream không hợp lệ.");
+        }
+        
+        a.startLive();
+        articles.save(a);
+    }
+
+    @Transactional
+    public void endLiveSession(String streamKey) {
+        Article a = articles.findByStreamKey(streamKey)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STREAM_KEY_NOT_FOUND", "Không tìm thấy phòng Livestream tương ứng."));
+        
+        a.endLive();
+        articles.save(a);
+    }
+
+    @Transactional
+    public void endLiveSessionById(UUID articleId, UUID authorId) {
+        Article a = articles.findById(articleId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ARTICLE_NOT_FOUND", "Không tìm thấy bài viết."));
+        if (!a.getAuthorId().equals(authorId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không có quyền dừng livestream này.");
+        }
+        if (!a.isLivestream()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "NOT_LIVESTREAM", "Bài viết này không phải là livestream.");
+        }
+        a.endLive();
+        articles.save(a);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActiveLiveResponse> getActiveLiveSessions() {
+        return articles.findByIsLivestreamTrueAndLiveStatus(Article.LiveStatus.LIVE)
+                .stream()
+                .map(a -> new ActiveLiveResponse(
+                        a.getId(),
+                        a.getAuthorId(),
+                        a.getTitle(),
+                        a.getSlug(),
+                        a.getSummary(),
+                        srsHlsUrl + "/" + a.getStreamKey() + ".m3u8",
+                        a.getLiveStartedAt()
+                ))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     private Response map(Article a) {
-        return new Response(a.getId(), a.getAuthorId(), a.getTitle(), a.getSlug(), a.getSummary(), a.getContent(), a.getStatus().name(), a.getTags(), a.getCreatedAt(), a.getUpdatedAt(), a.getPublishedAt());
+        String liveStatusStr = a.getLiveStatus() != null ? a.getLiveStatus().name() : null;
+        String hlsUrl = a.isLivestream() && a.getStreamKey() != null ? srsHlsUrl + "/" + a.getStreamKey() + ".m3u8" : null;
+        return new Response(
+                a.getId(),
+                a.getAuthorId(),
+                a.getTitle(),
+                a.getSlug(),
+                a.getSummary(),
+                a.getContent(),
+                a.getStatus().name(),
+                a.getTags(),
+                a.getCreatedAt(),
+                a.getUpdatedAt(),
+                a.getPublishedAt(),
+                a.isLivestream(),
+                liveStatusStr,
+                a.getLiveStartedAt(),
+                a.getLiveEndedAt(),
+                hlsUrl
+        );
     }
 }

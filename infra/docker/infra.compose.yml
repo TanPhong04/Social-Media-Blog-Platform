@@ -73,6 +73,22 @@ services:
           memory: 150M
     networks: [backend]
 
+  srs:
+    image: ossrs/srs:5
+    container_name: srs-media-server
+    restart: unless-stopped
+    ports:
+      - "1935:1935"   # RTMP Ingest (OBS)
+      - "1980:8080"   # HTTP server phát luồng HLS
+    volumes:
+      - ./srs/srs.conf:/usr/local/srs/conf/srs.conf
+      - srs-hls-data:/usr/local/srs/objs/nginx/html
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    networks: [backend]
+
 networks:
   backend:
     name: ${BACKEND_NETWORK:-social-blog-backend}
@@ -80,3 +96,4 @@ networks:
 volumes:
   postgres-data:
   minio-data:
+  srs-hls-data:

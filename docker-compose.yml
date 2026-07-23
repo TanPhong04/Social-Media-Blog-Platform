@@ -39,6 +39,19 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio12345}
     ports: ["9000:9000", "9001:9001"]
     volumes: [minio-data:/data]
+  srs:
+    image: ossrs/srs:5
+    container_name: srs-media-server
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "1935:1935"   # RTMP Ingest (OBS)
+      - "1980:8080"   # HTTP server phát luồng HLS
+    volumes:
+      - ./infra/docker/srs/srs.conf:/usr/local/srs/conf/srs.conf
+      - srs-hls-data:/usr/local/srs/objs/nginx/html
 volumes:
   postgres-data:
   minio-data:
+  srs-hls-data:
