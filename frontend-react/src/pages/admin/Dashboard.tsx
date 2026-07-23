@@ -15,17 +15,18 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { AdminStats, AdminActivity } from '../../api/adminApi';
+import { Card } from '../../components/ui/Card';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const statCards = [
-  { key: 'totalUsers' as keyof AdminStats, label: 'Tổng người dùng', icon: Users, gradient: 'from-blue-500 to-cyan-500', glow: 'shadow-blue-500/20' },
-  { key: 'totalArticles' as keyof AdminStats, label: 'Tổng bài viết', icon: FileText, gradient: 'from-violet-500 to-purple-500', glow: 'shadow-violet-500/20' },
-  { key: 'totalComments' as keyof AdminStats, label: 'Tổng bình luận', icon: MessageSquare, gradient: 'from-emerald-500 to-green-500', glow: 'shadow-emerald-500/20' },
-  { key: 'activeUsers' as keyof AdminStats, label: 'Đang hoạt động', icon: TrendingUp, gradient: 'from-amber-500 to-orange-500', glow: 'shadow-amber-500/20' },
-  { key: 'newUsersToday' as keyof AdminStats, label: 'Người dùng mới hôm nay', icon: UserPlus, gradient: 'from-rose-500 to-pink-500', glow: 'shadow-rose-500/20' },
-  { key: 'newArticlesToday' as keyof AdminStats, label: 'Bài viết mới hôm nay', icon: PenLine, gradient: 'from-indigo-500 to-blue-500', glow: 'shadow-indigo-500/20' },
+  { key: 'totalUsers' as keyof AdminStats, label: 'Tổng người dùng', icon: Users, gradient: 'from-blue-500 to-cyan-500' },
+  { key: 'totalArticles' as keyof AdminStats, label: 'Tổng bài viết', icon: FileText, gradient: 'from-violet-500 to-purple-500' },
+  { key: 'totalComments' as keyof AdminStats, label: 'Tổng bình luận', icon: MessageSquare, gradient: 'from-emerald-500 to-green-500' },
+  { key: 'activeUsers' as keyof AdminStats, label: 'Đang hoạt động', icon: TrendingUp, gradient: 'from-amber-500 to-orange-500' },
+  { key: 'newUsersToday' as keyof AdminStats, label: 'Người dùng mới hôm nay', icon: UserPlus, gradient: 'from-rose-500 to-pink-500' },
+  { key: 'newArticlesToday' as keyof AdminStats, label: 'Bài viết mới hôm nay', icon: PenLine, gradient: 'from-indigo-500 to-blue-500' },
 ];
-
-// Todo: Fetch real recent activities from API when available
 
 const quickActions = [
   { label: 'Quản lý người dùng', path: '/admin/users', icon: Users, description: 'Xem, tạm ngưng, hoặc xóa tài khoản' },
@@ -55,35 +56,32 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
+    <div className="space-y-8 animate-fade-in pb-12">
       <div>
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-1">
           <Sparkles className="w-6 h-6 text-primary" />
-          <h1 className="text-3xl font-heading font-bold">Tổng quan</h1>
+          <h1 className="text-2xl sm:text-3xl font-heading font-bold">Tổng quan</h1>
         </div>
         <p className="text-text-secondary">Chào mừng trở lại, quản trị viên. Đây là tổng quan hệ thống hôm nay.</p>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {statCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <div
+            <Card
               key={card.key}
-              className={`group relative bg-surface/60 backdrop-blur-md rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-all duration-500 hover:${card.glow} hover:shadow-xl overflow-hidden`}
+              className="group relative overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-xl"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              {/* Glow background */}
               <div className={`absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br ${card.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity duration-500`} />
               
-              <div className="relative flex items-start justify-between">
+              <div className="relative flex items-start justify-between p-6">
                 <div>
                   {loading ? (
                     <>
-                      <div className="h-9 w-20 bg-white/5 rounded-lg animate-pulse mb-2" />
-                      <div className="h-4 w-28 bg-white/5 rounded animate-pulse" />
+                      <Skeleton className="h-9 w-20 mb-2" />
+                      <Skeleton className="h-4 w-28" />
                     </>
                   ) : (
                     <>
@@ -98,16 +96,14 @@ export default function Dashboard() {
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
-      {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Recent Activity */}
-        <div className="lg:col-span-3 bg-surface/60 backdrop-blur-md rounded-2xl p-6 border border-white/5">
-          <div className="flex items-center gap-2 mb-6">
+        <Card className="lg:col-span-3 p-6">
+          <div className="flex items-center gap-2 mb-6 border-b border-border-subtle pb-4">
             <Clock className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-heading font-semibold">Hoạt động gần đây</h2>
           </div>
@@ -115,45 +111,42 @@ export default function Dashboard() {
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 animate-pulse">
-                  <div className="w-10 h-10 rounded-full bg-white/5" />
+                  <Skeleton className="w-10 h-10 rounded-full" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-white/5 rounded w-3/4" />
-                    <div className="h-3 bg-white/5 rounded w-1/4" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/4" />
                   </div>
                 </div>
               ))}
             </div>
+          ) : activities.length === 0 ? (
+             <EmptyState title="Chưa có hoạt động" description="Không có dữ liệu hoạt động gần đây." className="border-none py-10" />
           ) : (
             <div className="space-y-4">
-              {activities.length === 0 ? (
-                <p className="text-sm text-text-secondary text-center py-4">Chưa có hoạt động nào</p>
-              ) : (
-                activities.map((activity, index) => {
-                  const Icon = activity.icon === 'UserCheck' ? UserCheck : BookOpen;
-                  const timeStr = new Date(activity.time).toLocaleString('vi-VN');
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors duration-300 group"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors duration-300">
-                        <Icon className={`w-5 h-5 ${activity.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-text-primary truncate">{activity.text}</p>
-                        <p className="text-xs text-text-secondary">{timeStr}</p>
-                      </div>
+              {activities.map((activity, index) => {
+                const Icon = activity.icon === 'UserCheck' ? UserCheck : BookOpen;
+                const timeStr = new Date(activity.time).toLocaleString('vi-VN');
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-elevated transition-colors duration-300 group"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-surface-elevated border border-border-default flex items-center justify-center group-hover:border-primary/50 transition-colors duration-300">
+                      <Icon className={`w-5 h-5 ${activity.color}`} />
                     </div>
-                  );
-                })
-              )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-text-primary truncate">{activity.text}</p>
+                      <p className="text-xs text-text-secondary">{timeStr}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
-        </div>
+        </Card>
 
-        {/* Quick Actions */}
-        <div className="lg:col-span-2 bg-surface/60 backdrop-blur-md rounded-2xl p-6 border border-white/5">
-          <div className="flex items-center gap-2 mb-6">
+        <Card className="lg:col-span-2 p-6">
+          <div className="flex items-center gap-2 mb-6 border-b border-border-subtle pb-4">
             <Sparkles className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-heading font-semibold">Thao tác nhanh</h2>
           </div>
@@ -164,7 +157,7 @@ export default function Dashboard() {
                 <Link
                   key={action.path}
                   to={action.path}
-                  className="flex items-center gap-4 p-4 rounded-xl border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 group"
+                  className="flex items-center gap-4 p-4 rounded-xl border border-border-default hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 group"
                 >
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-300">
                     <Icon className="w-5 h-5 text-primary" />
@@ -178,7 +171,7 @@ export default function Dashboard() {
               );
             })}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

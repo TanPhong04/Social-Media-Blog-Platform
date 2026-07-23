@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState, Suspense } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../Navbar';
 import Sidebar from './Sidebar';
 import RightSidebar from './RightSidebar';
@@ -8,11 +8,15 @@ import { userApi } from '../../api/userApi';
 import { notificationApi } from '../../api/notificationApi';
 import { commentApi } from '../../api/commentApi';
 import { Bell, Heart, MessageCircle, UserPlus, Repeat, X, MessageSquare } from 'lucide-react';
+import { Spinner } from '../ui/Spinner';
 
 const MainLayout = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [realtimeToast, setRealtimeToast] = useState<any>(null);
+
+  const isReelsPage = location.pathname.startsWith('/reels');
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -39,6 +43,10 @@ const MainLayout = () => {
           avatarUrl = profile.avatarUrl || '';
         } catch (e) {
           actorName = `Người dùng ${notification.actorId.substring(0, 4)}`;
+        }
+
+        if (notification.type === 'NEW_MESSAGE') {
+          return; // Ignore chat notifications completely from the Notification system to avoid spam
         }
 
         // Bắn sự kiện toàn cục để các trang đang hiển thị (như trang Notifications, Sidebar) cập nhật dữ liệu ngay lập tức
@@ -132,19 +140,35 @@ const MainLayout = () => {
           }
 
           let textContent = msg.content;
+          let shouldShowToast = false;
+
           if (textContent.startsWith('![chat_image]')) {
-            textContent = '[Hình ảnh]';
+            textContent = 'Đã gửi một hình ảnh';
+          } else if (textContent.startsWith('[CALL_LOG]:')) {
+            try {
+              const payload = JSON.parse(textContent.replace('[CALL_LOG]:', ''));
+              if (payload.type === 'MISSED') {
+                textContent = 'Cuộc gọi nhỡ';
+                shouldShowToast = true;
+              }
+            } catch(e) {}
+          } else {
+            // Do not show toast for normal chat messages to avoid spam
+            // Rely on the sidebar unread badge instead
+            shouldShowToast = false;
           }
 
-          setRealtimeToast({
-            id: msg.id,
-            message: `${senderName}: ${textContent}`,
-            iconType: 'chat',
-            avatarUrl,
-            actorName: senderName,
-            isChat: true,
-            senderId: msg.senderId
-          });
+          if (shouldShowToast) {
+            setRealtimeToast({
+              id: msg.id,
+              message: `${senderName}: ${textContent}`,
+              iconType: 'chat',
+              avatarUrl,
+              actorName: senderName,
+              isChat: true,
+              senderId: msg.senderId
+            });
+          }
         }
       } catch (err) {
         console.error('Error parsing realtime chat message', err);
@@ -241,13 +265,15 @@ const MainLayout = () => {
       <Navbar />
 
       {/* Main Content Area with Sidebar */}
-      <div className="flex-1 max-w-7xl mx-auto w-full flex">
+      <div className="flex-1 max-w-[1440px] mx-auto w-full flex">
         {/* Left Sidebar */}
         <Sidebar />
 
         {/* Center Content */}
-        <main className="flex-1 w-full min-w-0 pb-12">
-          <Outlet />
+        <main className={`flex-1 w-full min-w-0 ${isReelsPage ? '' : 'pb-12'}`}>
+          <Suspense fallback={<div className="flex h-[50vh] items-center justify-center"><Spinner size="lg" /></div>}>
+            <Outlet />
+          </Suspense>
         </main>
         
         {/* Right Sidebar */}
@@ -258,7 +284,7 @@ const MainLayout = () => {
       {realtimeToast && (
         <div 
           onClick={handleToastClick}
-          className="fixed bottom-5 right-5 z-[9999] max-w-sm w-full bg-surface border border-white/10 rounded-app shadow-2xl p-4 flex gap-3 toast-animate cursor-pointer hover:bg-white/[0.02] active:scale-[0.98] transition-all"
+          className="fixed bottom-5 right-5 z-[9999] max-w-sm w-full bg-surface border border-border-default rounded-app shadow-2xl p-4 flex gap-3 toast-animate cursor-pointer hover:bg-white/[0.02] active:scale-[0.98] transition-all"
         >
           <div className="shrink-0 relative">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 overflow-hidden flex items-center justify-center text-white font-bold shadow">
@@ -316,7 +342,7 @@ const MainLayout = () => {
               e.stopPropagation();
               setRealtimeToast(null);
             }}
-            className="shrink-0 text-text-secondary hover:text-text-primary self-start p-0.5 rounded-full hover:bg-white/5 transition-colors"
+            className="shrink-0 text-text-secondary hover:text-text-primary self-start p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </button>

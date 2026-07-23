@@ -65,7 +65,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="hidden lg:block w-64 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto py-6 px-4 bg-background border-r border-white/5">
+    <aside className="hidden lg:block w-[280px] h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto py-6 px-4 bg-background border-r border-border-default">
       <nav className="space-y-2">
         {navItems.map((item) => {
           if (item.requiresAuth && !isAuthenticated) return null;
@@ -79,7 +79,7 @@ const Sidebar = () => {
                 clsx(
                   'flex items-center gap-4 px-4 py-3 rounded-app transition-all duration-300 group',
                   isActive
-                    ? 'bg-primary/10 text-primary font-medium'
+                    ? 'bg-primary/10 text-primary font-medium pointer-events-none'
                     : 'text-text-secondary hover:bg-surface hover:text-text-primary'
                 )
               }
@@ -111,7 +111,7 @@ const Sidebar = () => {
       </nav>
 
       {isAuthenticated && (
-        <div className="mt-8 pt-6 border-t border-white/5 px-2">
+        <div className="mt-8 pt-6 border-t border-border-default px-2">
           <NavLink
             to="/?focus=true"
             className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 text-white py-3 px-4 rounded-app transition-colors shadow-lg hover:shadow-primary/25 font-medium"

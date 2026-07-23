@@ -58,11 +58,11 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, titl
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 animate-fade-in" onClick={onClose}>
       <div 
-        className="bg-surface border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-[slideUp_0.2s_ease-out]"
+        className="bg-surface border border-border-default rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-[slideUp_0.2s_ease-out]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
+        <div className="flex items-center justify-between p-4 border-b border-border-default">
           <h3 className="text-lg font-bold text-text-primary">Chia sẻ</h3>
           <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/10 text-text-secondary transition-colors cursor-pointer">
             <X className="w-5 h-5" />
@@ -74,7 +74,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, titl
           {onRepost && (
             <button 
               onClick={() => { onRepost(); onClose(); }}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 text-text-primary transition-colors cursor-pointer text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-elevated text-text-primary transition-colors cursor-pointer text-left"
             >
               <div className={clsx("w-10 h-10 rounded-full flex items-center justify-center", reposted ? "bg-green-500/20 text-green-500" : "bg-white/10 text-text-primary")}>
                 <Repeat className="w-5 h-5" />
@@ -88,7 +88,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, titl
 
           <button 
             onClick={copyToClipboard}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors cursor-pointer text-left ${isCopied ? 'bg-green-500/10 text-green-500' : 'hover:bg-white/5 text-text-primary'}`}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors cursor-pointer text-left ${isCopied ? 'bg-green-500/10 text-green-500' : 'hover:bg-surface-elevated text-text-primary'}`}
           >
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCopied ? 'bg-green-500/20 text-green-500' : 'bg-white/10 text-text-primary'}`}>
               {isCopied ? <Check className="w-5 h-5" /> : <LinkIcon className="w-5 h-5" />}
@@ -121,7 +121,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, titl
 
           <button 
             onClick={shareToTwitter}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 text-text-primary transition-colors cursor-pointer text-left"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-elevated text-text-primary transition-colors cursor-pointer text-left"
           >
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
               <MessageSquare className="w-5 h-5" />
@@ -132,7 +132,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, titl
           {typeof navigator.share === 'function' && (
             <button 
               onClick={shareToNative}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 text-text-primary transition-colors cursor-pointer text-left"
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-elevated text-text-primary transition-colors cursor-pointer text-left"
             >
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
                 <Send className="w-5 h-5" />

@@ -139,10 +139,10 @@ const RightSidebar = () => {
   };
 
   return (
-    <aside className="hidden xl:block w-80 h-[calc(100vh-4rem)] sticky top-16 py-6 px-4 overflow-y-auto custom-scrollbar">
+    <aside className="hidden xl:block w-[350px] h-[calc(100vh-4rem)] sticky top-16 py-6 px-4 overflow-y-auto custom-scrollbar">
       
       {isAuthenticated && (
-        <div className="bg-surface rounded-app p-5 border border-white/5 shadow-sm mb-6">
+        <div className="bg-surface rounded-app p-5 border border-border-default shadow-sm mb-6">
           <h3 className="font-heading font-semibold text-text-primary mb-4 flex items-center gap-2">
             <UserPlus className="w-4 h-4 text-primary" />
             Gợi ý theo dõi
@@ -152,10 +152,10 @@ const RightSidebar = () => {
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="animate-pulse flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/5 rounded-full shrink-0" />
+                  <div className="w-10 h-10 bg-surface-elevated rounded-full shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 bg-white/5 rounded w-3/4" />
-                    <div className="h-2 bg-white/5 rounded w-1/2" />
+                    <div className="h-3 bg-surface-elevated rounded w-3/4" />
+                    <div className="h-2 bg-surface-elevated rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -200,7 +200,7 @@ const RightSidebar = () => {
 
       {/* Contacts / Người liên hệ */}
       {isAuthenticated && (
-        <div className="bg-surface rounded-app p-5 border border-white/5 shadow-sm mb-6">
+        <div className="bg-surface rounded-app p-5 border border-border-default shadow-sm mb-6">
           <h3 className="font-heading font-semibold text-text-primary mb-4 flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />
             Người liên hệ
@@ -210,9 +210,9 @@ const RightSidebar = () => {
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="animate-pulse flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/5 rounded-full shrink-0" />
+                  <div className="w-10 h-10 bg-surface-elevated rounded-full shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 bg-white/5 rounded w-3/4" />
+                    <div className="h-3 bg-surface-elevated rounded w-3/4" />
                   </div>
                 </div>
               ))}
@@ -227,7 +227,7 @@ const RightSidebar = () => {
                 return (
                   <div 
                     key={cUser.id} 
-                    className="flex items-center gap-3 cursor-pointer group hover:bg-white/5 p-2 rounded-lg transition-colors -mx-2"
+                    className="flex items-center gap-3 cursor-pointer group hover:bg-surface-elevated p-2 rounded-lg transition-colors -mx-2"
                     onClick={() => navigate(`/profile?userId=${cUser.id}`)}
                   >
                     <div className="relative">
@@ -243,7 +243,7 @@ const RightSidebar = () => {
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface rounded-full"></div>
                       ) : (
                         lastOnlineStr ? (
-                          <div className="absolute bottom-[-4px] right-[-4px] bg-surface text-[9px] font-bold text-green-500 px-1 rounded-full border border-gray-800">
+                          <div className="absolute bottom-[-4px] right-[-4px] bg-surface text-[9px] font-bold text-green-500 px-1 rounded-full border border-border-default">
                             {lastOnlineStr.replace(' phút', 'p').replace(' giờ', 'h').replace(' ngày', 'd')}
                           </div>
                         ) : null
@@ -270,7 +270,7 @@ const RightSidebar = () => {
       )}
 
       {/* Trending Widget */}
-      <div className="bg-surface rounded-app p-5 border border-white/5 shadow-sm mb-6">
+      <div className="bg-surface rounded-app p-5 border border-border-default shadow-sm mb-6">
         <h3 className="font-heading font-semibold text-text-primary mb-4 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" />
           Đang thịnh hành
@@ -280,9 +280,9 @@ const RightSidebar = () => {
           <div className="space-y-4">
              {[1, 2, 3].map(i => (
                 <div key={i} className="animate-pulse flex flex-col space-y-2">
-                  <div className="h-2 bg-white/5 rounded w-1/4" />
-                  <div className="h-3 bg-white/5 rounded w-1/2" />
-                  <div className="h-2 bg-white/5 rounded w-1/3" />
+                  <div className="h-2 bg-surface-elevated rounded w-1/4" />
+                  <div className="h-3 bg-surface-elevated rounded w-1/2" />
+                  <div className="h-2 bg-surface-elevated rounded w-1/3" />
                 </div>
               ))}
           </div>

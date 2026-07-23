@@ -21,7 +21,7 @@ const ComingSoon = () => {
 
       <button
         onClick={() => navigate('/')}
-        className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-text-primary rounded-app border border-white/10 font-medium transition-colors"
+        className="px-6 py-2.5 bg-surface-elevated hover:bg-white/10 text-text-primary rounded-app border border-border-default font-medium transition-colors"
       >
         Quay lại Trang Chủ
       </button>

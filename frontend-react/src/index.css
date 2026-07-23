@@ -1,15 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors from Flutter Theme */
+  /* Colors from Flutter Theme & New Design System */
   --color-primary: #6C5CE7;
-  --color-background: #121212;
-  --color-surface: #1E1E1E;
-  --color-text-primary: #F5F5F5;
-  --color-text-secondary: #AAAAAA;
-  --color-error: #FF7675;
+  --color-primary-hover: #5A4BCF;
+  --color-primary-muted: rgba(108, 92, 231, 0.1);
 
-  /* Fonts from Flutter Theme */
+  --color-background: #121212;
+  --color-base: #121212;
+  --color-surface: #1E1E1E;
+  --color-surface-elevated: #2A2A2A;
+
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #9CA3AF;
+  --color-text-muted: #6B7280;
+
+  --color-border-default: #374151;
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+
+  --color-error: #EF4444;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+
+  /* Fonts */
   --font-sans: "Inter", system-ui, sans-serif;
   --font-heading: "Outfit", system-ui, sans-serif;
   
@@ -17,14 +31,8 @@
   --animate-fade-in: fade-in 0.5s ease-out;
 
   @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
 
@@ -36,26 +44,32 @@ h1, h2, h3, h4, h5, h6 {
   @apply font-heading text-text-primary font-semibold;
 }
 
-/* Custom rounded corners matching Flutter */
+/* Custom rounded corners */
 .rounded-app {
-  border-radius: 16px;
+  border-radius: 12px;
 }
 
 /* LIGHT THEME OVERRIDES */
 :root.light {
   --color-background: #F9FAFB;
+  --color-base: #F9FAFB;
   --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+
   --color-text-primary: #111827;
   --color-text-secondary: #4B5563;
-  --color-primary: #6C5CE7;
-  --color-error: #FF7675;
+  --color-text-muted: #9CA3AF;
+
+  --color-border-default: #E5E7EB;
+  --color-border-subtle: rgba(0, 0, 0, 0.05);
 }
 
 .light body {
-  background-color: #F9FAFB;
-  color: #111827;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
 }
 
+/* Retain old legacy light mode helpers to not break existing UI */
 .light .border-gray-800,
 .light .border-white\/5,
 .light .border-white\/10,
@@ -81,22 +95,6 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgba(249, 250, 251, 0.8) !important;
 }
 
-.light .text-text-primary {
-  color: #111827 !important;
-}
-
-.light .text-text-secondary {
-  color: #6B7280 !important;
-}
-
-.light .bg-background {
-  background-color: #F9FAFB !important;
-}
-
-.light .bg-surface {
-  background-color: #FFFFFF !important;
-}
-
 .light .hover\:bg-white\/\[0\.01\]:hover,
 .light .hover\:bg-white\/\[0\.02\]:hover,
 .light .hover\:bg-white\/5:hover,
@@ -109,12 +107,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes slide-in {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 .animate-slide-in {
@@ -125,6 +119,6 @@ h1, h2, h3, h4, h5, h6 {
   display: none;
 }
 .custom-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
