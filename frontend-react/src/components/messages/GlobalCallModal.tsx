@@ -50,6 +50,9 @@ export const GlobalCallModal: React.FC = () => {
   const isIncoming = callStatus === 'incoming';
   const isConnected = callStatus === 'connected';
 
+  const hasAudio = !!(localStream && localStream.getAudioTracks().length > 0);
+  const hasVideo = !!(localStream && localStream.getVideoTracks().length > 0);
+
   // Chế độ thu nhỏ (PIP)
   if (isMinimized) {
     return (
@@ -69,8 +72,8 @@ export const GlobalCallModal: React.FC = () => {
                 {formatDuration(callDuration)}
               </span>
               <div className="flex gap-1">
-                {isMuted && <MicOff className="w-3 h-3 text-red-400" />}
-                {isVideoOff && <VideoOff className="w-3 h-3 text-red-400" />}
+                {(!hasAudio || isMuted) && <MicOff className="w-3 h-3 text-red-400" />}
+                {(!hasVideo || isVideoOff) && <VideoOff className="w-3 h-3 text-red-400" />}
               </div>
             </div>
           </div>
@@ -178,9 +181,16 @@ export const GlobalCallModal: React.FC = () => {
             <>
               <button 
                 onClick={toggleMute}
-                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl backdrop-blur-md hover:scale-105 active:scale-95 ${isMuted ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'}`}
+                disabled={!hasAudio}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl backdrop-blur-md ${
+                  !hasAudio 
+                    ? 'bg-gray-800/80 text-gray-500 cursor-not-allowed opacity-60 border border-gray-700/50' 
+                    : isMuted 
+                      ? 'bg-white text-black hover:scale-105 active:scale-95' 
+                      : 'bg-white/10 text-white hover:bg-white/20 border border-white/10 hover:scale-105 active:scale-95'
+                }`}
               >
-                {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                {(!hasAudio || isMuted) ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
               </button>
               
               <button 
@@ -193,9 +203,16 @@ export const GlobalCallModal: React.FC = () => {
               {isVideo && (
                 <button 
                   onClick={toggleVideo}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl backdrop-blur-md hover:scale-105 active:scale-95 ${isVideoOff ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'}`}
+                  disabled={!hasVideo}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl backdrop-blur-md ${
+                    !hasVideo 
+                      ? 'bg-gray-800/80 text-gray-500 cursor-not-allowed opacity-60 border border-gray-700/50' 
+                      : isVideoOff 
+                        ? 'bg-white text-black hover:scale-105 active:scale-95' 
+                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/10 hover:scale-105 active:scale-95'
+                  }`}
                 >
-                  {isVideoOff ? <VideoOff className="w-6 h-6" /> : <VideoIcon className="w-6 h-6" />}
+                  {(!hasVideo || isVideoOff) ? <VideoOff className="w-6 h-6" /> : <VideoIcon className="w-6 h-6" />}
                 </button>
               )}
             </>

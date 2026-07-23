@@ -214,6 +214,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!stream) {
       stopRing();
       updateStatus('idle');
+      alert('Không tìm thấy Microphone/Camera hoặc bạn đã từ chối cấp quyền. Không thể thực hiện cuộc gọi.');
       return;
     }
 
@@ -237,8 +238,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const acceptCall = async () => {
     stopRing();
     const stream = await getMedia(isVideo);
-    if (connectionRef.current && stream) {
-      connectionRef.current.answer(stream);
+    if (connectionRef.current) {
+      if (!stream) {
+        alert('Không tìm thấy Microphone/Camera. Bạn vẫn có thể nhận cuộc gọi nhưng đối phương sẽ không nghe/thấy bạn.');
+        connectionRef.current.answer();
+      } else {
+        connectionRef.current.answer(stream);
+      }
       
       connectionRef.current.on('stream', (remoteStreamData) => {
         setRemoteStream(remoteStreamData);
