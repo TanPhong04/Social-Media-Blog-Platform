@@ -11,6 +11,7 @@ import { MessageCircle, Heart, ThumbsUp, Bookmark, Share2, MoreHorizontal, Edit3
 import { ConfirmModal } from './ConfirmModal';
 import ShareModal from './ShareModal';
 import AiChatDrawer from './AiChatDrawer';
+import LivePlayer from './LivePlayer';
 
 
 interface ArticleCardProps {
@@ -754,6 +755,39 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
   // Hàm phân tích và hiển thị nội dung kèm hình ảnh / video
   const renderContentWithMedia = (content: string) => {
     if (!content) return null;
+
+    // Nếu là livestream chưa kết thúc (SCHEDULED hoặc LIVE)
+    if (article.isLivestream && article.liveStatus !== 'ENDED' && article.hlsUrl) {
+      return (
+        <div className="space-y-2.5" onClick={(e) => e.stopPropagation()}>
+          {article.summary && (
+            <p className="text-text-primary text-[15px] whitespace-pre-wrap break-words leading-normal">
+              {renderHighlightedContent(article.summary)}
+            </p>
+          )}
+          <LivePlayer 
+            hlsUrl={article.hlsUrl} 
+            articleId={article.id} 
+            authorId={article.authorId} 
+            title={article.title} 
+          />
+        </div>
+      );
+    }
+
+    // Nếu là livestream đã kết thúc
+    if (article.isLivestream && article.liveStatus === 'ENDED') {
+      return (
+        <div className="space-y-2.5">
+          <p className="text-text-primary text-[15px] whitespace-pre-wrap break-words leading-normal">
+            {renderHighlightedContent(article.summary || article.title || '')}
+          </p>
+          <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6 text-center text-text-secondary text-sm">
+            Buổi phát trực tiếp này đã kết thúc
+          </div>
+        </div>
+      );
+    }
 
     let textToShow = content;
     let images: string[] = [];
@@ -1703,10 +1737,24 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onRefresh }) => {
               <span className="text-text-secondary text-sm">
                 {authorHandle}
               </span>
-              <span className="text-text-secondary text-sm">·</span>
-              <span className="text-text-secondary text-sm">
-                {formatTime(article.publishedAt || article.createdAt)}
-              </span>
+              
+              {article.isLivestream && article.liveStatus !== 'ENDED' ? (
+                <span className="ml-1 bg-red-600 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow animate-pulse flex items-center gap-0.5 select-none">
+                  <span className="w-1 h-1 rounded-full bg-white block animate-ping" />
+                  LIVE
+                </span>
+              ) : article.isLivestream && article.liveStatus === 'ENDED' ? (
+                <span className="ml-1 bg-gray-800 text-gray-400 font-medium text-[9px] px-1.5 py-0.5 rounded shadow select-none">
+                  LIVE KẾT THÚC
+                </span>
+              ) : (
+                <>
+                  <span className="text-text-secondary text-sm">·</span>
+                  <span className="text-text-secondary text-sm">
+                    {formatTime(article.publishedAt || article.createdAt)}
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Cụm nút Follow nhanh & Thao tác ba chấm */}
