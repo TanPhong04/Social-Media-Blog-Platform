@@ -12,6 +12,11 @@ export interface ArticleResponse {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  isLivestream?: boolean;
+  liveStatus?: 'SCHEDULED' | 'LIVE' | 'ENDED';
+  liveStartedAt?: string;
+  liveEndedAt?: string;
+  hlsUrl?: string;
 }
 
 export interface ArticleWriteRequest {
