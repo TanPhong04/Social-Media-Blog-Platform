@@ -39,7 +39,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/articles",
                                 "/api/v1/articles/by-slug/**",
-                                "/api/v1/articles/users/**"
+                                "/api/v1/articles/users/**",
+                                "/api/v1/articles/livestream/active"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/articles/livestream/webhook/on-publish",
+                                "/api/v1/articles/livestream/webhook/on-unpublish"
                         ).permitAll()
                         // Allow GET /api/v1/articles/{uuid} for viewing article detail publicly
                         .requestMatchers(HttpMethod.GET, "/api/v1/articles/{id}").permitAll()
