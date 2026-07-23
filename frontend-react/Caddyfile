@@ -21,3 +21,8 @@ axion.id.vn, www.axion.id.vn {
         file_server
     }
 }
+
+live.axion.id.vn {
+    # Reverse proxy for SRS Livestream (HTTP-FLV)
+    reverse_proxy http://206.189.156.230:1980
+}
