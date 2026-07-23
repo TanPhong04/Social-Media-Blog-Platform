@@ -7,8 +7,9 @@ import { mixFeed } from '../utils/feedMixer';
 import ArticleCard from '../components/ArticleCard';
 import { ReelsCarousel } from '../components/feed/ReelsCarousel';
 import { useAuth } from '../contexts/AuthContext';
-import { Image, Smile, Globe, AlertCircle } from 'lucide-react';
+import { Image, Smile, Globe, AlertCircle, Radio } from 'lucide-react';
 import { mediaApi } from '../api/mediaApi';
+import CreateLiveModal from '../components/CreateLiveModal';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Spinner } from '../components/ui/Spinner';
@@ -33,6 +34,7 @@ const TweetBox: React.FC<{
   const [uploadingText, setUploadingText] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
+  const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
 
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
@@ -98,12 +100,14 @@ const TweetBox: React.FC<{
         tags.push('reel');
       }
 
-      await articleApi.createArticle({
+      const created = await articleApi.createArticle({
         title,
         content: finalContent,
         summary,
         tags,
       });
+      // Tự động publish ngay sau khi tạo để bài viết hiển thị trên bản tin
+      await articleApi.publishArticle(created.id);
 
       setPostText('');
       setSelectedFiles([]);
@@ -197,6 +201,16 @@ const TweetBox: React.FC<{
               <Image className="w-5 h-5" />
             </button>
 
+            <button
+              type="button"
+              onClick={() => setIsLiveModalOpen(true)}
+              disabled={posting}
+              className="p-2 text-primary hover:bg-primary-muted rounded-full transition-colors cursor-pointer disabled:opacity-50"
+              title="Phát Livestream"
+            >
+              <Radio className="w-5 h-5 text-red-500 animate-pulse" />
+            </button>
+
             <div className="relative" ref={emojiPickerRef}>
               <button
                 type="button"
@@ -233,6 +247,11 @@ const TweetBox: React.FC<{
           </div>
         </div>
       </div>
+      <CreateLiveModal 
+        isOpen={isLiveModalOpen} 
+        onClose={() => setIsLiveModalOpen(false)} 
+        onSuccess={onPostSuccess} 
+      />
     </div>
   );
 };
