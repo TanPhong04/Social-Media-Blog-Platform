@@ -117,7 +117,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentPeer.destroy();
       }
       
-      const newPeer = new Peer(`axion-user-${user.id}`);
+      const newPeer = new Peer(`axion-web-${user.id}`);
       currentPeer = newPeer;
       
       newPeer.on('open', (id) => {
@@ -144,7 +144,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         connectionRef.current = call;
         isCallerRef.current = false;
         
-        const callerId = call.peer.replace('axion-user-', '');
+        const callerId = call.peer.replace(/^axion-(web|app)-/, '');
         remoteIdRef.current = callerId;
         
         try {
@@ -256,21 +256,38 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const call = peer.call(`axion-user-${contactId}`, stream, { metadata: { isVideo: video } });
-    connectionRef.current = call;
+    // Try calling both web and mobile peer IDs simultaneously
+    // The first one to answer wins, the other gets closed
+    const targetPeerIds = [`axion-web-${contactId}`, `axion-app-${contactId}`];
+    const pendingCalls: MediaConnection[] = [];
+    let hasConnected = false;
 
-    call.on('stream', (remoteStreamData) => {
-      stopRing();
-      setRemoteStream(remoteStreamData);
-      updateStatus('connected');
-    });
+    for (const targetPeerId of targetPeerIds) {
+      const call = peer.call(targetPeerId, stream, { metadata: { isVideo: video } });
+      pendingCalls.push(call);
 
-    call.on('close', () => {
-      if (statusRef.current === 'connected' && isCallerRef.current) {
-         sendCallLog('ENDED');
-      }
-      endCall(false);
-    });
+      call.on('stream', (remoteStreamData) => {
+        if (hasConnected) return; // Already connected via another target
+        hasConnected = true;
+        connectionRef.current = call;
+
+        // Close the other pending call(s)
+        pendingCalls.forEach(c => { if (c !== call) try { c.close(); } catch (_) {} });
+
+        stopRing();
+        setRemoteStream(remoteStreamData);
+        updateStatus('connected');
+      });
+
+      call.on('close', () => {
+        if (connectionRef.current === call && statusRef.current !== 'idle') {
+          if (statusRef.current === 'connected' && isCallerRef.current) {
+            sendCallLog('ENDED');
+          }
+          endCall(false);
+        }
+      });
+    }
   };
 
   const acceptCall = async () => {
