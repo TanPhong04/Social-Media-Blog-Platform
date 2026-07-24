@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:peerdart/peerdart.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/data/auth_repository.dart';
 import '../../../chat/data/chat_repository.dart';
 
 class PeerCallOption implements CallOption {
@@ -84,7 +85,13 @@ class CallNotifier extends Notifier<CallData> {
       _peer?.dispose();
     });
 
-    // Listen to auth state to initialize Peer
+    // Initialize Peer if user is already logged in
+    final currentUser = ref.read(authStateProvider).value;
+    if (currentUser != null) {
+      _initPeer(currentUser.id);
+    }
+
+    // Listen to auth state to initialize Peer on login/logout
     ref.listen(authStateProvider, (previous, next) {
       next.whenData((user) {
         if (user != null) {
@@ -119,31 +126,65 @@ class CallNotifier extends Notifier<CallData> {
     _isInit = true;
   }
 
+  /// Load user profile to get the real display name and avatar
+  Future<void> _loadCallerProfile(String userId) async {
+    try {
+      final authRepo = ref.read(authRepositoryProvider);
+      final profile = await authRepo.getUserById(userId);
+      // Update state with the real name and avatar
+      if (state.state != CallState.none) {
+        state = state.copyWith(
+          callerName: profile.displayName,
+          callerAvatar: profile.avatarUrl ?? 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(profile.displayName)}&background=6366f1&color=fff',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) print('Failed to load caller profile: $e');
+    }
+  }
+
   void _initPeer(String userId) {
     if (_peer != null) return;
-    _peer = Peer(id: 'axion-user-$userId');
+    _peer = Peer(id: 'axion-app-$userId');
     
     _peer!.on('open').listen((id) {});
 
     _peer!.on<MediaConnection>('call').listen((call) {
       _connection = call;
       _isCaller = false;
-      _targetUserId = call.peer.replaceAll('axion-user-', '');
+      _targetUserId = call.peer.replaceAll(RegExp(r'^axion-(web|app)-'), '');
       
       bool isVideo = false;
-      if (call.options?.payload != null && call.options?.payload!.metadata != null) {
-        final meta = call.options?.payload!.metadata;
+      try {
+        // In peerdart, metadata might be on the call object directly or inside options
+        dynamic meta;
+        try {
+          meta = (call as dynamic).metadata;
+        } catch (_) {}
+        
+        if (meta == null) {
+          try {
+            meta = call.options?.metadata;
+          } catch (_) {}
+        }
+        
         if (meta is Map && meta['isVideo'] == true) {
           isVideo = true;
         }
+      } catch (e) {
+        if (kDebugMode) print('Error parsing call metadata: $e');
       }
       
+      // Set initial state with placeholder name, then load real profile
       state = state.copyWith(
         state: CallState.ringing,
-        callerName: 'Người gọi ($_targetUserId)',
-        callerAvatar: 'https://ui-avatars.com/api/?name=$_targetUserId',
+        callerName: 'Đang tải...',
+        callerAvatar: 'https://ui-avatars.com/api/?name=User&background=6366f1&color=fff',
         isVideo: isVideo,
       );
+
+      // Load the real caller profile asynchronously
+      _loadCallerProfile(_targetUserId!);
 
       call.on('close').listen((_) {
         endCall(isUserInitiated: false);
@@ -215,15 +256,38 @@ class CallNotifier extends Notifier<CallData> {
     
     if (_localStream != null) {
       final options = PeerCallOption(metadata: {'isVideo': isVideo});
-      _connection = _peer!.call('axion-user-$targetId', _localStream!, options: options);
-      
-      _connection!.on('stream').listen((remoteStream) {
-        remoteRenderer.srcObject = remoteStream as MediaStream;
-      });
-      
-      _connection!.on('close').listen((_) {
-        endCall(isUserInitiated: false);
-      });
+      // Try calling both web and mobile peer IDs simultaneously
+      // The first one to answer wins, the other gets closed
+      final targetPeerIds = ['axion-web-$targetId', 'axion-app-$targetId'];
+      final List<MediaConnection> pendingCalls = [];
+      bool hasConnected = false;
+
+      for (final peerId in targetPeerIds) {
+        final call = _peer!.call(peerId, _localStream!, options: options);
+        pendingCalls.add(call);
+
+        call.on('stream').listen((remoteStream) {
+          if (hasConnected) return; // Already connected via another target
+          hasConnected = true;
+          _connection = call;
+
+          // Close the other pending call(s)
+          for (final c in pendingCalls) {
+            if (c != call) {
+              try { c.close(); } catch (_) {}
+            }
+          }
+
+          remoteRenderer.srcObject = remoteStream as MediaStream;
+          state = state.copyWith(state: CallState.inCall);
+        });
+
+        call.on('close').listen((_) {
+          if (_connection == call) {
+            endCall(isUserInitiated: false);
+          }
+        });
+      }
     } else {
       endCall(isUserInitiated: true);
     }
@@ -250,7 +314,11 @@ class CallNotifier extends Notifier<CallData> {
         'isVideo': state.isVideo,
         'duration': 0
       });
-      ref.read(chatRepositoryProvider).sendMessage(_targetUserId!, '[CALL_LOG]:$payload');
+      final target = _targetUserId!;
+      ref.read(chatRepositoryProvider).sendMessage(target, '[CALL_LOG]:$payload').then((_) {
+        // Refresh the chat history locally so the caller sees their sent log immediately
+        ref.invalidate(chatHistoryProvider(target));
+      }).catchError((_) {});
     }
     
     _connection?.close();

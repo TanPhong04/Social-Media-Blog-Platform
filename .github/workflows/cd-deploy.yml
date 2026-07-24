@@ -79,6 +79,8 @@ jobs:
             MINIO_PUBLIC_URL=https://axion.id.vn
             MINIO_ROOT_USER=minio
             MINIO_ROOT_PASSWORD=minio12345
+            SRS_RTMP_URL=rtmp://axion.id.vn:1935/live
+            SRS_HLS_URL=https://live.axion.id.vn/live
             ENVEOF
             
             # Giữ lại các biến môi trường cấu hình thủ công (Google, Resend, Gemini) nếu có

@@ -97,7 +97,7 @@ export const GlobalCallModal: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black animate-fade-in">
       <div className="relative w-full max-w-5xl aspect-video sm:rounded-[32px] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] flex border border-white/5 bg-gray-900">
         
         {/* Nút Thu nhỏ */}
@@ -121,7 +121,7 @@ export const GlobalCallModal: React.FC = () => {
               playsInline 
             />
           ) : (
-            <div className="flex flex-col items-center justify-center relative z-10 w-full h-full bg-gradient-to-b from-gray-900/50 to-black">
+            <div className="flex flex-col items-center justify-center relative z-10 w-full h-full bg-gradient-to-b from-gray-900 to-black">
               <div className="relative">
                 {!isConnected && <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />}
                 <Avatar 
